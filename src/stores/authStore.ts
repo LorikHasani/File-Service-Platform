@@ -107,18 +107,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return;
 
     try {
+      console.log('Fetching profile for user:', user.id);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
+      }
 
+      console.log('Profile fetched:', data);
+      console.log('User role:', data.role);
+      
       const isAdmin = data.role === 'admin' || data.role === 'superadmin';
+      console.log('Is admin:', isAdmin);
+      
       set({ profile: data, isAdmin });
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Don't crash - set default values
+      set({ profile: null, isAdmin: false });
     }
   },
 

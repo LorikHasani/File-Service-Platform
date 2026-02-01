@@ -4,14 +4,20 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui';
 
-// Pages
+// Client Pages
 import { LoginPage } from '@/pages/Login';
 import { RegisterPage } from '@/pages/Register';
 import { DashboardPage } from '@/pages/Dashboard';
 import { NewJobPage } from '@/pages/NewJob';
 import { JobsListPage } from '@/pages/JobsList';
 import { JobDetailPage } from '@/pages/JobDetail';
+
+// Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
+import { AdminJobsPage } from '@/pages/admin/AdminJobs';
+import { AdminJobDetailPage } from '@/pages/admin/AdminJobDetail';
+import { AdminUsersPage } from '@/pages/admin/AdminUsers';
+import { AdminStatsPage } from '@/pages/admin/AdminStats';
 
 // Protected Route
 const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }) => {
@@ -52,7 +58,7 @@ const PublicRoute: React.FC = () => {
   return <Outlet />;
 };
 
-// Placeholder
+// Placeholder for pages not yet built
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
   <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
     <div className="text-center">
@@ -68,7 +74,7 @@ const App: React.FC = () => {
   useEffect(() => {
     initialize();
     
-    // Dark mode
+    // Dark mode from localStorage
     const theme = localStorage.getItem('theme');
     if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
@@ -78,13 +84,13 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+        {/* Public Routes */}
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
 
-        {/* Client */}
+        {/* Client Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/jobs" element={<JobsListPage />} />
@@ -94,13 +100,13 @@ const App: React.FC = () => {
           <Route path="/settings" element={<Placeholder title="Settings" />} />
         </Route>
 
-        {/* Admin */}
+        {/* Admin Routes */}
         <Route element={<ProtectedRoute adminOnly />}>
           <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/jobs" element={<Placeholder title="All Jobs" />} />
-          <Route path="/admin/jobs/:id" element={<Placeholder title="Job Management" />} />
-          <Route path="/admin/users" element={<Placeholder title="Users" />} />
-          <Route path="/admin/stats" element={<Placeholder title="Statistics" />} />
+          <Route path="/admin/jobs" element={<AdminJobsPage />} />
+          <Route path="/admin/jobs/:id" element={<AdminJobDetailPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/stats" element={<AdminStatsPage />} />
         </Route>
 
         {/* Redirects */}

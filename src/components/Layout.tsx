@@ -37,6 +37,9 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const navigate = useNavigate();
   const navItems = isAdmin ? adminNavItems : clientNavItems;
 
+  // Debug
+  console.log('Sidebar - isAdmin:', isAdmin, 'profile:', profile?.email, 'role:', profile?.role);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');

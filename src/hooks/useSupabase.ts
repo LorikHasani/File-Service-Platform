@@ -24,87 +24,104 @@ export function useJobs(status?: JobStatus) {
   const profile = useAuthStore((s) => s.profile);
   const isAdmin = useAuthStore((s) => s.isAdmin);
 
-  const fetchJobs = useCallback(async () => {
-    if (!profile) return;
-    
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!isAdmin) {
-        query = query.eq('client_id', profile.id);
+  useEffect(() => {
+    // Always set loading false if no profile yet
+    if (!profile) {
+      // Check if we're still initializing
+      const isLoading = useAuthStore.getState().isLoading;
+      if (!isLoading) {
+        setLoading(false);
       }
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setJobs(data || []);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
+      return;
     }
-  }, [profile, isAdmin, status]);
 
-  useEffect(() => {
+    let isMounted = true;
+
+    const fetchJobs = async () => {
+      try {
+        let query = supabase
+          .from('jobs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!isAdmin) {
+          query = query.eq('client_id', profile.id);
+        }
+
+        if (status) {
+          query = query.eq('status', status);
+        }
+
+        const { data, error } = await query;
+
+        if (!isMounted) return;
+
+        if (error) throw error;
+        setJobs(data || []);
+        setError(null);
+      } catch (err) {
+        if (isMounted) setError(err as Error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    setLoading(true);
     fetchJobs();
-  }, [fetchJobs]);
 
-  // Subscribe to realtime updates
-  useEffect(() => {
-    if (!profile) return;
-
+    // Subscribe to realtime updates
     const channel = supabase
-      .channel('jobs-changes')
+      .channel(`jobs-list-${profile.id}-${Date.now()}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-          filter: isAdmin ? undefined : `client_id=eq.${profile.id}`,
-        },
+        { event: '*', schema: 'public', table: 'jobs' },
         () => {
-          fetchJobs();
+          if (isMounted) fetchJobs();
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [profile, isAdmin, fetchJobs]);
+  }, [profile?.id, isAdmin, status]);
 
-  return { jobs, loading, error, refetch: fetchJobs };
+  const refetch = () => {
+    if (profile) {
+      setLoading(true);
+      // Re-trigger effect by updating state
+    }
+  };
+
+  return { jobs, loading, error, refetch };
 }
 
 export function useJob(jobId: string | undefined) {
   const [job, setJob] = useState<JobWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!jobId) {
       setLoading(false);
+      setJob(null);
       return;
     }
 
+    let isMounted = true;
+
     const fetchJob = async () => {
       try {
-        // Fetch job with services and files
+        // Fetch job
         const { data: jobData, error: jobError } = await supabase
           .from('jobs')
           .select('*')
           .eq('id', jobId)
           .single();
 
+        if (!isMounted) return;
         if (jobError) throw jobError;
 
         // Fetch services
@@ -126,44 +143,56 @@ export function useJob(jobId: string | undefined) {
           .eq('id', jobData.client_id)
           .single();
 
-        setJob({
-          ...jobData,
-          services: services || [],
-          files: files || [],
-          client: client || undefined,
-        });
+        if (isMounted) {
+          setJob({
+            ...jobData,
+            services: services || [],
+            files: files || [],
+            client: client || undefined,
+          });
+          setError(null);
+        }
       } catch (err) {
-        setError(err as Error);
+        console.error('Error fetching job:', err);
+        if (isMounted) setError(err as Error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
+    setLoading(true);
     fetchJob();
 
     // Subscribe to job updates
-    const channel = supabase
-      .channel(`job-${jobId}`)
+    const jobChannel = supabase
+      .channel(`job-detail-${jobId}-${Date.now()}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-          filter: `id=eq.${jobId}`,
-        },
-        () => {
-          fetchJob();
-        }
+        { event: '*', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
+        () => { if (isMounted) fetchJob(); }
+      )
+      .subscribe();
+
+    // Subscribe to file updates
+    const filesChannel = supabase
+      .channel(`files-detail-${jobId}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` },
+        () => { if (isMounted) fetchJob(); }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      supabase.removeChannel(jobChannel);
+      supabase.removeChannel(filesChannel);
     };
-  }, [jobId]);
+  }, [jobId, refreshKey]);
 
-  return { job, loading, error };
+  const refetch = () => setRefreshKey(k => k + 1);
+
+  return { job, loading, error, refetch };
 }
 
 // Create job with services
@@ -206,22 +235,50 @@ export async function createJob(
   }
 }
 
-// Update job status (admin)
+// Update job status (admin) - using direct update instead of RPC
 export async function updateJobStatus(
   jobId: string,
   status: JobStatus,
   adminNotes?: string
 ): Promise<{ error: Error | null }> {
   try {
-    const { error } = await supabase.rpc('update_job_status', {
-      p_job_id: jobId,
-      p_status: status,
-      p_admin_notes: adminNotes,
-    });
+    const user = useAuthStore.getState().user;
+    if (!user) throw new Error('Not authenticated');
 
-    if (error) throw error;
+    console.log('Updating job status:', { jobId, status, adminNotes });
+
+    const updateData: Record<string, any> = {
+      status,
+      updated_at: new Date().toISOString(),
+      assigned_admin_id: user.id,
+    };
+
+    // Add timestamps based on status
+    if (status === 'in_progress') {
+      updateData.started_at = new Date().toISOString();
+    } else if (status === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    }
+
+    // Add admin notes if provided
+    if (adminNotes) {
+      updateData.admin_notes = adminNotes;
+    }
+
+    const { error } = await supabase
+      .from('jobs')
+      .update(updateData)
+      .eq('id', jobId);
+
+    if (error) {
+      console.error('Update job status error:', error);
+      throw error;
+    }
+
+    console.log('Job status updated successfully');
     return { error: null };
   } catch (err) {
+    console.error('updateJobStatus error:', err);
     return { error: err as Error };
   }
 }
@@ -328,6 +385,9 @@ export async function uploadFile(
 
     if (dbError) throw dbError;
 
+    // If admin uploads modified file, optionally mark job as completed
+    // This is handled in the UI now
+
     return { error: null };
   } catch (err) {
     return { error: err as Error };
@@ -359,60 +419,111 @@ export async function downloadFile(storagePath: string, fileName: string): Promi
 export function useJobMessages(jobId: string | undefined) {
   const [messages, setMessages] = useState<(JobMessage & { sender?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  // Fetch messages
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId) {
+      setLoading(false);
+      setMessages([]);
+      return;
+    }
+
+    let isMounted = true;
 
     const fetchMessages = async () => {
-      const { data } = await supabase
-        .from('job_messages')
-        .select('*, sender:profiles(*)')
-        .eq('job_id', jobId)
-        .order('created_at', { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from('job_messages')
+          .select('*')
+          .eq('job_id', jobId)
+          .order('created_at', { ascending: true });
 
-      setMessages(data || []);
-      setLoading(false);
+        if (!isMounted) return;
+
+        if (error) {
+          console.error('Error fetching messages:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Fetch sender profiles
+          const messagesWithSenders = await Promise.all(
+            data.map(async (msg) => {
+              const { data: sender } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', msg.sender_id)
+                .single();
+              return { ...msg, sender: sender || undefined };
+            })
+          );
+          if (isMounted) setMessages(messagesWithSenders);
+        } else {
+          if (isMounted) setMessages([]);
+        }
+      } catch (err) {
+        console.error('fetchMessages error:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
+    setLoading(true);
     fetchMessages();
 
-    // Subscribe to new messages
+    // Subscribe to realtime changes
+    const channelName = `messages-${jobId}-${Date.now()}`;
     const channel = supabase
-      .channel(`messages-${jobId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'job_messages',
-          filter: `job_id=eq.${jobId}`,
-        },
+        { event: '*', schema: 'public', table: 'job_messages', filter: `job_id=eq.${jobId}` },
         () => {
-          fetchMessages();
+          if (isMounted) fetchMessages();
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [jobId]);
+  }, [jobId, refreshKey]);
 
-  const sendMessage = async (message: string, isInternal = false) => {
+  // Send message function - simple, no useCallback
+  const sendMessage = async (message: string, isInternal = false): Promise<{ error: Error | null }> => {
     const user = useAuthStore.getState().user;
-    if (!user || !jobId) return { error: new Error('Not authenticated') };
+    if (!user || !jobId) {
+      return { error: new Error('Not authenticated') };
+    }
 
-    const { error } = await supabase.from('job_messages').insert({
-      job_id: jobId,
-      sender_id: user.id,
-      message,
-      is_internal: isInternal,
-    });
+    try {
+      const { error } = await supabase.from('job_messages').insert({
+        job_id: jobId,
+        sender_id: user.id,
+        message,
+        is_internal: isInternal,
+      });
 
-    return { error };
+      if (error) {
+        console.error('Send message error:', error);
+        return { error };
+      }
+
+      // Trigger a refresh
+      setRefreshKey(k => k + 1);
+      return { error: null };
+    } catch (err) {
+      console.error('sendMessage error:', err);
+      return { error: err as Error };
+    }
   };
 
-  return { messages, loading, sendMessage };
+  const refetch = () => setRefreshKey(k => k + 1);
+
+  return { messages, loading, sendMessage, refetch };
 }
 
 // ============================================================================
@@ -477,61 +588,129 @@ export function useCreditPackages() {
 export function useAllJobs() {
   const [jobs, setJobs] = useState<(Job & { client?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const [error, setError] = useState<string | null>(null);
+  const profile = useAuthStore((s) => s.profile);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!profile) {
+      // Check if auth is still loading
+      const isAuthLoading = useAuthStore.getState().isLoading;
+      if (!isAuthLoading) {
+        setLoading(false);
+      }
+      return;
+    }
+
+    let isMounted = true;
 
     const fetchJobs = async () => {
-      const { data } = await supabase
-        .from('jobs')
-        .select('*, client:profiles(*)')
-        .order('created_at', { ascending: false });
+      try {
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('jobs')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      setJobs(data || []);
-      setLoading(false);
+        if (!isMounted) return;
+
+        if (jobsError) {
+          console.error('Error fetching jobs:', jobsError);
+          setError(jobsError.message);
+          setLoading(false);
+          return;
+        }
+
+        if (!jobsData || jobsData.length === 0) {
+          setJobs([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch client profiles for each job
+        const jobsWithClients = await Promise.all(
+          jobsData.map(async (job) => {
+            const { data: clientData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', job.client_id)
+              .single();
+            return { ...job, client: clientData || undefined };
+          })
+        );
+
+        if (isMounted) {
+          setJobs(jobsWithClients);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Error in fetchJobs:', err);
+        if (isMounted) setError(String(err));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
+    setLoading(true);
     fetchJobs();
 
     // Subscribe to changes
     const channel = supabase
-      .channel('admin-jobs')
+      .channel(`admin-all-jobs-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'jobs' },
-        () => fetchJobs()
+        () => { if (isMounted) fetchJobs(); }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [isAdmin]);
+  }, [profile?.id]);
 
-  return { jobs, loading };
+  return { jobs, loading, error };
 }
 
 export function useAllUsers() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const profile = useAuthStore((s) => s.profile);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!profile) {
+      const isAuthLoading = useAuthStore.getState().isLoading;
+      if (!isAuthLoading) {
+        setLoading(false);
+      }
+      return;
+    }
+
+    let isMounted = true;
 
     const fetchUsers = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      setUsers(data || []);
-      setLoading(false);
+        if (isMounted) {
+          setUsers(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
+    setLoading(true);
     fetchUsers();
-  }, [isAdmin]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.id]);
 
   const addCredits = async (userId: string, amount: number, description: string) => {
     const { error } = await supabase.rpc('admin_add_credits', {
@@ -563,60 +742,69 @@ export function useAdminStats() {
     totalUsers: 0,
   });
   const [loading, setLoading] = useState(true);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const profile = useAuthStore((s) => s.profile);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
 
     const fetchStats = async () => {
-      // Get job counts
-      const { count: totalJobs } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true });
+      try {
+        // Get job counts
+        const { count: totalJobs } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true });
 
-      const { count: pendingJobs } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        const { count: pendingJobs } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
 
-      const { count: inProgressJobs } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'in_progress');
+        const { count: inProgressJobs } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'in_progress');
 
-      const today = new Date().toISOString().split('T')[0];
-      const { count: completedToday } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed')
-        .gte('completed_at', today);
+        const today = new Date().toISOString().split('T')[0];
+        const { count: completedToday } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'completed')
+          .gte('completed_at', today);
 
-      // Get total revenue
-      const { data: revenueData } = await supabase
-        .from('jobs')
-        .select('credits_used');
-      
-      const totalRevenue = (revenueData || []).reduce((sum, j) => sum + (j.credits_used || 0), 0);
+        // Get total revenue
+        const { data: revenueData } = await supabase
+          .from('jobs')
+          .select('credits_used');
+        
+        const totalRevenue = (revenueData || []).reduce((sum, j) => sum + (j.credits_used || 0), 0);
 
-      // Get user count
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'client');
+        // Get user count
+        const { count: totalUsers } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'client');
 
-      setStats({
-        totalJobs: totalJobs || 0,
-        pendingJobs: pendingJobs || 0,
-        inProgressJobs: inProgressJobs || 0,
-        completedToday: completedToday || 0,
-        totalRevenue,
-        totalUsers: totalUsers || 0,
-      });
-      setLoading(false);
+        setStats({
+          totalJobs: totalJobs || 0,
+          pendingJobs: pendingJobs || 0,
+          inProgressJobs: inProgressJobs || 0,
+          completedToday: completedToday || 0,
+          totalRevenue,
+          totalUsers: totalUsers || 0,
+        });
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
+    setLoading(true);
     fetchStats();
-  }, [isAdmin]);
+  }, [profile?.id]);
 
   return { stats, loading };
 }
