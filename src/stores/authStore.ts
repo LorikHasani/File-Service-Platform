@@ -28,7 +28,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
-      // Get initial session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
@@ -36,13 +35,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await get().fetchProfile();
       }
 
-      // Listen for auth changes — subscription persists for app lifetime
       supabase.auth.onAuthStateChange(async (event, session) => {
         const prevUser = get().user;
         set({ user: session?.user ?? null, session });
 
         if (session?.user) {
-          // Only re-fetch profile when user actually changes or signs in
           if (!prevUser || prevUser.id !== session.user.id || event === 'SIGNED_IN') {
             await get().fetchProfile();
           }
@@ -87,13 +84,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      // Wait for the database trigger to create the profile row before updating
       if (data.user) {
         await new Promise((r) => setTimeout(r, 500));
-        await supabase.from('profiles').update({
-          contact_name: metadata.contact_name,
-          company_name: metadata.company_name || null,
-        }).eq('id', data.user.id);
+        await supabase
+          .from('profiles')
+          .update({
+            contact_name: metadata.contact_name,
+            company_name: metadata.company_name || null,
+          })
+          .eq('id', data.user.id);
       }
 
       return { error: null };

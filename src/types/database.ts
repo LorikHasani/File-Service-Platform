@@ -53,6 +53,7 @@ export interface Database {
           email_notifications?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       jobs: {
         Row: {
@@ -135,6 +136,22 @@ export interface Database {
           completed_at?: string | null;
           revision_count?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_assigned_admin_id_fkey";
+            columns: ["assigned_admin_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       job_services: {
         Row: {
@@ -160,6 +177,22 @@ export interface Database {
           service_name?: string;
           price?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: "job_services_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_services_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       services: {
         Row: {
@@ -199,6 +232,15 @@ export interface Database {
           is_active?: boolean;
           icon?: string | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: "services_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "service_categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       service_categories: {
         Row: {
@@ -223,6 +265,7 @@ export interface Database {
           sort_order?: number;
           is_active?: boolean;
         };
+        Relationships: [];
       };
       files: {
         Row: {
@@ -253,6 +296,22 @@ export interface Database {
           file_size?: number;
           uploaded_by?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "files_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "files_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       job_messages: {
         Row: {
@@ -280,6 +339,22 @@ export interface Database {
           is_internal?: boolean;
           is_read?: boolean;
         };
+        Relationships: [
+          {
+            foreignKeyName: "job_messages_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       transactions: {
         Row: {
@@ -316,6 +391,22 @@ export interface Database {
           description?: string | null;
           processed_by?: string | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: "transactions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       credit_packages: {
         Row: {
@@ -346,6 +437,7 @@ export interface Database {
           is_active?: boolean;
           sort_order?: number;
         };
+        Relationships: [];
       };
       notifications: {
         Row: {
@@ -376,7 +468,19 @@ export interface Database {
           link_id?: string | null;
           is_read?: boolean;
         };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+    };
+    Views: {
+      [_ in never]: never;
     };
     Functions: {
       create_job_with_services: {
@@ -385,13 +489,13 @@ export interface Database {
           p_vehicle_model: string;
           p_vehicle_year: number;
           p_engine_type: string;
-          p_engine_power_hp?: number;
-          p_ecu_type?: string;
-          p_gearbox_type?: string;
-          p_vin?: string;
-          p_mileage?: number;
-          p_fuel_type?: string;
-          p_client_notes?: string;
+          p_engine_power_hp: number | null;
+          p_ecu_type: string | null;
+          p_gearbox_type: string | null;
+          p_vin: string | null;
+          p_mileage: number | null;
+          p_fuel_type: string | null;
+          p_client_notes: string | null;
           p_service_codes: string[];
         };
         Returns: string;
@@ -399,8 +503,8 @@ export interface Database {
       update_job_status: {
         Args: {
           p_job_id: string;
-          p_status: JobStatus;
-          p_admin_notes?: string;
+          p_status: string;
+          p_admin_notes: string | null;
         };
         Returns: boolean;
       };
@@ -423,6 +527,12 @@ export interface Database {
         Args: Record<string, never>;
         Returns: boolean;
       };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }

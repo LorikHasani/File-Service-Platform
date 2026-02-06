@@ -63,11 +63,10 @@ export function useJobs(status?: JobStatus) {
   useEffect(() => {
     if (!profile) return;
 
-    // Build the subscription — filter must be a valid string, not undefined
     const channelConfig: {
-      event: '*';
-      schema: 'public';
-      table: 'jobs';
+      event: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+      schema: string;
+      table: string;
       filter?: string;
     } = {
       event: '*',
@@ -75,7 +74,6 @@ export function useJobs(status?: JobStatus) {
       table: 'jobs',
     };
 
-    // Only apply client filter for non-admin users
     if (!isAdmin) {
       channelConfig.filter = `client_id=eq.${profile.id}`;
     }
@@ -107,7 +105,6 @@ export function useJob(jobId: string | undefined) {
     }
 
     try {
-      // Fetch job
       const { data: jobData, error: jobError } = await supabase
         .from('jobs')
         .select('*')
@@ -116,19 +113,16 @@ export function useJob(jobId: string | undefined) {
 
       if (jobError) throw jobError;
 
-      // Fetch services
       const { data: services } = await supabase
         .from('job_services')
         .select('*')
         .eq('job_id', jobId);
 
-      // Fetch files
       const { data: files } = await supabase
         .from('files')
         .select('*')
         .eq('job_id', jobId);
 
-      // Fetch client profile
       const { data: client } = await supabase
         .from('profiles')
         .select('*')
@@ -152,7 +146,6 @@ export function useJob(jobId: string | undefined) {
     fetchJob();
   }, [fetchJob]);
 
-  // Subscribe to job updates
   useEffect(() => {
     if (!jobId) return;
 
@@ -161,7 +154,7 @@ export function useJob(jobId: string | undefined) {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*' as const,
           schema: 'public',
           table: 'jobs',
           filter: `id=eq.${jobId}`,
@@ -203,18 +196,18 @@ export async function createJob(
       p_vehicle_model: vehicleData.vehicle_model,
       p_vehicle_year: vehicleData.vehicle_year,
       p_engine_type: vehicleData.engine_type,
-      p_engine_power_hp: vehicleData.engine_power_hp,
-      p_ecu_type: vehicleData.ecu_type,
-      p_gearbox_type: vehicleData.gearbox_type,
-      p_vin: vehicleData.vin,
-      p_mileage: vehicleData.mileage,
-      p_fuel_type: vehicleData.fuel_type,
-      p_client_notes: vehicleData.client_notes,
+      p_engine_power_hp: vehicleData.engine_power_hp ?? null,
+      p_ecu_type: vehicleData.ecu_type ?? null,
+      p_gearbox_type: vehicleData.gearbox_type ?? null,
+      p_vin: vehicleData.vin ?? null,
+      p_mileage: vehicleData.mileage ?? null,
+      p_fuel_type: vehicleData.fuel_type ?? null,
+      p_client_notes: vehicleData.client_notes ?? null,
       p_service_codes: serviceCodes,
     });
 
     if (error) throw error;
-    return { jobId: data, error: null };
+    return { jobId: data as string, error: null };
   } catch (err) {
     return { jobId: null, error: err as Error };
   }
@@ -230,7 +223,7 @@ export async function updateJobStatus(
     const { error } = await supabase.rpc('update_job_status', {
       p_job_id: jobId,
       p_status: status,
-      p_admin_notes: adminNotes,
+      p_admin_notes: adminNotes ?? null,
     });
 
     if (error) throw error;
@@ -270,7 +263,6 @@ export function useServices() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        // Fetch categories
         const { data: cats, error: catError } = await supabase
           .from('service_categories')
           .select('*')
@@ -279,7 +271,6 @@ export function useServices() {
 
         if (catError) throw catError;
 
-        // Fetch services
         const { data: services, error: svcError } = await supabase
           .from('services')
           .select('*')
@@ -288,10 +279,12 @@ export function useServices() {
 
         if (svcError) throw svcError;
 
-        // Group services by category
-        const categoriesWithServices = (cats || []).map((cat) => ({
+        const typedCats = cats || [];
+        const typedServices = services || [];
+
+        const categoriesWithServices = typedCats.map((cat) => ({
           ...cat,
-          services: (services || []).filter((s) => s.category_id === cat.id),
+          services: typedServices.filter((s) => s.category_id === cat.id),
         }));
 
         setCategories(categoriesWithServices);
@@ -321,7 +314,6 @@ export async function uploadFile(
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
 
-    // Upload to Supabase Storage
     const filePath = `${jobId}/${fileType}/${Date.now()}_${file.name}`;
     
     const { error: uploadError } = await supabase.storage
@@ -330,7 +322,6 @@ export async function uploadFile(
 
     if (uploadError) throw uploadError;
 
-    // Create file record
     const { error: dbError } = await supabase.from('files').insert({
       job_id: jobId,
       file_type: fileType,
@@ -355,7 +346,6 @@ export async function downloadFile(storagePath: string, fileName: string): Promi
 
   if (error) throw error;
 
-  // Create download link
   const url = URL.createObjectURL(data);
   const a = document.createElement('a');
   a.href = url;
@@ -383,7 +373,7 @@ export function useJobMessages(jobId: string | undefined) {
       .eq('job_id', jobId)
       .order('created_at', { ascending: true });
 
-    setMessages(data || []);
+    setMessages((data as (JobMessage & { sender?: Profile })[]) || []);
     setLoading(false);
   }, [jobId]);
 
@@ -395,13 +385,12 @@ export function useJobMessages(jobId: string | undefined) {
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel(`messages-${jobId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: 'INSERT' as const,
           schema: 'public',
           table: 'job_messages',
           filter: `job_id=eq.${jobId}`,
@@ -506,7 +495,6 @@ export function useAllJobs() {
       .select('*, client:profiles!client_id(*)')
       .order('created_at', { ascending: false });
 
-    // Cast the joined result to our expected type
     setJobs((data as unknown as JobWithClient[]) || []);
     setLoading(false);
   }, [isAdmin]);
@@ -516,12 +504,11 @@ export function useAllJobs() {
 
     if (!isAdmin) return;
 
-    // Subscribe to changes
     const channel = supabase
       .channel('admin-jobs')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'jobs' },
+        { event: '*' as const, schema: 'public', table: 'jobs' },
         () => fetchJobs()
       )
       .subscribe();
@@ -544,7 +531,6 @@ export function useAllJobsWithServices() {
     if (!isAdmin) return;
 
     const fetchJobs = async () => {
-      // Fetch jobs with client
       const { data: jobsData } = await supabase
         .from('jobs')
         .select('*, client:profiles!client_id(*)')
@@ -556,17 +542,19 @@ export function useAllJobsWithServices() {
         return;
       }
 
-      // Fetch all job_services in one query
-      const jobIds = jobsData.map((j: any) => j.id);
+      const typedJobs = jobsData as unknown as JobWithClient[];
+      const jobIds = typedJobs.map((j) => j.id);
+
       const { data: servicesData } = await supabase
         .from('job_services')
         .select('*')
         .in('job_id', jobIds);
 
-      // Merge services into jobs
-      const jobsWithServices = (jobsData as unknown as JobWithClient[]).map((job) => ({
+      const typedServices = servicesData || [];
+
+      const jobsWithServices = typedJobs.map((job) => ({
         ...job,
-        services: (servicesData || []).filter((s) => s.job_id === job.id),
+        services: typedServices.filter((s) => s.job_id === job.id),
       }));
 
       setJobs(jobsWithServices);
@@ -608,7 +596,6 @@ export function useAllUsers() {
     });
 
     if (!error) {
-      // Refresh users
       await fetchUsers();
     }
 
@@ -636,7 +623,6 @@ export function useAdminStats() {
 
     const fetchStats = async () => {
       try {
-        // Get job counts
         const { count: totalJobs } = await supabase
           .from('jobs')
           .select('*', { count: 'exact', head: true });
@@ -658,14 +644,12 @@ export function useAdminStats() {
           .eq('status', 'completed')
           .gte('completed_at', today);
 
-        // Get total revenue
         const { data: revenueData } = await supabase
           .from('jobs')
           .select('credits_used');
         
         const totalRevenue = (revenueData || []).reduce((sum, j) => sum + (j.credits_used || 0), 0);
 
-        // Get user count
         const { count: totalUsers } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
