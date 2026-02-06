@@ -12,16 +12,27 @@ import { useAuthStore } from '@/stores/authStore';
 import { useServices, createJob, uploadFile } from '@/hooks/useSupabase';
 import { clsx } from 'clsx';
 
+// Fix: use z.preprocess to handle empty strings for optional number fields
+const optionalNumber = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+  z.number().positive().optional()
+);
+
+const optionalNonNegativeNumber = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+  z.number().nonnegative().optional()
+);
+
 const jobSchema = z.object({
   vehicle_brand: z.string().min(1, 'Brand is required'),
   vehicle_model: z.string().min(1, 'Model is required'),
   vehicle_year: z.coerce.number().min(1950).max(new Date().getFullYear() + 1),
   engine_type: z.string().min(1, 'Engine type is required'),
-  engine_power_hp: z.coerce.number().positive().optional().or(z.literal('')),
+  engine_power_hp: optionalNumber,
   ecu_type: z.string().optional(),
   gearbox_type: z.string().optional(),
   vin: z.string().max(17).optional(),
-  mileage: z.coerce.number().nonnegative().optional().or(z.literal('')),
+  mileage: optionalNonNegativeNumber,
   fuel_type: z.string().optional(),
   client_notes: z.string().max(2000).optional(),
 });
@@ -118,11 +129,11 @@ export const NewJobPage: React.FC = () => {
         vehicle_model: data.vehicle_model,
         vehicle_year: data.vehicle_year,
         engine_type: data.engine_type,
-        engine_power_hp: data.engine_power_hp ? Number(data.engine_power_hp) : undefined,
+        engine_power_hp: data.engine_power_hp,
         ecu_type: data.ecu_type,
         gearbox_type: data.gearbox_type,
         vin: data.vin,
-        mileage: data.mileage ? Number(data.mileage) : undefined,
+        mileage: data.mileage,
         fuel_type: data.fuel_type,
         client_notes: data.client_notes,
       }, selectedServices);
@@ -140,8 +151,9 @@ export const NewJobPage: React.FC = () => {
 
       toast.success('Job created successfully!');
       navigate('/jobs');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create job');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create job';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

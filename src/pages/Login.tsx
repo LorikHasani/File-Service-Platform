@@ -19,7 +19,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const signIn = useAuthStore((s) => s.signIn);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,11 +38,10 @@ export const LoginPage: React.FC = () => {
 
       toast.success('Welcome back!');
       
-      // Wait for profile to load and check admin status
-      setTimeout(() => {
-        const state = useAuthStore.getState();
-        navigate(state.isAdmin ? '/admin' : '/dashboard');
-      }, 100);
+      // signIn already calls fetchProfile and awaits it,
+      // so the store is up-to-date when we read isAdmin
+      const state = useAuthStore.getState();
+      navigate(state.isAdmin ? '/admin' : '/dashboard');
     } finally {
       setIsLoading(false);
     }

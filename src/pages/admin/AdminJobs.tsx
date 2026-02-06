@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight, Clock, Download, Filter } from 'lucide-react';
+import { Search, ArrowRight, Clock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Input, Badge, Spinner, Select, statusLabels } from '@/components/ui';
+import { Card, Button, Input, Spinner } from '@/components/ui';
 import { useAllJobs, updateJobStatus } from '@/hooks/useSupabase';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
@@ -28,13 +28,10 @@ const statusOptions = [
 ];
 
 export const AdminJobsPage: React.FC = () => {
-  const { jobs, loading, error } = useAllJobs();
+  const { jobs, loading } = useAllJobs();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
   const [updatingJob, setUpdatingJob] = useState<string | null>(null);
-
-  // Debug log
-  console.log('AdminJobsPage render:', { jobs: jobs.length, loading, error });
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch = search === '' ||
@@ -64,20 +61,6 @@ export const AdminJobsPage: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <Spinner size="lg" />
         </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout title="All Jobs">
-        <Card>
-          <div className="text-center py-8">
-            <p className="text-red-500 font-semibold">Error loading jobs</p>
-            <p className="text-sm text-zinc-500 mt-2">{error}</p>
-            <p className="text-xs text-zinc-400 mt-4">Check browser console (F12) for details</p>
-          </div>
-        </Card>
       </Layout>
     );
   }
@@ -157,8 +140,8 @@ export const AdminJobsPage: React.FC = () => {
                   </td>
                   <td className="px-4 py-3">
                     <div>
-                      <p className="font-medium text-sm">{job.client?.contact_name}</p>
-                      <p className="text-xs text-zinc-500">{job.client?.email}</p>
+                      <p className="font-medium text-sm">{job.client?.contact_name || 'Unknown'}</p>
+                      <p className="text-xs text-zinc-500">{job.client?.email || ''}</p>
                     </div>
                   </td>
                   <td className="px-4 py-3">

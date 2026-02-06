@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -22,10 +22,9 @@ const statusOptions = [
 
 export const AdminJobDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const profile = useAuthStore((s) => s.profile);
-  const { job, loading, refetch: refetchJob } = useJob(id);
-  const { messages, sendMessage, refetch: refetchMessages } = useJobMessages(id);
+  const { job, loading } = useJob(id);
+  const { messages, sendMessage } = useJobMessages(id);
   
   const [newMessage, setNewMessage] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
@@ -42,8 +41,6 @@ export const AdminJobDetailPage: React.FC = () => {
         toast.error('Failed to upload file');
       } else {
         toast.success('Modified file uploaded!');
-        // Refetch job to show the new file
-        await refetchJob();
       }
       setUploading(false);
     },

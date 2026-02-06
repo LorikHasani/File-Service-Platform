@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, Settings, LogOut,
-  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Calculator,
+  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
@@ -18,7 +18,7 @@ const clientNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
   { label: 'New Job', href: '/jobs/new', icon: <FileUp size={20} /> },
   { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
-  { label: 'Calculator', href: '/calculator', icon: <Calculator size={20} /> },
+  { label: 'Calculator', href: '/calculator', icon: <Gauge size={20} /> },
   { label: 'Credits', href: '/credits', icon: <CreditCard size={20} /> },
   { label: 'Settings', href: '/settings', icon: <Settings size={20} /> },
 ];
@@ -28,7 +28,6 @@ const adminNavItems: NavItem[] = [
   { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={20} /> },
   { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
-  { label: 'Calculator', href: '/calculator', icon: <Calculator size={20} /> },
 ];
 
 // Sidebar
@@ -38,9 +37,6 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
   const navItems = isAdmin ? adminNavItems : clientNavItems;
-
-  // Debug
-  console.log('Sidebar - isAdmin:', isAdmin, 'profile:', profile?.email, 'role:', profile?.role);
 
   const handleLogout = async () => {
     await signOut();

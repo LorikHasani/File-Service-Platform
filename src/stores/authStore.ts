@@ -36,12 +36,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await get().fetchProfile();
       }
 
-      // Listen for auth changes
+      // Listen for auth changes — subscription persists for app lifetime
       supabase.auth.onAuthStateChange(async (event, session) => {
+        const prevUser = get().user;
         set({ user: session?.user ?? null, session });
-        
+
         if (session?.user) {
-          await get().fetchProfile();
+          // Only re-fetch profile when user actually changes or signs in
+          if (!prevUser || prevUser.id !== session.user.id || event === 'SIGNED_IN') {
+            await get().fetchProfile();
+          }
         } else {
           set({ profile: null, isAdmin: false });
         }
@@ -83,8 +87,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      // Update profile with additional info if user was created
+      // Wait for the database trigger to create the profile row before updating
       if (data.user) {
+        await new Promise((r) => setTimeout(r, 500));
         await supabase.from('profiles').update({
           contact_name: metadata.contact_name,
           company_name: metadata.company_name || null,
@@ -107,30 +112,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return;
 
     try {
-      console.log('Fetching profile for user:', user.id);
-      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Profile fetched:', data);
-      console.log('User role:', data.role);
-      
       const isAdmin = data.role === 'admin' || data.role === 'superadmin';
-      console.log('Is admin:', isAdmin);
-      
       set({ profile: data, isAdmin });
     } catch (error) {
       console.error('Error fetching profile:', error);
-      // Don't crash - set default values
-      set({ profile: null, isAdmin: false });
     }
   },
 

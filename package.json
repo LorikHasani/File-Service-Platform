@@ -1,10 +1,10 @@
 {
-  "name": "ecu-tuning-platform",
+  "name": "ecu-tuning-supabase",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx"
   },

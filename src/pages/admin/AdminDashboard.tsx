@@ -102,7 +102,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-mono text-sm font-semibold">{job.reference_number}</p>
                     <p className="text-sm text-zinc-500">{job.vehicle_brand} {job.vehicle_model}</p>
-                    <p className="text-xs text-zinc-400">{job.client?.contact_name || job.client?.email}</p>
+                    <p className="text-xs text-zinc-400">{job.client?.contact_name || job.client?.email || 'Unknown client'}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{job.credits_used} cr</p>

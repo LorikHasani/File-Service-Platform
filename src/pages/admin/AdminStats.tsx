@@ -1,12 +1,12 @@
 import React from 'react';
-import { TrendingUp, Users, FileText, DollarSign, Clock, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react';
+import { Users, FileText, DollarSign, Clock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Spinner } from '@/components/ui';
-import { useAdminStats, useAllJobs, useAllUsers } from '@/hooks/useSupabase';
+import { useAdminStats, useAllJobsWithServices, useAllUsers } from '@/hooks/useSupabase';
 
 export const AdminStatsPage: React.FC = () => {
   const { stats, loading: statsLoading } = useAdminStats();
-  const { jobs, loading: jobsLoading } = useAllJobs();
+  const { jobs, loading: jobsLoading } = useAllJobsWithServices();
   const { users, loading: usersLoading } = useAllUsers();
 
   if (statsLoading || jobsLoading || usersLoading) {
@@ -55,12 +55,14 @@ export const AdminStatsPage: React.FC = () => {
     .filter(j => new Date(j.created_at) >= thisMonth)
     .reduce((sum, j) => sum + (j.credits_used || 0), 0);
 
-  // Top services
+  // Top services - now properly using job.services from useAllJobsWithServices
   const serviceCount: Record<string, number> = {};
   jobs.forEach(job => {
-    job.services?.forEach(service => {
-      serviceCount[service.service_name] = (serviceCount[service.service_name] || 0) + 1;
-    });
+    if (job.services) {
+      job.services.forEach(service => {
+        serviceCount[service.service_name] = (serviceCount[service.service_name] || 0) + 1;
+      });
+    }
   });
   const topServices = Object.entries(serviceCount)
     .sort(([, a], [, b]) => b - a)
@@ -69,17 +71,18 @@ export const AdminStatsPage: React.FC = () => {
   // Top clients
   const clientJobCount: Record<string, { name: string; email: string; jobs: number; spent: number }> = {};
   jobs.forEach(job => {
-    if (job.client?.id) {
-      if (!clientJobCount[job.client.id]) {
-        clientJobCount[job.client.id] = {
-          name: job.client.contact_name,
-          email: job.client.email,
+    const clientId = job.client?.id || job.client_id;
+    if (clientId) {
+      if (!clientJobCount[clientId]) {
+        clientJobCount[clientId] = {
+          name: job.client?.contact_name || 'Unknown',
+          email: job.client?.email || '',
           jobs: 0,
-          spent: 0
+          spent: 0,
         };
       }
-      clientJobCount[job.client.id].jobs++;
-      clientJobCount[job.client.id].spent += job.credits_used || 0;
+      clientJobCount[clientId].jobs++;
+      clientJobCount[clientId].spent += job.credits_used || 0;
     }
   });
   const topClients = Object.values(clientJobCount)
@@ -273,7 +276,7 @@ export const AdminStatsPage: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {topClients.map((client, index) => (
-                <div key={client.email} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                <div key={client.email || index} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-xs font-bold flex items-center justify-center">
                       {index + 1}

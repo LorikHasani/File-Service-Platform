@@ -445,3 +445,14 @@ export interface JobWithDetails extends Job {
   files?: FileRecord[];
   client?: Profile;
 }
+
+// Type for admin job list (joined with client profile)
+export interface JobWithClient extends Job {
+  client: Profile | null;
+}
+
+// Type for admin job list with services (for stats)
+export interface JobWithClientAndServices extends Job {
+  client: Profile | null;
+  services?: JobService[];
+}

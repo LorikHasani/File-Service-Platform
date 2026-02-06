@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, CreditCard, User, Mail, Calendar, Plus, Minus } from 'lucide-react';
+import { Search, CreditCard, Calendar } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Badge, Spinner, Avatar } from '@/components/ui';
 import { useAllUsers } from '@/hooks/useSupabase';
@@ -27,6 +27,13 @@ export const AdminUsersPage: React.FC = () => {
     
     setProcessing(true);
     const amount = parseFloat(creditAmount);
+    
+    if (isNaN(amount)) {
+      toast.error('Invalid amount');
+      setProcessing(false);
+      return;
+    }
+    
     const { error } = await addCredits(creditModal.userId, amount, creditDescription);
     
     if (error) {

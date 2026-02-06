@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, MessageSquare, Send, FileText, Clock, User, Car } from 'lucide-react';
+import { ArrowLeft, Download, MessageSquare, Send, FileText, Clock, Car } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, statusLabels } from '@/components/ui';
@@ -11,7 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 export const JobDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const profile = useAuthStore((s) => s.profile);
-  const { job, loading, refetch: refetchJob } = useJob(id);
+  const { job, loading } = useJob(id);
   const { messages, sendMessage } = useJobMessages(id);
   const [newMessage, setNewMessage] = useState('');
   const [revisionReason, setRevisionReason] = useState('');
@@ -35,7 +35,6 @@ export const JobDetailPage: React.FC = () => {
       toast.success('Revision requested');
       setShowRevisionForm(false);
       setRevisionReason('');
-      await refetchJob();
     }
   };
 
