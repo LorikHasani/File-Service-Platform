@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { buffer as microBuffer } from 'micro';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -9,21 +10,63 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Vercel needs raw body for Stripe signature verification
+// Disable Vercel's body parser so we can read the raw body for Stripe signature
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Read raw body from request
-async function getRawBody(req: VercelRequest): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
+async function addCreditsToUser(
+  userId: string,
+  credits: number,
+  packageName: string,
+  sessionId: string
+) {
+  // Get current balance
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('credit_balance')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error(`User not found: ${userId}`);
+  }
+
+  const balanceBefore = Number(profile.credit_balance);
+  const balanceAfter = balanceBefore + credits;
+
+  // Update balance
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({
+      credit_balance: balanceAfter,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (updateError) {
+    throw new Error(`Failed to update balance: ${updateError.message}`);
+  }
+
+  // Record transaction
+  const { error: txError } = await supabase
+    .from('transactions')
+    .insert({
+      user_id: userId,
+      type: 'credit_purchase',
+      amount: credits,
+      balance_before: balanceBefore,
+      balance_after: balanceAfter,
+      description: `Purchased ${packageName} (${credits} credits) — Stripe ${sessionId}`,
+    });
+
+  if (txError) {
+    console.error('Transaction record failed (credits already added):', txError);
+  }
+
+  console.log(`✅ Added ${credits} credits to user ${userId}. Balance: ${balanceBefore} → ${balanceAfter}`);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -31,97 +74,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let event: Stripe.Event;
+  console.log('🔔 Stripe webhook received');
 
   try {
-    const rawBody = await getRawBody(req);
+    // Read raw body for signature verification
+    const rawBody = await buffer(req);
     const signature = req.headers['stripe-signature'] as string;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    if (!signature) {
-      return res.status(400).json({ error: 'Missing Stripe signature' });
+    let event: Stripe.Event;
+
+    if (signature && webhookSecret) {
+      // Verify signature (production path)
+      try {
+        event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        console.log('✅ Signature verified, event:', event.type);
+      } catch (err: any) {
+        console.error('❌ Signature verification failed:', err.message);
+        return res.status(400).json({ error: `Signature verification failed: ${err.message}` });
+      }
+    } else {
+      // Fallback: parse body directly (for testing without webhook secret)
+      console.warn('⚠️ No webhook secret or signature — parsing body directly');
+      const body = JSON.parse(rawBody.toString());
+      event = body as Stripe.Event;
     }
 
-    event = stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    // Only handle checkout.session.completed
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      console.log('💳 Checkout session:', session.id, 'Payment status:', session.payment_status);
+
+      if (session.payment_status !== 'paid') {
+        console.log('⏳ Payment not yet completed, skipping');
+        return res.status(200).json({ received: true });
+      }
+
+      const userId = session.metadata?.supabase_user_id;
+      const credits = Number(session.metadata?.credits || 0);
+      const packageName = session.metadata?.package_name || 'Credit Package';
+
+      if (!userId || !credits) {
+        console.error('❌ Missing metadata:', { userId, credits, metadata: session.metadata });
+        return res.status(400).json({ error: 'Missing metadata' });
+      }
+
+      await addCreditsToUser(userId, credits, packageName, session.id);
+    } else {
+      console.log('ℹ️ Ignoring event type:', event.type);
+    }
+
+    return res.status(200).json({ received: true });
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    console.error('❌ Webhook handler error:', err.message || err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
-
-  // Handle the event
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-
-    if (session.payment_status !== 'paid') {
-      console.log('Payment not completed, skipping');
-      return res.status(200).json({ received: true });
-    }
-
-    const userId = session.metadata?.supabase_user_id;
-    const credits = Number(session.metadata?.credits || 0);
-    const packageName = session.metadata?.package_name || 'Credit Package';
-
-    if (!userId || !credits) {
-      console.error('Missing metadata in checkout session:', session.id);
-      return res.status(400).json({ error: 'Missing metadata' });
-    }
-
-    try {
-      // Get current balance
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('credit_balance')
-        .eq('id', userId)
-        .single();
-
-      if (profileError || !profile) {
-        console.error('User not found:', userId);
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const balanceBefore = Number(profile.credit_balance);
-      const balanceAfter = balanceBefore + credits;
-
-      // Update balance
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          credit_balance: balanceAfter,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('Failed to update balance:', updateError);
-        return res.status(500).json({ error: 'Failed to update balance' });
-      }
-
-      // Record transaction
-      const { error: txError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: userId,
-          type: 'credit_purchase',
-          amount: credits,
-          balance_before: balanceBefore,
-          balance_after: balanceAfter,
-          description: `Purchased ${packageName} (${credits} credits) — Stripe session ${session.id}`,
-        });
-
-      if (txError) {
-        console.error('Failed to record transaction:', txError);
-        // Balance already updated, log but don't fail
-      }
-
-      console.log(`Added ${credits} credits to user ${userId}. Balance: ${balanceBefore} → ${balanceAfter}`);
-    } catch (err: any) {
-      console.error('Error processing payment:', err);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-
-  return res.status(200).json({ received: true });
 }

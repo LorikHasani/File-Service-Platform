@@ -22,7 +22,8 @@
     "date-fns": "^3.2.0",
     "react-dropzone": "^14.2.3",
     "react-hot-toast": "^2.4.1",
-    "stripe": "^14.14.0"
+    "stripe": "^14.14.0",
+    "micro": "^10.0.1"
   },
   "devDependencies": {
     "@vercel/node": "^3.0.0",
