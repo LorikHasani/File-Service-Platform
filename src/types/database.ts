@@ -24,6 +24,7 @@ export interface Database {
           phone: string | null;
           country: string | null;
           credit_balance: number;
+          stripe_customer_id: string | null;
           email_notifications: boolean;
           created_at: string;
           updated_at: string;
@@ -37,6 +38,7 @@ export interface Database {
           phone?: string | null;
           country?: string | null;
           credit_balance?: number;
+          stripe_customer_id?: string | null;
           email_notifications?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -50,6 +52,7 @@ export interface Database {
           phone?: string | null;
           country?: string | null;
           credit_balance?: number;
+          stripe_customer_id?: string | null;
           email_notifications?: boolean;
           updated_at?: string;
         };

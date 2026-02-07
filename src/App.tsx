@@ -11,6 +11,7 @@ import { DashboardPage } from '@/pages/Dashboard';
 import { NewJobPage } from '@/pages/NewJob';
 import { JobsListPage } from '@/pages/JobsList';
 import { JobDetailPage } from '@/pages/JobDetail';
+import { CreditsPage } from '@/pages/Credits';
 import { PerformanceCalculatorPage } from '@/pages/PerformanceCalculator';
 
 // Admin Pages
@@ -21,8 +22,13 @@ import { AdminUsersPage } from '@/pages/admin/AdminUsers';
 import { AdminStatsPage } from '@/pages/admin/AdminStats';
 
 // Protected Route
+// CRITICAL: Use boolean selectors (!!user, not user) so this component
+// only re-renders when auth STATUS changes (logged in → logged out),
+// NOT when the user object reference changes (which happens on every
+// token refresh). Re-rendering ProtectedRoute re-renders Outlet which
+// can cause child components to lose state or cancel in-flight fetches.
 const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }) => {
-  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => !!s.user);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const isLoading = useAuthStore((s) => s.isLoading);
 
@@ -34,7 +40,7 @@ const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
 
   return <Outlet />;
@@ -42,7 +48,7 @@ const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }
 
 // Public Route
 const PublicRoute: React.FC = () => {
-  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => !!s.user);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const isLoading = useAuthStore((s) => s.isLoading);
 
@@ -54,7 +60,7 @@ const PublicRoute: React.FC = () => {
     );
   }
 
-  if (user) return <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />;
+  if (isAuthenticated) return <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />;
 
   return <Outlet />;
 };
@@ -98,7 +104,7 @@ const App: React.FC = () => {
           <Route path="/jobs/new" element={<NewJobPage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/calculator" element={<PerformanceCalculatorPage />} />
-          <Route path="/credits" element={<Placeholder title="Credits" />} />
+          <Route path="/credits" element={<CreditsPage />} />
           <Route path="/settings" element={<Placeholder title="Settings" />} />
         </Route>
 
