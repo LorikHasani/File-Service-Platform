@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, Zap, Check, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield } from 'lucide-react';
+import { CreditCard, Zap, Check, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield, Edit3 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Badge, Spinner } from '@/components/ui';
+import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useCreditPackages, useTransactions } from '@/hooks/useSupabase';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
+const PRICE_PER_CREDIT = 1.0; // €1 = 1 credit for custom amounts
+const MIN_CUSTOM = 10;
+const MAX_CUSTOM = 10000;
+
 export const CreditsPage: React.FC = () => {
   const profile = useAuthStore((s) => s.profile);
   const { packages, loading: packagesLoading } = useCreditPackages();
   const { transactions, loading: txLoading } = useTransactions();
   const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [buyingCustom, setBuyingCustom] = useState(false);
+  const [customAmount, setCustomAmount] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Handle Stripe redirect
@@ -22,7 +28,6 @@ export const CreditsPage: React.FC = () => {
       toast.success('Payment successful! Credits will be added shortly.');
       setSearchParams({}, { replace: true });
 
-      // Refresh profile to get updated balance (webhook may take a moment)
       const refreshBalance = async () => {
         await new Promise((r) => setTimeout(r, 2000));
         await useAuthStore.getState().fetchProfile();
@@ -35,8 +40,7 @@ export const CreditsPage: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  const handleBuy = async (packageId: string) => {
-    setBuyingId(packageId);
+  const startCheckout = async (body: Record<string, unknown>, loadingKey: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -50,7 +54,7 @@ export const CreditsPage: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ packageId }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -59,16 +63,35 @@ export const CreditsPage: React.FC = () => {
         throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      // Redirect to Stripe Checkout
       window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message || 'Something went wrong');
-    } finally {
-      setBuyingId(null);
     }
   };
 
-  const popularIndex = packages.length >= 3 ? 2 : -1; // 3rd package = "Business"
+  const handleBuyPackage = async (packageId: string) => {
+    setBuyingId(packageId);
+    await startCheckout({ packageId }, packageId);
+    setBuyingId(null);
+  };
+
+  const handleBuyCustom = async () => {
+    const amount = Number(customAmount);
+    if (!amount || amount < MIN_CUSTOM || amount > MAX_CUSTOM) {
+      toast.error(`Enter an amount between ${MIN_CUSTOM} and ${MAX_CUSTOM.toLocaleString()} credits`);
+      return;
+    }
+
+    setBuyingCustom(true);
+    await startCheckout({ customCredits: Math.floor(amount) }, 'custom');
+    setBuyingCustom(false);
+  };
+
+  const customCreditsNum = Number(customAmount) || 0;
+  const customPrice = Math.floor(customCreditsNum) * PRICE_PER_CREDIT;
+  const customValid = customCreditsNum >= MIN_CUSTOM && customCreditsNum <= MAX_CUSTOM;
+
+  const popularIndex = packages.length >= 3 ? 2 : -1;
 
   if (packagesLoading) {
     return (
@@ -160,8 +183,8 @@ export const CreditsPage: React.FC = () => {
 
                 <Button
                   variant={isPopular ? 'primary' : 'secondary'}
-                  onClick={() => handleBuy(pkg.id)}
-                  disabled={!!buyingId}
+                  onClick={() => handleBuyPackage(pkg.id)}
+                  disabled={!!buyingId || buyingCustom}
                   className="w-full"
                 >
                   {isBuying ? (
@@ -177,6 +200,63 @@ export const CreditsPage: React.FC = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* Section: Custom Amount */}
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-4">
+          <Edit3 className="w-5 h-5 text-red-600" />
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Custom Amount</h2>
+        </div>
+        <p className="text-zinc-500 mb-6">Need a specific amount? Enter how many credits you'd like to buy at €{PRICE_PER_CREDIT.toFixed(2)} per credit.</p>
+
+        <Card>
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div className="flex-1 w-full sm:max-w-xs">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                Number of credits
+              </label>
+              <Input
+                type="number"
+                placeholder={`Min ${MIN_CUSTOM}, Max ${MAX_CUSTOM.toLocaleString()}`}
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+                min={MIN_CUSTOM}
+                max={MAX_CUSTOM}
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              {customAmount && customValid && (
+                <div className="text-right">
+                  <p className="text-sm text-zinc-500">Total price</p>
+                  <p className="text-2xl font-bold text-zinc-900 dark:text-white">€{customPrice.toFixed(2)}</p>
+                </div>
+              )}
+
+              <Button
+                variant="primary"
+                onClick={handleBuyCustom}
+                disabled={!customValid || !!buyingId || buyingCustom}
+              >
+                {buyingCustom ? (
+                  <span className="flex items-center gap-2">
+                    <Spinner size="sm" />
+                    Redirecting...
+                  </span>
+                ) : (
+                  `Buy ${customValid ? Math.floor(customCreditsNum) : ''} Credits`
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {customAmount && !customValid && customCreditsNum > 0 && (
+            <p className="text-sm text-red-600 mt-2">
+              Please enter an amount between {MIN_CUSTOM} and {MAX_CUSTOM.toLocaleString()} credits.
+            </p>
+          )}
+        </Card>
       </div>
 
       {/* Section: Transaction History */}
