@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
 import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
+import { sendNotification } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
 import type { JobStatus } from '@/types/database';
@@ -41,6 +42,8 @@ export const AdminJobDetailPage: React.FC = () => {
         toast.error('Failed to upload file');
       } else {
         toast.success('Modified file uploaded!');
+        // Send email notification to client
+        sendNotification('file_delivered', id);
       }
       setUploading(false);
     },

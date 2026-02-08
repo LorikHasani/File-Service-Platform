@@ -10,6 +10,7 @@ import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useServices, createJob, uploadFile } from '@/hooks/useSupabase';
+import { sendNotification } from '@/lib/notifications';
 import { clsx } from 'clsx';
 
 // Fix: use z.preprocess to handle empty strings for optional number fields
@@ -144,6 +145,9 @@ export const NewJobPage: React.FC = () => {
       if (jobId) {
         const { error: uploadError } = await uploadFile(jobId, file, 'original');
         if (uploadError) console.error('File upload error:', uploadError);
+
+        // Notify admin via email
+        sendNotification('new_request', jobId);
       }
 
       // Refresh profile to get updated balance
