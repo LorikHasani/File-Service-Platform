@@ -57,7 +57,7 @@ export const RegisterPage: React.FC = () => {
       <div className="mb-8">
         <Link to="/" className="flex items-center gap-2 mb-8 lg:hidden">
           <Gauge className="w-8 h-8 text-red-600" />
-          <span className="text-xl font-bold">TuneForge</span>
+          <span className="text-xl font-bold">ChipTune<span className="text-red-500">Files</span></span>
         </Link>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Create your account</h1>
         <p className="text-zinc-500 mt-1">Start tuning with professional ECU file services</p>

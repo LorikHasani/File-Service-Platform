@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /jobs
+Disallow: /admin
+Disallow: /credits
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://chiptunefiles.com/sitemap.xml

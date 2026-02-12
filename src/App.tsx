@@ -13,6 +13,7 @@ import { JobsListPage } from '@/pages/JobsList';
 import { JobDetailPage } from '@/pages/JobDetail';
 import { CreditsPage } from '@/pages/Credits';
 import { PerformanceCalculatorPage } from '@/pages/PerformanceCalculator';
+import { LandingPage } from '@/pages/Landing';
 
 // Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
@@ -91,6 +92,9 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing Page — always accessible */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Public Routes */}
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
@@ -117,9 +121,8 @@ const App: React.FC = () => {
           <Route path="/admin/stats" element={<AdminStatsPage />} />
         </Route>
 
-        {/* Redirects */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all */}
+        <Route path="*" element={<LandingPage />} />
       </Routes>
 
       <Toaster

@@ -54,7 +54,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
         <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2">
             <Gauge className="w-8 h-8 text-red-600" />
-            <span className="text-xl font-bold">TuneForge</span>
+            <span className="text-xl font-bold">ChipTune<span className="text-red-500">Files</span></span>
           </Link>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-zinc-800 rounded">
             <X size={20} />
@@ -162,30 +162,42 @@ export const Layout: React.FC<{ children: React.ReactNode; title?: string }> = (
 export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="min-h-screen flex">
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">{children}</div>
+      <div className="flex-1 flex flex-col p-8">
+        <div className="mb-4">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
+            ← Back to Home
+          </Link>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-md">{children}</div>
+        </div>
       </div>
       <div className="hidden lg:flex lg:w-1/2 bg-zinc-950 text-white items-center justify-center p-12 relative overflow-hidden">
         <div className="relative z-10 max-w-lg">
           <div className="flex items-center gap-3 mb-8">
-            <Gauge className="w-12 h-12 text-red-600" />
-            <span className="text-3xl font-bold">TuneForge</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
+              <Gauge className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <span className="text-3xl font-bold">ChipTune</span>
+              <span className="text-3xl font-bold text-red-500">Files</span>
+            </div>
           </div>
-          <h2 className="text-4xl font-bold mb-4">Professional ECU Tuning Services</h2>
+          <h2 className="text-4xl font-bold mb-4">Professional ECU File Service</h2>
           <p className="text-lg text-zinc-400 mb-8">
-            Fast, reliable file service for workshops and tuners worldwide.
+            Fast, reliable tuning files for workshops and tuners worldwide.
           </p>
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-zinc-900/50 rounded-lg">
-              <div className="text-2xl font-bold text-red-600">1000+</div>
+            <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
+              <div className="text-2xl font-bold text-red-500">2,500+</div>
               <div className="text-sm text-zinc-400">Happy Clients</div>
             </div>
-            <div className="text-center p-4 bg-zinc-900/50 rounded-lg">
-              <div className="text-2xl font-bold text-red-600">50k+</div>
-              <div className="text-sm text-zinc-400">Files Processed</div>
+            <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
+              <div className="text-2xl font-bold text-red-500">10k+</div>
+              <div className="text-sm text-zinc-400">Files Delivered</div>
             </div>
-            <div className="text-center p-4 bg-zinc-900/50 rounded-lg">
-              <div className="text-2xl font-bold text-red-600">&lt;2h</div>
+            <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
+              <div className="text-2xl font-bold text-red-500">&lt;1h</div>
               <div className="text-sm text-zinc-400">Avg. Turnaround</div>
             </div>
           </div>
