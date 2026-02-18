@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FileUp, Clock, CheckCircle, CreditCard, ArrowRight, Activity, Zap } from 'lucide-react';
+import { FileUp, Clock, CheckCircle, CreditCard, ArrowRight, Activity, Zap, Cpu, Gauge } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, statusLabels } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -100,8 +100,15 @@ export const DashboardPage: React.FC = () => {
           <div className="p-4 space-y-3">
             <Link to="/jobs/new">
               <Button variant="primary" className="w-full justify-start" size="lg">
-                <FileUp className="w-5 h-5" />
-                <span>Upload New File</span>
+                <Gauge className="w-5 h-5" />
+                <span>ECU Stage</span>
+                <ArrowRight className="w-4 h-4 ml-auto" />
+              </Button>
+            </Link>
+            <Link to="/tcu/new">
+              <Button variant="secondary" className="w-full justify-start" size="lg">
+                <Cpu className="w-5 h-5" />
+                <span>TCU Stage</span>
                 <ArrowRight className="w-4 h-4 ml-auto" />
               </Button>
             </Link>

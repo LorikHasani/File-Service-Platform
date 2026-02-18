@@ -14,6 +14,7 @@ import { JobDetailPage } from '@/pages/JobDetail';
 import { CreditsPage } from '@/pages/Credits';
 import { PerformanceCalculatorPage } from '@/pages/PerformanceCalculator';
 import { LandingPage } from '@/pages/Landing';
+import { TcuStagePage } from '@/pages/TcuStage';
 
 // Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
@@ -106,6 +107,7 @@ const App: React.FC = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/jobs" element={<JobsListPage />} />
           <Route path="/jobs/new" element={<NewJobPage />} />
+          <Route path="/tcu/new" element={<TcuStagePage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/calculator" element={<PerformanceCalculatorPage />} />
           <Route path="/credits" element={<CreditsPage />} />

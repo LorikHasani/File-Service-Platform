@@ -141,6 +141,8 @@ export async function createJob(
     mileage?: number;
     fuel_type?: string;
     client_notes?: string;
+    job_type?: string;
+    tcu_type?: string;
   },
   serviceCodes: string[]
 ): Promise<{ jobId: string | null; error: Error | null }> {
@@ -160,7 +162,21 @@ export async function createJob(
       p_service_codes: serviceCodes,
     });
     if (error) throw error;
-    return { jobId: data as string, error: null };
+
+    const jobId = data as string;
+
+    // Set job_type and tcu_type if provided
+    if (jobId && (vehicleData.job_type || vehicleData.tcu_type)) {
+      await supabase
+        .from('jobs')
+        .update({
+          job_type: vehicleData.job_type || 'ecu',
+          tcu_type: vehicleData.tcu_type || null,
+        })
+        .eq('id', jobId);
+    }
+
+    return { jobId, error: null };
   } catch (err) {
     return { jobId: null, error: err as Error };
   }

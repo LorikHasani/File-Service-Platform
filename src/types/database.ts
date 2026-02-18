@@ -71,6 +71,8 @@ export interface Database {
           engine_power_hp: number | null;
           ecu_type: string | null;
           gearbox_type: string | null;
+          job_type: string;
+          tcu_type: string | null;
           vin: string | null;
           mileage: number | null;
           fuel_type: string | null;
@@ -98,6 +100,8 @@ export interface Database {
           engine_power_hp?: number | null;
           ecu_type?: string | null;
           gearbox_type?: string | null;
+          job_type?: string;
+          tcu_type?: string | null;
           vin?: string | null;
           mileage?: number | null;
           fuel_type?: string | null;
@@ -125,6 +129,8 @@ export interface Database {
           engine_power_hp?: number | null;
           ecu_type?: string | null;
           gearbox_type?: string | null;
+          job_type?: string;
+          tcu_type?: string | null;
           vin?: string | null;
           mileage?: number | null;
           fuel_type?: string | null;
