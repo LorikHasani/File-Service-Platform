@@ -132,7 +132,7 @@ export async function createJob(
   vehicleData: {
     vehicle_brand: string;
     vehicle_model: string;
-    vehicle_year: number;
+    vehicle_year: string;
     engine_type: string;
     engine_power_hp?: number;
     ecu_type?: string;

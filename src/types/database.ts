@@ -66,7 +66,7 @@ export interface Database {
           assigned_admin_id: string | null;
           vehicle_brand: string;
           vehicle_model: string;
-          vehicle_year: number;
+          vehicle_year: string;
           engine_type: string;
           engine_power_hp: number | null;
           ecu_type: string | null;
@@ -95,7 +95,7 @@ export interface Database {
           assigned_admin_id?: string | null;
           vehicle_brand: string;
           vehicle_model: string;
-          vehicle_year: number;
+          vehicle_year: string;
           engine_type: string;
           engine_power_hp?: number | null;
           ecu_type?: string | null;
@@ -124,7 +124,7 @@ export interface Database {
           assigned_admin_id?: string | null;
           vehicle_brand?: string;
           vehicle_model?: string;
-          vehicle_year?: number;
+          vehicle_year?: string;
           engine_type?: string;
           engine_power_hp?: number | null;
           ecu_type?: string | null;
@@ -496,7 +496,7 @@ export interface Database {
         Args: {
           p_vehicle_brand: string;
           p_vehicle_model: string;
-          p_vehicle_year: number;
+          p_vehicle_year: string;
           p_engine_type: string;
           p_engine_power_hp: number | null;
           p_ecu_type: string | null;
