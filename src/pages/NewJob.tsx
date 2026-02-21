@@ -10,6 +10,7 @@ import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useServices, createJob, uploadFile } from '@/hooks/useSupabase';
+import { useVehicleApi } from '@/hooks/useVehicleApi';
 import { sendNotification } from '@/lib/notifications';
 import { clsx } from 'clsx';
 
@@ -27,7 +28,7 @@ const optionalNonNegativeNumber = z.preprocess(
 const jobSchema = z.object({
   vehicle_brand: z.string().min(1, 'Brand is required'),
   vehicle_model: z.string().min(1, 'Model is required'),
-  vehicle_year: z.coerce.number().min(1950).max(new Date().getFullYear() + 1),
+  vehicle_year: z.string().min(1, 'Generation is required'),
   engine_type: z.string().min(1, 'Engine type is required'),
   engine_power_hp: optionalNumber,
   ecu_type: z.string().optional(),
@@ -39,11 +40,6 @@ const jobSchema = z.object({
 });
 
 type JobFormData = z.infer<typeof jobSchema>;
-
-const vehicleBrands = [
-  'Audi', 'BMW', 'Mercedes-Benz', 'Volkswagen', 'Porsche', 'Ford', 'Chevrolet', 
-  'Toyota', 'Honda', 'Nissan', 'Hyundai', 'Kia', 'Mazda', 'Volvo', 'Jaguar',
-];
 
 const gearboxTypes = [
   { value: 'manual', label: 'Manual' },
@@ -79,9 +75,10 @@ export const NewJobPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<JobFormData>({
+  const vehicle = useVehicleApi();
+
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
-    defaultValues: { vehicle_year: new Date().getFullYear() },
   });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -211,12 +208,81 @@ export const NewJobPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select label="Brand" placeholder="Select brand" options={vehicleBrands.map((b) => ({ value: b, label: b }))} error={errors.vehicle_brand?.message} {...register('vehicle_brand')} />
-                <Input label="Model" placeholder="e.g. 330d, A4 2.0 TDI" error={errors.vehicle_model?.message} {...register('vehicle_model')} />
-                <Input label="Year" type="number" error={errors.vehicle_year?.message} {...register('vehicle_year')} />
-                <Input label="Engine" placeholder="e.g. N57D30" error={errors.engine_type?.message} {...register('engine_type')} />
-                <Input label="Power (HP)" type="number" placeholder="Optional" {...register('engine_power_hp')} />
-                <Input label="ECU Type" placeholder="e.g. Bosch EDC17" {...register('ecu_type')} />
+                {/* 1. Brand (Car) */}
+                <Select
+                  label="Brand *"
+                  placeholder={vehicle.loadingMakes ? 'Loading brands...' : 'Select brand'}
+                  options={vehicle.makes}
+                  value={vehicle.selectedMake}
+                  onChange={(e) => {
+                    vehicle.setSelectedMake(e.target.value);
+                    const display = vehicle.makes.find(m => m.value === e.target.value)?.label || e.target.value;
+                    setValue('vehicle_brand', display);
+                  }}
+                  disabled={vehicle.loadingMakes}
+                  error={errors.vehicle_brand?.message}
+                />
+
+                {/* 2. Model (Brand) */}
+                <Select
+                  label="Model *"
+                  placeholder={vehicle.loadingModels ? 'Loading models...' : vehicle.selectedMake ? 'Select model' : 'Select brand first'}
+                  options={vehicle.models}
+                  value={vehicle.selectedModel}
+                  onChange={(e) => {
+                    vehicle.setSelectedModel(e.target.value);
+                    const display = vehicle.models.find(m => m.value === e.target.value)?.label || e.target.value;
+                    setValue('vehicle_model', display);
+                  }}
+                  disabled={!vehicle.selectedMake || vehicle.loadingModels}
+                  error={errors.vehicle_model?.message}
+                />
+
+                {/* 3. Generation */}
+                <Select
+                  label="Generation *"
+                  placeholder={vehicle.loadingGenerations ? 'Loading...' : vehicle.selectedModel ? 'Select generation' : 'Select model first'}
+                  options={vehicle.generations}
+                  value={vehicle.selectedGeneration}
+                  onChange={(e) => {
+                    vehicle.setSelectedGeneration(e.target.value);
+                    const display = vehicle.generations.find(g => g.value === e.target.value)?.label || e.target.value;
+                    setValue('vehicle_year', display);
+                  }}
+                  disabled={!vehicle.selectedModel || vehicle.loadingGenerations}
+                  error={errors.vehicle_year?.message}
+                />
+
+                {/* 4. Engine */}
+                <Select
+                  label="Engine *"
+                  placeholder={vehicle.loadingEngines ? 'Loading engines...' : vehicle.selectedGeneration ? 'Select engine' : 'Select generation first'}
+                  options={vehicle.engines}
+                  value={vehicle.selectedEngine}
+                  onChange={(e) => {
+                    vehicle.setSelectedEngine(e.target.value);
+                    const display = vehicle.engines.find(en => en.value === e.target.value)?.label || e.target.value;
+                    setValue('engine_type', display);
+                  }}
+                  disabled={!vehicle.selectedGeneration || vehicle.loadingEngines}
+                  error={errors.engine_type?.message}
+                />
+
+                {/* 5. ECU — from API */}
+                <Select
+                  label="ECU Type"
+                  placeholder={vehicle.loadingEcus ? 'Loading ECUs...' : vehicle.selectedEngine ? 'Select ECU' : 'Select engine first'}
+                  options={vehicle.ecus}
+                  value={vehicle.selectedEcu}
+                  onChange={(e) => {
+                    vehicle.setSelectedEcu(e.target.value);
+                    setValue('ecu_type', e.target.value);
+                  }}
+                  disabled={!vehicle.selectedEngine || vehicle.loadingEcus}
+                />
+
+                <Input label="Power (HP)" type="number" placeholder="e.g. 150" {...register('engine_power_hp')} />
+
                 <Select label="Gearbox" placeholder="Select" options={gearboxTypes} {...register('gearbox_type')} />
                 <Select label="Fuel Type" placeholder="Select" options={fuelTypes} {...register('fuel_type')} />
               </div>
