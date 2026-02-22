@@ -18,7 +18,7 @@ const clientNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
   { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={20} /> },
   { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
-  { label: 'Credits', href: '/credits', icon: <CreditCard size={20} /> },
+  { label: 'Balance', href: '/credits', icon: <CreditCard size={20} /> },
   { label: 'Settings', href: '/settings', icon: <Settings size={20} /> },
 ];
 
@@ -124,7 +124,7 @@ export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ 
           {profile?.role === 'client' && (
             <Link to="/credits" className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-sm font-medium">
               <CreditCard size={16} className="text-red-600" />
-              <span>{profile.credit_balance.toFixed(2)} Credits</span>
+              <span>€{profile.credit_balance.toFixed(2)}</span>
             </Link>
           )}
 

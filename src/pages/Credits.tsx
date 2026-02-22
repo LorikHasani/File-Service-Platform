@@ -25,7 +25,7 @@ export const CreditsPage: React.FC = () => {
   // Handle Stripe redirect
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
-      toast.success('Payment successful! Credits will be added shortly.');
+      toast.success('Payment successful! Balance will be updated shortly.');
       setSearchParams({}, { replace: true });
 
       const refreshBalance = async () => {
@@ -78,7 +78,7 @@ export const CreditsPage: React.FC = () => {
   const handleBuyCustom = async () => {
     const amount = Number(customAmount);
     if (!amount || amount < MIN_CUSTOM || amount > MAX_CUSTOM) {
-      toast.error(`Enter an amount between ${MIN_CUSTOM} and ${MAX_CUSTOM.toLocaleString()} credits`);
+      toast.error(`Enter an amount between ${MIN_CUSTOM} and $€{MAX_CUSTOM.toLocaleString()}`);
       return;
     }
 
@@ -95,7 +95,7 @@ export const CreditsPage: React.FC = () => {
 
   if (packagesLoading) {
     return (
-      <Layout title="Credits">
+      <Layout title="Balance">
         <div className="flex items-center justify-center h-64">
           <Spinner size="lg" />
         </div>
@@ -104,16 +104,16 @@ export const CreditsPage: React.FC = () => {
   }
 
   return (
-    <Layout title="Credits">
+    <Layout title="Balance">
       {/* Balance Header */}
       <div className="mb-8">
         <Card className="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-700 text-white">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="text-zinc-400 text-sm font-medium">Your Credit Balance</p>
+              <p className="text-zinc-400 text-sm font-medium">Your Balance</p>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-4xl font-bold">{profile?.credit_balance?.toFixed(2) ?? '0.00'}</span>
-                <span className="text-zinc-400">credits</span>
+                <span className="text-4xl font-bold">€{profile?.credit_balance?.toFixed(2) ?? '0.00'}</span>
+                <span className="text-zinc-400"></span>
               </div>
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-lg px-4 py-2">
@@ -128,9 +128,9 @@ export const CreditsPage: React.FC = () => {
       <div className="mb-10">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-red-600" />
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Buy Credits</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Top Up Balance</h2>
         </div>
-        <p className="text-zinc-500 mb-6">Choose a credit package. Larger packages include bonus credits.</p>
+        <p className="text-zinc-500 mb-6">Choose a package. Larger packages include bonus euros.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {packages.map((pkg, index) => {
@@ -161,23 +161,23 @@ export const CreditsPage: React.FC = () => {
                 </div>
 
                 <div className="text-sm text-zinc-500 mb-4">
-                  €{pricePerCredit.toFixed(2)} per credit
+                  €{pricePerCredit.toFixed(2)}/unit
                 </div>
 
                 <div className="space-y-2 mb-5 flex-1">
                   <div className="flex items-center gap-2 text-sm">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span className="text-zinc-700 dark:text-zinc-300">{Number(pkg.credits).toFixed(0)} credits</span>
+                    <span className="text-zinc-700 dark:text-zinc-300">€{Number(pkg.credits).toFixed(0)}</span>
                   </div>
                   {pkg.bonus_credits > 0 && (
                     <div className="flex items-center gap-2 text-sm">
                       <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                      <span className="text-green-600 font-medium">+{Number(pkg.bonus_credits).toFixed(0)} bonus credits</span>
+                      <span className="text-green-600 font-medium">+€{Number(pkg.bonus_credits).toFixed(0)} bonus</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-                    <span className="text-zinc-500">{totalCredits.toFixed(0)} total credits</span>
+                    <span className="text-zinc-500">€{totalCredits.toFixed(0)} total</span>
                   </div>
                 </div>
 
@@ -208,13 +208,13 @@ export const CreditsPage: React.FC = () => {
           <Edit3 className="w-5 h-5 text-red-600" />
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Custom Amount</h2>
         </div>
-        <p className="text-zinc-500 mb-6">Need a specific amount? Enter how many credits you'd like to buy at €{PRICE_PER_CREDIT.toFixed(2)} per credit.</p>
+        <p className="text-zinc-500 mb-6">Need a specific amount? Enter how much you'd like to add </p>
 
         <Card>
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             <div className="flex-1 w-full sm:max-w-xs">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Number of credits
+                Amount (€)
               </label>
               <Input
                 type="number"
@@ -245,7 +245,7 @@ export const CreditsPage: React.FC = () => {
                     Redirecting...
                   </span>
                 ) : (
-                  `Buy ${customValid ? Math.floor(customCreditsNum) : ''} Credits`
+                  `Buy for €${customValid ? Math.floor(customCreditsNum) : ''}`
                 )}
               </Button>
             </div>
@@ -253,7 +253,7 @@ export const CreditsPage: React.FC = () => {
 
           {customAmount && !customValid && customCreditsNum > 0 && (
             <p className="text-sm text-red-600 mt-2">
-              Please enter an amount between {MIN_CUSTOM} and {MAX_CUSTOM.toLocaleString()} credits.
+              Please enter an amount between €{MIN_CUSTOM} and €{MAX_CUSTOM.toLocaleString()}.
             </p>
           )}
         </Card>
@@ -272,7 +272,7 @@ export const CreditsPage: React.FC = () => {
           </div>
         ) : transactions.length === 0 ? (
           <Card>
-            <p className="text-center text-zinc-500 py-8">No transactions yet. Purchase a credit package to get started.</p>
+            <p className="text-center text-zinc-500 py-8">No transactions yet. Purchase a package to get started.</p>
           </Card>
         ) : (
           <Card padding="none">
@@ -319,11 +319,11 @@ export const CreditsPage: React.FC = () => {
                             ) : (
                               <ArrowDownRight className="w-3.5 h-3.5" />
                             )}
-                            {isCredit ? '+' : '-'}{Math.abs(Number(tx.amount)).toFixed(2)}
+                            {isCredit ? '+' : '-'}€{Math.abs(Number(tx.amount)).toFixed(2)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
-                          {Number(tx.balance_after).toFixed(2)}
+                          €{Number(tx.balance_after).toFixed(2)}
                         </td>
                       </tr>
                     );

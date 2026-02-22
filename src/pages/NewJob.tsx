@@ -127,7 +127,7 @@ export const NewJobPage: React.FC = () => {
   const allStageServices = stageCategories.flatMap((c) => c.services);
   const allOptionServices = optionCategories.flatMap((c) => c.services);
 
-  const totalCredits = useMemo(() => {
+  const totalPrice = useMemo(() => {
     let total = 0;
     if (selectedStage) {
       const s = allStageServices.find((x) => x.code === selectedStage);
@@ -141,7 +141,7 @@ export const NewJobPage: React.FC = () => {
   }, [selectedStage, selectedOptions, allStageServices, allOptionServices]);
 
   const creditBalance = profile?.credit_balance ?? 0;
-  const hasEnoughCredits = creditBalance >= totalCredits;
+  const hasEnoughBalance = creditBalance >= totalPrice;
 
   const vehicleSummary = [
     vehicle.makes.find((m) => m.value === vehicle.selectedMake)?.label,
@@ -161,7 +161,7 @@ export const NewJobPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!file) return toast.error('Please upload a file');
-    if (!hasEnoughCredits) return toast.error('Insufficient credits');
+    if (!hasEnoughBalance) return toast.error('Insufficient balance');
     if (!selectedStage && selectedOptions.length === 0) return toast.error('Select at least one service');
 
     setIsSubmitting(true);
@@ -294,8 +294,8 @@ export const NewJobPage: React.FC = () => {
             <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
               <div className="flex items-center gap-2 text-sm">
                 <Info size={16} className="text-blue-400" />
-                <span className="text-zinc-400">Your balance:</span>
-                <span className="text-blue-400 font-semibold">{creditBalance} credits</span>
+                <span className="text-zinc-400">Balance:</span>
+                <span className="text-blue-400 font-semibold">€{creditBalance}</span>
               </div>
               <Button onClick={() => setStep(2)} disabled={!canGoToStep2}>
                 Next Step <ChevronRight size={16} className="ml-1" />
@@ -445,7 +445,7 @@ export const NewJobPage: React.FC = () => {
                             <Cpu size={24} className={sel ? 'text-blue-400' : 'text-zinc-500'} />
                             <span className="font-semibold text-sm">{svc.name}</span>
                             <span className={clsx('text-sm font-bold', sel ? 'text-blue-400' : 'text-zinc-500')}>
-                              {svc.base_price} credits
+                              €{svc.base_price}
                             </span>
                           </button>
                         );
@@ -477,7 +477,7 @@ export const NewJobPage: React.FC = () => {
                             <Settings size={20} className={sel ? 'text-green-400' : 'text-zinc-500'} />
                             <span className="text-xs font-medium leading-tight">{svc.name}</span>
                             <span className={clsx('text-xs font-bold', sel ? 'text-green-400' : 'text-blue-400')}>
-                              +{svc.base_price}
+                              +€{svc.base_price}
                             </span>
                             {svc.description && (
                               <div className="absolute top-2 right-2">
@@ -505,23 +505,23 @@ export const NewJobPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Total cost</span>
-                <span className="text-xl font-bold text-blue-400">{totalCredits} credits</span>
+                <span className="text-xl font-bold text-blue-400">€{totalPrice}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-400">Your balance</span>
-                <span className={hasEnoughCredits ? 'text-green-400' : 'text-red-400'}>{creditBalance} credits</span>
+                <span className={hasEnoughBalance ? 'text-green-400' : 'text-red-400'}>€{creditBalance}</span>
               </div>
-              {!hasEnoughCredits && <p className="text-xs text-red-400">Insufficient credits. Please top up.</p>}
+              {!hasEnoughBalance && <p className="text-xs text-red-400">Insufficient balance. Please top up.</p>}
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
               <Button variant="ghost" onClick={() => setStep(2)}><ChevronLeft size={16} className="mr-1" /> Back</Button>
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !hasEnoughCredits || (!selectedStage && selectedOptions.length === 0)}
+                disabled={isSubmitting || !hasEnoughBalance || (!selectedStage && selectedOptions.length === 0)}
                 size="lg" isLoading={isSubmitting}
               >
-                Submit Job ({totalCredits} Credits)
+                Submit Job (€{totalPrice})
               </Button>
             </div>
           </div>

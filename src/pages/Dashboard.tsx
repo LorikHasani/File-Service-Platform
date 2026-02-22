@@ -38,15 +38,15 @@ export const DashboardPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">Credit Balance</p>
-              <p className="text-2xl font-bold mt-1">{profile?.credit_balance.toFixed(2)}</p>
+              <p className="text-sm font-medium text-zinc-500">Balance</p>
+              <p className="text-2xl font-bold mt-1">€{profile?.credit_balance.toFixed(2)}</p>
             </div>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <CreditCard className="w-5 h-5 text-green-600" />
             </div>
           </div>
           <Link to="/credits" className="text-sm text-red-600 font-medium hover:underline mt-3 inline-block">
-            Top up credits →
+            Top up balance →
           </Link>
         </Card>
 
@@ -122,7 +122,7 @@ export const DashboardPage: React.FC = () => {
             <Link to="/credits">
               <Button variant="outline" className="w-full justify-start" size="lg">
                 <CreditCard className="w-5 h-5" />
-                <span>Purchase Credits</span>
+                <span>Top Up Balance</span>
                 <ArrowRight className="w-4 h-4 ml-auto" />
               </Button>
             </Link>

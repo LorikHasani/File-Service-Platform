@@ -338,7 +338,7 @@ export const LandingPage: React.FC = () => {
                   'Files tested on dyno before delivery',
                   'Average turnaround time under 1 hour',
                   '24/7 support via WhatsApp, email, and portal',
-                  'Credit-based pricing — pay only for what you need',
+                  'Simple pricing in euros — pay only for what you need',
                   'Secure file transfers with encrypted storage',
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3">

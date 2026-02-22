@@ -97,8 +97,8 @@ export const AdminStatsPage: React.FC = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-zinc-500">Total Revenue</p>
-              <p className="text-2xl font-bold mt-1">{stats.totalRevenue.toFixed(0)}</p>
-              <p className="text-xs text-zinc-500">credits earned</p>
+              <p className="text-2xl font-bold mt-1">€{stats.totalRevenue.toFixed(0)}</p>
+              <p className="text-xs text-zinc-500">earned</p>
             </div>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <DollarSign className="w-5 h-5 text-green-600" />
@@ -230,15 +230,15 @@ export const AdminStatsPage: React.FC = () => {
 
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-500">Credits in System</span>
-                <span className="font-semibold">{totalCreditsInSystem.toFixed(0)}</span>
+                <span className="text-sm text-zinc-500">Balance in System</span>
+                <span className="font-semibold">€{totalCreditsInSystem.toFixed(0)}</span>
               </div>
             </div>
 
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-500">Revenue This Month</span>
-                <span className="font-semibold text-green-600">{revenueThisMonth.toFixed(0)} credits</span>
+                <span className="font-semibold text-green-600">€{revenueThisMonth.toFixed(0)}</span>
               </div>
             </div>
           </div>
@@ -286,7 +286,7 @@ export const AdminStatsPage: React.FC = () => {
                       <p className="text-xs text-zinc-500">{client.jobs} jobs</p>
                     </div>
                   </div>
-                  <span className="font-semibold text-green-600">{client.spent.toFixed(0)} cr</span>
+                  <span className="font-semibold text-green-600">€{client.spent.toFixed(0)}</span>
                 </div>
               ))}
             </div>

@@ -113,7 +113,7 @@ export const JobsListPage: React.FC = () => {
                           <Clock size={14} />
                           <span>{new Date(job.created_at).toLocaleDateString()}</span>
                         </div>
-                        <span className="font-semibold">{job.credits_used} cr</span>
+                        <span className="font-semibold">€{job.credits_used}</span>
                       </div>
 
                       <ArrowRight className="hidden lg:block w-5 h-5 text-zinc-400" />

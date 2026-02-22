@@ -104,7 +104,7 @@ export const TcuStagePage: React.FC = () => {
   }, 0);
 
   const creditBalance = profile?.credit_balance ?? 0;
-  const hasEnoughCredits = creditBalance >= totalPrice;
+  const hasEnoughBalance = creditBalance >= totalPrice;
 
   const onSubmit = async (data: TcuFormData) => {
     if (!file) {
@@ -115,8 +115,8 @@ export const TcuStagePage: React.FC = () => {
       toast.error('Please select at least one service');
       return;
     }
-    if (!hasEnoughCredits) {
-      toast.error('Insufficient credits');
+    if (!hasEnoughBalance) {
+      toast.error('Insufficient balance');
       return;
     }
 
@@ -334,7 +334,7 @@ export const TcuStagePage: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold">{service.name}</span>
-                            <span className="text-sm font-semibold text-blue-600">{service.base_price} cr</span>
+                            <span className="text-sm font-semibold text-blue-600">€{service.base_price}</span>
                           </div>
                           <p className="text-sm text-zinc-500 mt-0.5">{service.description}</p>
                         </div>
@@ -350,7 +350,7 @@ export const TcuStagePage: React.FC = () => {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm text-zinc-500">Total</p>
-                    <p className="text-xl font-bold">{totalPrice} Credits</p>
+                    <p className="text-xl font-bold">€{totalPrice}</p>
                   </div>
                   <Button type="button" onClick={() => setStep(3)} disabled={selectedTcuServices.length === 0}>Next</Button>
                 </div>
@@ -411,14 +411,14 @@ export const TcuStagePage: React.FC = () => {
                     return (
                       <div key={code} className="flex justify-between text-sm">
                         <span>{service?.name || code}</span>
-                        <span>{service?.base_price || 0} Credits</span>
+                        <span>€{service?.base_price || 0}</span>
                       </div>
                     );
                   })}
                   <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2 mt-2">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>{totalPrice} Credits</span>
+                      <span>€{totalPrice}</span>
                     </div>
                   </div>
                 </div>
@@ -426,18 +426,18 @@ export const TcuStagePage: React.FC = () => {
                 <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                   <div className="flex justify-between text-sm">
                     <span>Your Balance</span>
-                    <span className={hasEnoughCredits ? 'text-green-600' : 'text-red-600'}>
-                      {creditBalance.toFixed(2)} Credits
+                    <span className={hasEnoughBalance ? 'text-green-600' : 'text-red-600'}>
+                      €{creditBalance.toFixed(2)}
                     </span>
                   </div>
-                  {!hasEnoughCredits && <p className="text-xs text-red-500 mt-1">Insufficient credits</p>}
+                  {!hasEnoughBalance && <p className="text-xs text-red-500 mt-1">Insufficient balance</p>}
                 </div>
               </Card>
 
               <div className="flex items-center justify-between">
                 <Button type="button" variant="ghost" onClick={() => setStep(2)}>Back</Button>
-                <Button type="submit" size="lg" isLoading={isSubmitting} disabled={!file || !hasEnoughCredits}>
-                  Submit TCU Job ({totalPrice} Credits)
+                <Button type="submit" size="lg" isLoading={isSubmitting} disabled={!file || !hasEnoughBalance}>
+                  Submit TCU Job (€{totalPrice})
                 </Button>
               </div>
             </div>

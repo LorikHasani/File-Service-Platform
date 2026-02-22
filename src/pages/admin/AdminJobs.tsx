@@ -124,7 +124,7 @@ export const AdminJobsPage: React.FC = () => {
                 <th className="text-left px-4 py-3 text-sm font-semibold">Reference</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Client</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Vehicle</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold">Credits</th>
+                <th className="text-left px-4 py-3 text-sm font-semibold">Price</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Status</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Date</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Actions</th>
@@ -149,7 +149,7 @@ export const AdminJobsPage: React.FC = () => {
                     <p className="text-xs text-zinc-500">{job.vehicle_year} • {job.engine_type}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-semibold">{job.credits_used}</span>
+                    <span className="font-semibold">€{job.credits_used}</span>
                   </td>
                   <td className="px-4 py-3">
                     <select

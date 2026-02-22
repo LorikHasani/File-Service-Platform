@@ -61,13 +61,13 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-zinc-500">Total Revenue</p>
-              <p className="text-2xl font-bold mt-1">{stats.totalRevenue.toFixed(0)}</p>
+              <p className="text-2xl font-bold mt-1">€{stats.totalRevenue.toFixed(0)}</p>
             </div>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
           </div>
-          <div className="text-sm text-zinc-500 mt-3">Credits earned</div>
+          <div className="text-sm text-zinc-500 mt-3">Revenue earned</div>
         </Card>
 
         <Card>
@@ -105,7 +105,7 @@ export const AdminDashboardPage: React.FC = () => {
                     <p className="text-xs text-zinc-400">{job.client?.contact_name || job.client?.email || 'Unknown client'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{job.credits_used} cr</p>
+                    <p className="font-semibold">€{job.credits_used}</p>
                     <p className="text-xs text-zinc-500">{new Date(job.created_at).toLocaleTimeString()}</p>
                   </div>
                   <ArrowRight className="w-4 h-4 text-zinc-400" />

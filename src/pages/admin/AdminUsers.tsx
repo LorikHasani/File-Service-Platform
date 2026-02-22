@@ -37,9 +37,9 @@ export const AdminUsersPage: React.FC = () => {
     const { error } = await addCredits(creditModal.userId, amount, creditDescription);
     
     if (error) {
-      toast.error('Failed to add credits');
+      toast.error('Failed to adjust balance');
     } else {
-      toast.success(`${amount > 0 ? 'Added' : 'Removed'} ${Math.abs(amount)} credits`);
+      toast.success(`${amount > 0 ? 'Added' : 'Removed'} €${Math.abs(amount)}`);
       setCreditModal(null);
       setCreditAmount('');
       setCreditDescription('');
@@ -78,8 +78,8 @@ export const AdminUsersPage: React.FC = () => {
           <p className="text-sm text-zinc-500">Admins</p>
         </Card>
         <Card className="text-center">
-          <p className="text-2xl font-bold text-green-600">{totalCredits.toFixed(0)}</p>
-          <p className="text-sm text-zinc-500">Total Credits</p>
+          <p className="text-2xl font-bold text-green-600">€{totalCredits.toFixed(0)}</p>
+          <p className="text-sm text-zinc-500">Total Balance</p>
         </Card>
       </div>
 
@@ -102,7 +102,7 @@ export const AdminUsersPage: React.FC = () => {
                 <th className="text-left px-4 py-3 text-sm font-semibold">User</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Company</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Role</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold">Credits</th>
+                <th className="text-left px-4 py-3 text-sm font-semibold">Balance</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Joined</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold">Actions</th>
               </tr>
@@ -128,7 +128,7 @@ export const AdminUsersPage: React.FC = () => {
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-semibold">{user.credit_balance?.toFixed(2)}</span>
+                    <span className="font-semibold">€{user.credit_balance?.toFixed(2)}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 text-sm text-zinc-500">
@@ -143,7 +143,7 @@ export const AdminUsersPage: React.FC = () => {
                       onClick={() => setCreditModal({ userId: user.id, name: user.contact_name })}
                     >
                       <CreditCard size={14} />
-                      Credits
+                      Adjust
                     </Button>
                   </td>
                 </tr>
@@ -162,7 +162,7 @@ export const AdminUsersPage: React.FC = () => {
       {creditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Adjust Credits</h2>
+            <h2 className="text-xl font-semibold mb-4">Adjust Balance</h2>
             <p className="text-zinc-500 mb-4">User: <span className="font-medium text-zinc-900 dark:text-white">{creditModal.name}</span></p>
             
             <div className="space-y-4">
@@ -230,7 +230,7 @@ export const AdminUsersPage: React.FC = () => {
                 disabled={!creditAmount || !creditDescription || processing}
                 isLoading={processing}
               >
-                {parseFloat(creditAmount || '0') >= 0 ? 'Add' : 'Remove'} Credits
+                {parseFloat(creditAmount || '0') >= 0 ? 'Add' : 'Remove'} €
               </Button>
             </div>
           </Card>

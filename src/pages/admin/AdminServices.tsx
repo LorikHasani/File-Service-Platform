@@ -266,7 +266,7 @@ export const AdminServicesPage: React.FC = () => {
                             <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">{svc.code}</code>
                           </div>
                           <div className="col-span-1 text-right font-semibold text-green-600">
-                            {svc.base_price} cr
+                            €{svc.base_price}
                           </div>
                           <div className="col-span-1 text-right text-sm text-zinc-500">
                             {svc.estimated_hours}h
@@ -488,7 +488,7 @@ const ServiceModal: React.FC<{
         </div>
 
         <Input
-          label="Price (credits) *"
+          label="Price (€) *"
           type="number"
           value={basePrice}
           onChange={(e) => setBasePrice(Number(e.target.value))}

@@ -157,8 +157,8 @@ export const AdminJobDetailPage: React.FC = () => {
                 <p className="font-medium">{job.client?.company_name || '-'}</p>
               </div>
               <div>
-                <p className="text-sm text-zinc-500">Credit Balance</p>
-                <p className="font-medium">{job.client?.credit_balance} Credits</p>
+                <p className="text-sm text-zinc-500">Balance</p>
+                <p className="font-medium">€{job.client?.credit_balance}</p>
               </div>
             </div>
           </Card>
@@ -228,12 +228,12 @@ export const AdminJobDetailPage: React.FC = () => {
               {job.services?.map((service) => (
                 <div key={service.id} className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                   <span className="font-medium">{service.service_name}</span>
-                  <span className="text-zinc-500">{service.price} Credits</span>
+                  <span className="text-zinc-500">€{service.price}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-800">
                 <span className="font-semibold">Total</span>
-                <span className="font-semibold text-lg">{job.credits_used} Credits</span>
+                <span className="font-semibold text-lg">€{job.credits_used}</span>
               </div>
             </div>
           </Card>
