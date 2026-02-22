@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
-import { Upload, FileText, X, Car, Settings, Check, Zap, Wind, Droplet, Flame, Rocket, Gauge } from 'lucide-react';
+import {
+  Upload, FileText, X, Check, ChevronRight, ChevronLeft, Info,
+  Cpu, Settings, Wrench, Car,
+} from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -14,72 +14,99 @@ import { useVehicleApi } from '@/hooks/useVehicleApi';
 import { sendNotification } from '@/lib/notifications';
 import { clsx } from 'clsx';
 
-// Fix: use z.preprocess to handle empty strings for optional number fields
-const optionalNumber = z.preprocess(
-  (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-  z.number().positive().optional()
-);
+const readingTools = [
+  { value: 'kess_v2', label: 'KESS V2' },
+  { value: 'ktag', label: 'KTAG' },
+  { value: 'autotuner', label: 'Autotuner' },
+  { value: 'cmd_flash', label: 'CMD Flash' },
+  { value: 'flex', label: 'Flex' },
+  { value: 'trasdata', label: 'Trasdata' },
+  { value: 'dimsport', label: 'Dimsport' },
+  { value: 'magic_motorsport', label: 'Magic Motorsport' },
+  { value: 'bitbox', label: 'BitBox' },
+  { value: 'pcmflash', label: 'PCMFlash' },
+  { value: 'mpps', label: 'MPPS' },
+  { value: 'galletto', label: 'Galletto' },
+  { value: 'other', label: 'Other' },
+];
 
-const optionalNonNegativeNumber = z.preprocess(
-  (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-  z.number().nonnegative().optional()
-);
+const toolTypes = [
+  { value: 'master', label: 'Master' },
+  { value: 'slave', label: 'Slave' },
+];
 
-const jobSchema = z.object({
-  vehicle_brand: z.string().min(1, 'Brand is required'),
-  vehicle_model: z.string().min(1, 'Model is required'),
-  vehicle_year: z.string().min(1, 'Generation is required'),
-  engine_type: z.string().min(1, 'Engine type is required'),
-  engine_power_hp: optionalNumber,
-  ecu_type: z.string().optional(),
-  gearbox_type: z.string().optional(),
-  vin: z.string().max(17).optional(),
-  mileage: optionalNonNegativeNumber,
-  fuel_type: z.string().optional(),
-  client_notes: z.string().max(2000).optional(),
-});
-
-type JobFormData = z.infer<typeof jobSchema>;
-
-const gearboxTypes = [
+const gearboxOptions = [
   { value: 'manual', label: 'Manual' },
   { value: 'automatic', label: 'Automatic' },
   { value: 'dsg', label: 'DSG/DCT' },
   { value: 'cvt', label: 'CVT' },
+  { value: 'robotic', label: 'Robotic/AMT' },
 ];
 
-const fuelTypes = [
-  { value: 'diesel', label: 'Diesel' },
-  { value: 'petrol', label: 'Petrol' },
-  { value: 'hybrid', label: 'Hybrid' },
-];
+// ─── Stepper ─────────────────────────────────────────────────────────────────
 
-const serviceIcons: Record<string, React.ReactNode> = {
-  stage1: <Zap size={20} />,
-  stage2: <Rocket size={20} />,
-  dpf_off: <Settings size={20} />,
-  egr_off: <Wind size={20} />,
-  adblue_off: <Droplet size={20} />,
-  pops_bangs: <Flame size={20} />,
-  launch_control: <Rocket size={20} />,
-  speed_limiter: <Gauge size={20} />,
+const StepIndicator: React.FC<{ current: number }> = ({ current }) => {
+  const steps = ['Upload File', 'Car Info', 'Services'];
+  return (
+    <div className="flex items-center justify-center gap-0 mb-8">
+      {steps.map((label, i) => {
+        const stepNum = i + 1;
+        const done = current > stepNum;
+        const active = current === stepNum;
+        return (
+          <React.Fragment key={i}>
+            {i > 0 && (
+              <div className={clsx('w-16 h-0.5 mx-1', done ? 'bg-green-500' : 'bg-zinc-700')} />
+            )}
+            <div className="flex items-center gap-2">
+              <div className={clsx(
+                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
+                done && 'bg-green-500 text-white',
+                active && 'bg-blue-600 text-white',
+                !done && !active && 'bg-zinc-700 text-zinc-400'
+              )}>
+                {done ? <Check size={16} /> : stepNum}
+              </div>
+              <span className={clsx(
+                'text-sm font-medium hidden sm:inline',
+                active ? 'text-zinc-100' : 'text-zinc-500'
+              )}>
+                {label}
+              </span>
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 };
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export const NewJobPage: React.FC = () => {
   const navigate = useNavigate();
   const profile = useAuthStore((s) => s.profile);
   const fetchProfile = useAuthStore((s) => s.fetchProfile);
   const { categories, loading: servicesLoading } = useServices();
-  const [file, setFile] = useState<File | null>(null);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [step, setStep] = useState(1);
-
   const vehicle = useVehicleApi();
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<JobFormData>({
-    resolver: zodResolver(jobSchema),
-  });
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Step 1
+  const [fileType, setFileType] = useState<'ecu' | 'gearbox'>('ecu');
+  const [file, setFile] = useState<File | null>(null);
+
+  // Step 2
+  const [isOriginal, setIsOriginal] = useState(true);
+  const [vin, setVin] = useState('');
+  const [gearbox, setGearbox] = useState('');
+  const [readingTool, setReadingTool] = useState('');
+  const [toolType, setToolType] = useState('master');
+
+  // Step 3
+  const [selectedStage, setSelectedStage] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) setFile(acceptedFiles[0]!);
@@ -87,351 +114,418 @@ export const NewJobPage: React.FC = () => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/octet-stream': ['.bin', '.ori', '.mod', '.ecu', '.tun'] },
     maxSize: 50 * 1024 * 1024,
     multiple: false,
   });
 
-  const allServices = categories.flatMap((c) => c.services);
-  const toggleService = (code: string) => {
-    setSelectedServices((prev) => prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code]);
-  };
+  // Split categories: selection_type='single' → stage cards, rest → option grid
+  const stageCategories = useMemo(() =>
+    categories.filter((c) => (c as any).selection_type === 'single'), [categories]);
+  const optionCategories = useMemo(() =>
+    categories.filter((c) => (c as any).selection_type !== 'single'), [categories]);
 
-  const totalPrice = selectedServices.reduce((sum, code) => {
-    const service = allServices.find((s) => s.code === code);
-    return sum + (service?.base_price || 0);
-  }, 0);
+  const allStageServices = stageCategories.flatMap((c) => c.services);
+  const allOptionServices = optionCategories.flatMap((c) => c.services);
+
+  const totalCredits = useMemo(() => {
+    let total = 0;
+    if (selectedStage) {
+      const s = allStageServices.find((x) => x.code === selectedStage);
+      if (s) total += s.base_price;
+    }
+    for (const code of selectedOptions) {
+      const s = allOptionServices.find((x) => x.code === code);
+      if (s) total += s.base_price;
+    }
+    return total;
+  }, [selectedStage, selectedOptions, allStageServices, allOptionServices]);
 
   const creditBalance = profile?.credit_balance ?? 0;
-  const hasEnoughCredits = creditBalance >= totalPrice;
+  const hasEnoughCredits = creditBalance >= totalCredits;
 
-  const onSubmit = async (data: JobFormData) => {
-    if (!file) {
-      toast.error('Please upload an ECU file');
-      return;
-    }
-    if (selectedServices.length === 0) {
-      toast.error('Please select at least one service');
-      return;
-    }
-    if (!hasEnoughCredits) {
-      toast.error('Insufficient credits');
-      return;
-    }
+  const vehicleSummary = [
+    vehicle.makes.find((m) => m.value === vehicle.selectedMake)?.label,
+    vehicle.models.find((m) => m.value === vehicle.selectedModel)?.label,
+    vehicle.engines.find((e) => e.value === vehicle.selectedEngine)?.label,
+  ].filter(Boolean).join(' · ');
+
+  const toggleOption = (code: string) => {
+    setSelectedOptions((prev) => prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]);
+  };
+
+  const canGoToStep2 = !!file;
+  const canGoToStep3 = !!vehicle.selectedMake && !!vehicle.selectedModel
+    && !!vehicle.selectedGeneration && !!vehicle.selectedEngine;
+
+  // ─── Submit ──────────────────────────────────────────────────────────────
+
+  const handleSubmit = async () => {
+    if (!file) return toast.error('Please upload a file');
+    if (!hasEnoughCredits) return toast.error('Insufficient credits');
+    if (!selectedStage && selectedOptions.length === 0) return toast.error('Select at least one service');
 
     setIsSubmitting(true);
     try {
-      // Create job
+      const serviceCodes = [...(selectedStage ? [selectedStage] : []), ...selectedOptions];
+      const makeName = vehicle.makes.find((m) => m.value === vehicle.selectedMake)?.label || '';
+      const modelName = vehicle.models.find((m) => m.value === vehicle.selectedModel)?.label || '';
+      const genName = vehicle.generations.find((g) => g.value === vehicle.selectedGeneration)?.label || '';
+      const engineName = vehicle.engines.find((e) => e.value === vehicle.selectedEngine)?.label || '';
+      const ecuName = vehicle.ecus.find((e) => e.value === vehicle.selectedEcu)?.label || vehicle.selectedEcu || '';
+
       const { jobId, error } = await createJob({
-        vehicle_brand: data.vehicle_brand,
-        vehicle_model: data.vehicle_model,
-        vehicle_year: data.vehicle_year,
-        engine_type: data.engine_type,
-        engine_power_hp: data.engine_power_hp,
-        ecu_type: data.ecu_type,
-        gearbox_type: data.gearbox_type,
-        vin: data.vin,
-        mileage: data.mileage,
-        fuel_type: data.fuel_type,
-        client_notes: data.client_notes,
-      }, selectedServices);
+        vehicle_brand: makeName,
+        vehicle_model: modelName,
+        vehicle_year: genName,
+        engine_type: engineName,
+        ecu_type: ecuName,
+        gearbox_type: gearbox,
+        vin: vin || undefined,
+        job_type: fileType === 'gearbox' ? 'tcu' : 'ecu',
+      }, serviceCodes);
 
       if (error) throw error;
 
-      // Upload file
       if (jobId) {
+        const { supabase } = await import('@/lib/supabase');
+        await supabase.from('jobs').update({
+          file_type: fileType,
+          is_original: isOriginal,
+          reading_tool: readingTool || null,
+          tool_type: toolType,
+        }).eq('id', jobId);
+
         const { error: uploadError } = await uploadFile(jobId, file, 'original');
         if (uploadError) console.error('File upload error:', uploadError);
-
-        // Notify admin via email
         sendNotification('new_request', jobId);
       }
 
-      // Refresh profile to get updated balance
       await fetchProfile();
-
-      toast.success('Job created successfully!');
+      toast.success('Job submitted successfully!');
       navigate('/jobs');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create job';
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : 'Failed to create job');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (servicesLoading) {
-    return (
-      <Layout title="ECU Stage">
-        <div className="flex items-center justify-center h-64">
-          <Spinner size="lg" />
-        </div>
-      </Layout>
-    );
+  if (!profile) {
+    return <Layout title="Upload"><div className="flex justify-center py-20"><Spinner /></div></Layout>;
   }
 
   return (
-    <Layout title="ECU Stage">
+    <Layout title="Upload File">
       <div className="max-w-4xl mx-auto">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          {[{ num: 1, label: 'Vehicle' }, { num: 2, label: 'Services' }, { num: 3, label: 'Upload' }].map((s, i) => (
-            <React.Fragment key={s.num}>
-              <div className="flex items-center">
-                <div className={clsx(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm',
-                  step >= s.num ? 'bg-red-600 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'
-                )}>
-                  {step > s.num ? <Check size={20} /> : s.num}
-                </div>
-                <span className={clsx('ml-2 text-sm font-medium hidden sm:block', step >= s.num ? '' : 'text-zinc-500')}>
-                  {s.label}
-                </span>
+        <StepIndicator current={step} />
+
+        {/* ═══════════════════ STEP 1: Upload File ═══════════════════ */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-600/20 rounded-lg"><Upload size={20} className="text-blue-400" /></div>
+              <div>
+                <h2 className="text-xl font-bold">Step 1: Upload Your File</h2>
+                <p className="text-sm text-zinc-400">Select your ECU or Gearbox file</p>
               </div>
-              {i < 2 && <div className={clsx('w-12 sm:w-24 h-1 mx-2 rounded', step > s.num ? 'bg-red-600' : 'bg-zinc-200 dark:bg-zinc-700')} />}
-            </React.Fragment>
-          ))}
-        </div>
+            </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Step 1: Vehicle */}
-          {step === 1 && (
-            <Card>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                  <Car className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold">Vehicle Information</h2>
-                  <p className="text-sm text-zinc-500">Enter your vehicle details</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. Brand (Car) */}
-                <Select
-                  label="Brand *"
-                  placeholder={vehicle.loadingMakes ? 'Loading brands...' : 'Select brand'}
-                  options={vehicle.makes}
-                  value={vehicle.selectedMake}
-                  onChange={(e) => {
-                    vehicle.setSelectedMake(e.target.value);
-                    const display = vehicle.makes.find(m => m.value === e.target.value)?.label || e.target.value;
-                    setValue('vehicle_brand', display);
-                  }}
-                  disabled={vehicle.loadingMakes}
-                  error={errors.vehicle_brand?.message}
-                />
-
-                {/* 2. Model (Brand) */}
-                <Select
-                  label="Model *"
-                  placeholder={vehicle.loadingModels ? 'Loading models...' : vehicle.selectedMake ? 'Select model' : 'Select brand first'}
-                  options={vehicle.models}
-                  value={vehicle.selectedModel}
-                  onChange={(e) => {
-                    vehicle.setSelectedModel(e.target.value);
-                    const display = vehicle.models.find(m => m.value === e.target.value)?.label || e.target.value;
-                    setValue('vehicle_model', display);
-                  }}
-                  disabled={!vehicle.selectedMake || vehicle.loadingModels}
-                  error={errors.vehicle_model?.message}
-                />
-
-                {/* 3. Generation */}
-                <Select
-                  label="Generation *"
-                  placeholder={vehicle.loadingGenerations ? 'Loading...' : vehicle.selectedModel ? 'Select generation' : 'Select model first'}
-                  options={vehicle.generations}
-                  value={vehicle.selectedGeneration}
-                  onChange={(e) => {
-                    vehicle.setSelectedGeneration(e.target.value);
-                    const display = vehicle.generations.find(g => g.value === e.target.value)?.label || e.target.value;
-                    setValue('vehicle_year', display);
-                  }}
-                  disabled={!vehicle.selectedModel || vehicle.loadingGenerations}
-                  error={errors.vehicle_year?.message}
-                />
-
-                {/* 4. Engine */}
-                <Select
-                  label="Engine *"
-                  placeholder={vehicle.loadingEngines ? 'Loading engines...' : vehicle.selectedGeneration ? 'Select engine' : 'Select generation first'}
-                  options={vehicle.engines}
-                  value={vehicle.selectedEngine}
-                  onChange={(e) => {
-                    vehicle.setSelectedEngine(e.target.value);
-                    const display = vehicle.engines.find(en => en.value === e.target.value)?.label || e.target.value;
-                    setValue('engine_type', display);
-                  }}
-                  disabled={!vehicle.selectedGeneration || vehicle.loadingEngines}
-                  error={errors.engine_type?.message}
-                />
-
-                {/* 5. ECU — from API */}
-                <Select
-                  label="ECU Type"
-                  placeholder={vehicle.loadingEcus ? 'Loading ECUs...' : vehicle.selectedEngine ? 'Select ECU' : 'Select engine first'}
-                  options={vehicle.ecus}
-                  value={vehicle.selectedEcu}
-                  onChange={(e) => {
-                    vehicle.setSelectedEcu(e.target.value);
-                    setValue('ecu_type', e.target.value);
-                  }}
-                  disabled={!vehicle.selectedEngine || vehicle.loadingEcus}
-                />
-
-                <Input label="Power (HP)" type="number" placeholder="e.g. 150" {...register('engine_power_hp')} />
-
-                <Select label="Gearbox" placeholder="Select" options={gearboxTypes} {...register('gearbox_type')} />
-                <Select label="Fuel Type" placeholder="Select" options={fuelTypes} {...register('fuel_type')} />
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button type="button" onClick={() => setStep(2)}>Next: Select Services</Button>
-              </div>
-            </Card>
-          )}
-
-          {/* Step 2: Services */}
-          {step === 2 && (
-            <Card>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                  <Settings className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold">Select Services</h2>
-                  <p className="text-sm text-zinc-500">Choose the tuning services you need</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {allServices.map((service) => (
+            {/* File Type */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                <Car size={16} /> Select File Type
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { id: 'ecu' as const, label: 'ECU File', icon: <Cpu size={36} />, color: 'text-red-500' },
+                  { id: 'gearbox' as const, label: 'Gearbox File', icon: <Settings size={36} />, color: 'text-zinc-400' },
+                ].map((ft) => (
                   <button
-                    key={service.code}
+                    key={ft.id}
                     type="button"
-                    onClick={() => toggleService(service.code)}
+                    onClick={() => setFileType(ft.id)}
                     className={clsx(
-                      'flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all',
-                      selectedServices.includes(service.code)
-                        ? 'border-red-600 bg-red-50 dark:bg-red-950/20'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                      'flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all',
+                      fileType === ft.id
+                        ? 'border-blue-500 bg-blue-500/10'
+                        : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
                     )}
                   >
-                    <div className={clsx('p-2 rounded-lg', selectedServices.includes(service.code) ? 'bg-red-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800')}>
-                      {serviceIcons[service.code] || <Settings size={20} />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">{service.name}</span>
-                        <span className="text-sm font-semibold text-red-600">{service.base_price} cr</span>
-                      </div>
-                      <p className="text-sm text-zinc-500 mt-0.5">{service.description}</p>
-                    </div>
-                    {selectedServices.includes(service.code) && <Check className="w-5 h-5 text-red-600" />}
+                    <div className={ft.color}>{ft.icon}</div>
+                    <span className="font-semibold">{ft.label}</span>
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-zinc-500">Total</p>
-                    <p className="text-xl font-bold">{totalPrice} Credits</p>
-                  </div>
-                  <Button type="button" onClick={() => setStep(3)} disabled={selectedServices.length === 0}>Next</Button>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Step 3: Upload */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <Card>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                    <Upload className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold">Upload ECU File</h2>
-                    <p className="text-sm text-zinc-500">Upload your original ECU file</p>
-                  </div>
-                </div>
-
+            {/* Upload */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                <Upload size={16} /> Upload File
+              </h3>
+              {!file ? (
                 <div
                   {...getRootProps()}
                   className={clsx(
-                    'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
-                    isDragActive ? 'border-red-600 bg-red-50 dark:bg-red-950/20' : 'border-zinc-300 dark:border-zinc-700 hover:border-red-600'
+                    'border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all',
+                    isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 hover:border-zinc-500'
                   )}
                 >
                   <input {...getInputProps()} />
-                  {file ? (
-                    <div className="flex items-center justify-center gap-3">
-                      <FileText className="w-10 h-10 text-red-600" />
-                      <div className="text-left">
-                        <p className="font-medium">{file.name}</p>
-                        <p className="text-sm text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
-                        <X size={20} />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="w-12 h-12 text-zinc-400 mx-auto mb-3" />
-                      <p className="font-medium">Drop your ECU file here or click to browse</p>
-                      <p className="text-sm text-zinc-500 mt-1">.bin, .ori, .mod, .ecu, .tun (max 50MB)</p>
-                    </>
-                  )}
-                </div>
-
-                <Textarea label="Additional Notes" placeholder="Any special requests..." className="mt-4" rows={3} {...register('client_notes')} />
-              </Card>
-
-              <Card>
-                <h3 className="font-semibold mb-4">Order Summary</h3>
-                <div className="space-y-2">
-                  {selectedServices.map((code) => {
-                    const service = allServices.find((s) => s.code === code);
-                    return (
-                      <div key={code} className="flex justify-between text-sm">
-                        <span>{service?.name}</span>
-                        <span>{service?.base_price} Credits</span>
-                      </div>
-                    );
-                  })}
-                  <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>{totalPrice} Credits</span>
-                    </div>
+                  <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Upload size={24} className="text-blue-400" />
                   </div>
+                  <p className="font-semibold text-lg">Click to upload or drag and drop</p>
+                  <p className="text-sm text-zinc-500 mt-2">All file types allowed except ZIP, RAR, PHP, EXE (max 50MB)</p>
                 </div>
-
-                <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
-                  <div className="flex justify-between text-sm">
-                    <span>Your Balance</span>
-                    <span className={hasEnoughCredits ? 'text-green-600' : 'text-red-600'}>
-                      {creditBalance.toFixed(2)} Credits
-                    </span>
+              ) : (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-zinc-700 bg-zinc-800/50">
+                  <FileText size={20} className="text-blue-400" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{file.name}</p>
+                    <p className="text-xs text-zinc-500">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
-                  {!hasEnoughCredits && <p className="text-xs text-red-500 mt-1">Insufficient credits</p>}
+                  <button onClick={() => setFile(null)} className="p-1 hover:bg-zinc-700 rounded"><X size={16} className="text-zinc-400" /></button>
                 </div>
-              </Card>
+              )}
+            </div>
 
-              <div className="flex items-center justify-between">
-                <Button type="button" variant="ghost" onClick={() => setStep(2)}>Back</Button>
-                <Button type="submit" size="lg" isLoading={isSubmitting} disabled={!file || !hasEnoughCredits}>
-                  Submit Job ({totalPrice} Credits)
-                </Button>
+            {/* Bottom */}
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+              <div className="flex items-center gap-2 text-sm">
+                <Info size={16} className="text-blue-400" />
+                <span className="text-zinc-400">Your balance:</span>
+                <span className="text-blue-400 font-semibold">{creditBalance} credits</span>
+              </div>
+              <Button onClick={() => setStep(2)} disabled={!canGoToStep2}>
+                Next Step <ChevronRight size={16} className="ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════ STEP 2: Car Info ═══════════════════ */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-600/20 rounded-lg"><Car size={20} className="text-blue-400" /></div>
+              <div>
+                <h2 className="text-xl font-bold">Step 2: Vehicle Information</h2>
+                <p className="text-sm text-zinc-400">Tell us about your vehicle</p>
               </div>
             </div>
-          )}
-        </form>
+
+            {/* File bar */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
+              <FileText size={16} className="text-blue-400" />
+              <span className="text-sm truncate flex-1">File: {file?.name}</span>
+              <span className={clsx('text-xs px-2 py-0.5 rounded font-semibold',
+                fileType === 'ecu' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white')}>
+                {fileType.toUpperCase()}
+              </span>
+            </div>
+
+            {/* Original / Modified */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                <Info size={16} /> Is this an original file?
+              </h3>
+              <div className="flex gap-3">
+                {[true, false].map((val) => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => setIsOriginal(val)}
+                    className={clsx(
+                      'px-4 py-2.5 rounded-lg text-sm font-medium border transition-all',
+                      isOriginal === val
+                        ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                    )}
+                  >
+                    <span className={clsx(
+                      'inline-block w-2.5 h-2.5 rounded-full mr-2',
+                      isOriginal === val ? 'bg-blue-400' : 'bg-zinc-600'
+                    )} />
+                    {val ? 'Yes, Original' : 'No, Modified'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Vehicle */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                <Car size={16} /> Vehicle Details
+              </h3>
+              <div className="space-y-4">
+                <Select label="Brand *" placeholder={vehicle.loadingMakes ? 'Loading brands...' : 'Select Brand'}
+                  options={vehicle.makes} value={vehicle.selectedMake}
+                  onChange={(e) => vehicle.setSelectedMake(e.target.value)} disabled={vehicle.loadingMakes} />
+                <Select label="Model *" placeholder={vehicle.selectedMake ? 'Select Model' : 'Select Brand first'}
+                  options={vehicle.models} value={vehicle.selectedModel}
+                  onChange={(e) => vehicle.setSelectedModel(e.target.value)}
+                  disabled={!vehicle.selectedMake || vehicle.loadingModels} />
+                <Select label="Version/Generation *" placeholder={vehicle.selectedModel ? 'Select Version' : 'Select Model first'}
+                  options={vehicle.generations} value={vehicle.selectedGeneration}
+                  onChange={(e) => vehicle.setSelectedGeneration(e.target.value)}
+                  disabled={!vehicle.selectedModel || vehicle.loadingGenerations} />
+                <Select label="Engine *" placeholder={vehicle.selectedGeneration ? 'Select Engine' : 'Select Version first'}
+                  options={vehicle.engines} value={vehicle.selectedEngine}
+                  onChange={(e) => vehicle.setSelectedEngine(e.target.value)}
+                  disabled={!vehicle.selectedGeneration || vehicle.loadingEngines} />
+                <Select label="ECU" placeholder={vehicle.selectedEngine ? 'Select ECU' : 'Select Engine first'}
+                  options={vehicle.ecus} value={vehicle.selectedEcu}
+                  onChange={(e) => vehicle.setSelectedEcu(e.target.value)}
+                  disabled={!vehicle.selectedEngine || vehicle.loadingEcus} />
+                <Input label="VIN Number" placeholder="17 character VIN" maxLength={17} value={vin} onChange={(e) => setVin(e.target.value)} />
+                <Select label="Gearbox" placeholder="Select Gearbox" options={gearboxOptions} value={gearbox} onChange={(e) => setGearbox(e.target.value)} />
+              </div>
+            </div>
+
+            {/* Reading Tool */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                <Wrench size={16} /> Reading Tool
+              </h3>
+              <div className="space-y-4">
+                <Select label="Select Tool *" placeholder="Select Your Tool" options={readingTools} value={readingTool} onChange={(e) => setReadingTool(e.target.value)} />
+                <Select label="Tool Type *" options={toolTypes} value={toolType} onChange={(e) => setToolType(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+              <Button variant="ghost" onClick={() => setStep(1)}><ChevronLeft size={16} className="mr-1" /> Back</Button>
+              <Button onClick={() => setStep(3)} disabled={!canGoToStep3}>Next Step <ChevronRight size={16} className="ml-1" /></Button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════ STEP 3: Services ═══════════════════ */}
+        {step === 3 && (
+          <div className="space-y-6">
+            {/* Summary bar */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700">
+              <div className="p-2 bg-blue-600/20 rounded-lg"><Settings size={20} className="text-blue-400" /></div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-bold">Select Services</h2>
+                <p className="text-sm text-zinc-400 truncate">{vehicleSummary || 'Vehicle'}</p>
+              </div>
+              <span className={clsx('text-xs px-2.5 py-1 rounded font-semibold',
+                fileType === 'ecu' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white')}>
+                {fileType === 'ecu' ? 'ECU File' : 'Gearbox File'}
+              </span>
+              <span className="text-xs px-2.5 py-1 rounded font-semibold bg-zinc-700 text-zinc-300">
+                {toolType === 'master' ? 'Master Tool' : 'Slave Tool'}
+              </span>
+            </div>
+
+            {servicesLoading ? (
+              <div className="flex justify-center py-12"><Spinner /></div>
+            ) : (
+              <>
+                {/* Tuning Stages — single select */}
+                {stageCategories.map((cat) => (
+                  <div key={cat.id}>
+                    <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                      <Settings size={16} /> {cat.name} <span className="text-red-500">*</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {cat.services.map((svc) => {
+                        const sel = selectedStage === svc.code;
+                        return (
+                          <button
+                            key={svc.code} type="button"
+                            onClick={() => setSelectedStage(sel ? '' : svc.code)}
+                            className={clsx(
+                              'flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all text-center',
+                              sel ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                            )}
+                          >
+                            <Cpu size={24} className={sel ? 'text-blue-400' : 'text-zinc-500'} />
+                            <span className="font-semibold text-sm">{svc.name}</span>
+                            <span className={clsx('text-sm font-bold', sel ? 'text-blue-400' : 'text-zinc-500')}>
+                              {svc.base_price} credits
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Additional Options — multi select */}
+                {optionCategories.map((cat) => (
+                  <div key={cat.id}>
+                    <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                      <span className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center text-[10px] text-white font-bold">+</span>
+                      {cat.name}
+                      <span className="text-zinc-600">({cat.services.length} available)</span>
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {cat.services.map((svc) => {
+                        const sel = selectedOptions.includes(svc.code);
+                        return (
+                          <button
+                            key={svc.code} type="button"
+                            onClick={() => toggleOption(svc.code)}
+                            className={clsx(
+                              'relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center',
+                              sel ? 'border-green-500 bg-green-500/10' : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                            )}
+                          >
+                            <Settings size={20} className={sel ? 'text-green-400' : 'text-zinc-500'} />
+                            <span className="text-xs font-medium leading-tight">{svc.name}</span>
+                            <span className={clsx('text-xs font-bold', sel ? 'text-green-400' : 'text-blue-400')}>
+                              +{svc.base_price}
+                            </span>
+                            {svc.description && (
+                              <div className="absolute top-2 right-2">
+                                <Info size={12} className="text-zinc-600 hover:text-zinc-400 cursor-help" title={svc.description} />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {categories.length === 0 && (
+                  <Card><div className="text-center py-8 text-zinc-500">No services available yet. Ask the admin to add them.</div></Card>
+                )}
+              </>
+            )}
+
+            {/* Summary */}
+            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Selected services</span>
+                <span className="font-semibold">{(selectedStage ? 1 : 0) + selectedOptions.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Total cost</span>
+                <span className="text-xl font-bold text-blue-400">{totalCredits} credits</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-zinc-400">Your balance</span>
+                <span className={hasEnoughCredits ? 'text-green-400' : 'text-red-400'}>{creditBalance} credits</span>
+              </div>
+              {!hasEnoughCredits && <p className="text-xs text-red-400">Insufficient credits. Please top up.</p>}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+              <Button variant="ghost" onClick={() => setStep(2)}><ChevronLeft size={16} className="mr-1" /> Back</Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !hasEnoughCredits || (!selectedStage && selectedOptions.length === 0)}
+                size="lg" isLoading={isSubmitting}
+              >
+                Submit Job ({totalCredits} Credits)
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

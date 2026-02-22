@@ -14,7 +14,6 @@ import { JobDetailPage } from '@/pages/JobDetail';
 import { CreditsPage } from '@/pages/Credits';
 import { PerformanceCalculatorPage } from '@/pages/PerformanceCalculator';
 import { LandingPage } from '@/pages/Landing';
-import { TcuStagePage } from '@/pages/TcuStage';
 
 // Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
@@ -22,6 +21,7 @@ import { AdminJobsPage } from '@/pages/admin/AdminJobs';
 import { AdminJobDetailPage } from '@/pages/admin/AdminJobDetail';
 import { AdminUsersPage } from '@/pages/admin/AdminUsers';
 import { AdminStatsPage } from '@/pages/admin/AdminStats';
+import { AdminServicesPage } from '@/pages/admin/AdminServices';
 
 // Protected Route
 // CRITICAL: Use boolean selectors (!!user, not user) so this component
@@ -107,7 +107,7 @@ const App: React.FC = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/jobs" element={<JobsListPage />} />
           <Route path="/jobs/new" element={<NewJobPage />} />
-          <Route path="/tcu/new" element={<TcuStagePage />} />
+          <Route path="/tcu/new" element={<Navigate to="/jobs/new" replace />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/calculator" element={<PerformanceCalculatorPage />} />
           <Route path="/credits" element={<CreditsPage />} />
@@ -121,6 +121,7 @@ const App: React.FC = () => {
           <Route path="/admin/jobs/:id" element={<AdminJobDetailPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/stats" element={<AdminStatsPage />} />
+          <Route path="/admin/services" element={<AdminServicesPage />} />
         </Route>
 
         {/* Catch-all */}

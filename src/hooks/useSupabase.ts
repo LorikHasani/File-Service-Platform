@@ -134,15 +134,11 @@ export async function createJob(
     vehicle_model: string;
     vehicle_year: string;
     engine_type: string;
-    engine_power_hp?: number;
     ecu_type?: string;
     gearbox_type?: string;
     vin?: string;
-    mileage?: number;
-    fuel_type?: string;
     client_notes?: string;
     job_type?: string;
-    tcu_type?: string;
   },
   serviceCodes: string[]
 ): Promise<{ jobId: string | null; error: Error | null }> {
@@ -152,12 +148,12 @@ export async function createJob(
       p_vehicle_model: vehicleData.vehicle_model,
       p_vehicle_year: vehicleData.vehicle_year,
       p_engine_type: vehicleData.engine_type,
-      p_engine_power_hp: vehicleData.engine_power_hp ?? null,
+      p_engine_power_hp: null,
       p_ecu_type: vehicleData.ecu_type ?? null,
       p_gearbox_type: vehicleData.gearbox_type ?? null,
       p_vin: vehicleData.vin ?? null,
-      p_mileage: vehicleData.mileage ?? null,
-      p_fuel_type: vehicleData.fuel_type ?? null,
+      p_mileage: null,
+      p_fuel_type: null,
       p_client_notes: vehicleData.client_notes ?? null,
       p_service_codes: serviceCodes,
     });
@@ -165,14 +161,11 @@ export async function createJob(
 
     const jobId = data as string;
 
-    // Set job_type and tcu_type if provided
-    if (jobId && (vehicleData.job_type || vehicleData.tcu_type)) {
+    // Set job_type if provided
+    if (jobId && vehicleData.job_type) {
       await supabase
         .from('jobs')
-        .update({
-          job_type: vehicleData.job_type || 'ecu',
-          tcu_type: vehicleData.tcu_type || null,
-        })
+        .update({ job_type: vehicleData.job_type })
         .eq('id', jobId);
     }
 

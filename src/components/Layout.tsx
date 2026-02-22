@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, Settings, LogOut,
-  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu,
+  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
@@ -16,10 +16,8 @@ interface NavItem {
 
 const clientNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
-  { label: 'ECU Stage', href: '/jobs/new', icon: <Gauge size={20} /> },
-  { label: 'TCU Stage', href: '/tcu/new', icon: <Cpu size={20} /> },
+  { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={20} /> },
   { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
-  { label: 'Calculator', href: '/calculator', icon: <Gauge size={20} /> },
   { label: 'Credits', href: '/credits', icon: <CreditCard size={20} /> },
   { label: 'Settings', href: '/settings', icon: <Settings size={20} /> },
 ];
@@ -27,6 +25,7 @@ const clientNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={20} /> },
   { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={20} /> },
+  { label: 'Services', href: '/admin/services', icon: <Tag size={20} /> },
   { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
 ];

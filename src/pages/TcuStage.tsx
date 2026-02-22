@@ -65,15 +65,6 @@ const fuelTypes = [
 ];
 
 // TCU-specific services the client can request
-const tcuServiceOptions = [
-  { code: 'tcu_stage1', name: 'TCU Stage 1', desc: 'Faster shift times, optimized shift points, improved torque handling.', price: 150 },
-  { code: 'tcu_stage2', name: 'TCU Stage 2', desc: 'Aggressive shift strategy, raised torque limiter, launch control optimization.', price: 250 },
-  { code: 'tcu_launch', name: 'Launch Control', desc: 'Optimized launch control with adjustable RPM and torque delivery.', price: 100 },
-  { code: 'tcu_farts', name: 'Flat Shift / No-lift Shift', desc: 'Keep throttle open during gear changes for faster acceleration.', price: 100 },
-  { code: 'tcu_torque_limit', name: 'Torque Limiter Increase', desc: 'Raise gearbox torque limits to handle more power from ECU tune.', price: 100 },
-  { code: 'tcu_sport_mode', name: 'Sport Mode Enhancement', desc: 'More aggressive behavior in sport/dynamic modes.', price: 80 },
-];
-
 export const TcuStagePage: React.FC = () => {
   const navigate = useNavigate();
   const profile = useAuthStore((s) => s.profile);
@@ -105,14 +96,11 @@ export const TcuStagePage: React.FC = () => {
     setSelectedTcuServices((prev) => prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code]);
   };
 
-  // Use the first matching service from DB for pricing, or fallback to the hardcoded list
-  const allDbServices = categories.flatMap((c) => c.services);
+  const allServices = categories.flatMap((c) => c.services);
 
   const totalPrice = selectedTcuServices.reduce((sum, code) => {
-    const dbService = allDbServices.find((s) => s.code === code);
-    if (dbService) return sum + dbService.base_price;
-    const localService = tcuServiceOptions.find((s) => s.code === code);
-    return sum + (localService?.price || 0);
+    const service = allServices.find((s) => s.code === code);
+    return sum + (service?.base_price || 0);
   }, 0);
 
   const creditBalance = profile?.credit_balance ?? 0;
@@ -134,17 +122,6 @@ export const TcuStagePage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Find which service codes exist in DB vs local-only
-      const dbCodes = selectedTcuServices.filter((code) => allDbServices.some((s) => s.code === code));
-      // For local-only TCU services, we'll pass them in client_notes
-      const localCodes = selectedTcuServices.filter((code) => !allDbServices.some((s) => s.code === code));
-      const localServiceNames = localCodes.map((code) => tcuServiceOptions.find((s) => s.code === code)?.name).filter(Boolean);
-
-      const notes = [
-        data.client_notes || '',
-        localServiceNames.length > 0 ? `[TCU Services: ${localServiceNames.join(', ')}]` : '',
-      ].filter(Boolean).join('\n');
-
       const { jobId, error } = await createJob({
         vehicle_brand: data.vehicle_brand,
         vehicle_model: data.vehicle_model,
@@ -156,10 +133,10 @@ export const TcuStagePage: React.FC = () => {
         vin: data.vin,
         mileage: data.mileage,
         fuel_type: data.fuel_type,
-        client_notes: notes,
+        client_notes: data.client_notes,
         job_type: 'tcu',
         tcu_type: data.tcu_type,
-      }, dbCodes.length > 0 ? dbCodes : selectedTcuServices);
+      }, selectedTcuServices);
 
       if (error) throw error;
 
@@ -340,34 +317,36 @@ export const TcuStagePage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {tcuServiceOptions.map((service) => {
-                  const isSelected = selectedTcuServices.includes(service.code);
-                  return (
-                    <button
-                      key={service.code}
-                      type="button"
-                      onClick={() => toggleService(service.code)}
-                      className={clsx(
-                        'flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all',
-                        isSelected
-                          ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/20'
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
-                      )}
-                    >
-                      <div className={clsx('p-2 rounded-lg', isSelected ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800')}>
-                        <Cpu size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{service.name}</span>
-                          <span className="text-sm font-semibold text-blue-600">{service.price} cr</span>
+                {categories.map((cat) =>
+                  cat.services.map((service) => {
+                    const isSelected = selectedTcuServices.includes(service.code);
+                    return (
+                      <button
+                        key={service.code}
+                        type="button"
+                        onClick={() => toggleService(service.code)}
+                        className={clsx(
+                          'flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all',
+                          isSelected
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/20'
+                            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                        )}
+                      >
+                        <div className={clsx('p-2 rounded-lg', isSelected ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800')}>
+                          <Cpu size={20} />
                         </div>
-                        <p className="text-sm text-zinc-500 mt-0.5">{service.desc}</p>
-                      </div>
-                      {isSelected && <Check className="w-5 h-5 text-blue-600" />}
-                    </button>
-                  );
-                })}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{service.name}</span>
+                            <span className="text-sm font-semibold text-blue-600">{service.base_price} cr</span>
+                          </div>
+                          <p className="text-sm text-zinc-500 mt-0.5">{service.description}</p>
+                        </div>
+                        {isSelected && <Check className="w-5 h-5 text-blue-600" />}
+                      </button>
+                    );
+                  })
+                )}
               </div>
 
               <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
@@ -432,11 +411,11 @@ export const TcuStagePage: React.FC = () => {
                 <h3 className="font-semibold mb-4">Order Summary</h3>
                 <div className="space-y-2">
                   {selectedTcuServices.map((code) => {
-                    const service = tcuServiceOptions.find((s) => s.code === code);
+                    const service = allServices.find((s) => s.code === code);
                     return (
                       <div key={code} className="flex justify-between text-sm">
-                        <span>{service?.name}</span>
-                        <span>{service?.price} Credits</span>
+                        <span>{service?.name || code}</span>
+                        <span>{service?.base_price || 0} Credits</span>
                       </div>
                     );
                   })}

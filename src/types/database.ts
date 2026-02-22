@@ -87,6 +87,12 @@ export interface Database {
           started_at: string | null;
           completed_at: string | null;
           revision_count: number;
+          file_type: string | null;
+          is_original: boolean;
+          reading_tool: string | null;
+          tool_type: string | null;
+          model_year: string | null;
+          car_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -116,6 +122,12 @@ export interface Database {
           started_at?: string | null;
           completed_at?: string | null;
           revision_count?: number;
+          file_type?: string | null;
+          is_original?: boolean;
+          reading_tool?: string | null;
+          tool_type?: string | null;
+          model_year?: string | null;
+          car_notes?: string | null;
         };
         Update: {
           id?: string;
@@ -144,6 +156,12 @@ export interface Database {
           started_at?: string | null;
           completed_at?: string | null;
           revision_count?: number;
+          file_type?: string | null;
+          is_original?: boolean;
+          reading_tool?: string | null;
+          tool_type?: string | null;
+          model_year?: string | null;
+          car_notes?: string | null;
         };
         Relationships: [
           {
@@ -258,6 +276,7 @@ export interface Database {
           description: string | null;
           sort_order: number;
           is_active: boolean;
+          selection_type: string;
           created_at: string;
         };
         Insert: {
@@ -266,6 +285,7 @@ export interface Database {
           description?: string | null;
           sort_order?: number;
           is_active?: boolean;
+          selection_type?: string;
         };
         Update: {
           id?: string;
@@ -273,6 +293,7 @@ export interface Database {
           description?: string | null;
           sort_order?: number;
           is_active?: boolean;
+          selection_type?: string;
         };
         Relationships: [];
       };
