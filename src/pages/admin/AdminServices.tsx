@@ -70,6 +70,7 @@ export const AdminServicesPage: React.FC = () => {
           description: null,
           sort_order: 9999,
           is_active: true,
+          selection_type: 'multi',
           created_at: '',
           services: uncategorized,
         });

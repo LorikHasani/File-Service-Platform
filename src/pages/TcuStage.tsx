@@ -127,15 +127,11 @@ export const TcuStagePage: React.FC = () => {
         vehicle_model: data.vehicle_model,
         vehicle_year: data.vehicle_year,
         engine_type: data.engine_type,
-        engine_power_hp: data.engine_power_hp,
         ecu_type: data.ecu_type,
         gearbox_type: data.gearbox_type,
         vin: data.vin,
-        mileage: data.mileage,
-        fuel_type: data.fuel_type,
         client_notes: data.client_notes,
         job_type: 'tcu',
-        tcu_type: data.tcu_type,
       }, selectedTcuServices);
 
       if (error) throw error;

@@ -481,7 +481,7 @@ export const NewJobPage: React.FC = () => {
                             </span>
                             {svc.description && (
                               <div className="absolute top-2 right-2">
-                                <Info size={12} className="text-zinc-600 hover:text-zinc-400 cursor-help" title={svc.description} />
+                                <Info size={12} className="text-zinc-600 hover:text-zinc-400 cursor-help" />
                               </div>
                             )}
                           </button>
