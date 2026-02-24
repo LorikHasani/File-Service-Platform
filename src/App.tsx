@@ -15,6 +15,9 @@ import { CreditsPage } from '@/pages/Credits';
 import { PerformanceCalculatorPage } from '@/pages/PerformanceCalculator';
 import { LandingPage } from '@/pages/Landing';
 import { PricesPage } from '@/pages/Prices';
+import { TermsPage } from '@/pages/legal/Terms';
+import { PrivacyPage } from '@/pages/legal/Privacy';
+import { RefundPolicyPage } from '@/pages/legal/RefundPolicy';
 
 // Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
@@ -96,6 +99,9 @@ const App: React.FC = () => {
       <Routes>
         {/* Landing Page — always accessible */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refund-policy" element={<RefundPolicyPage />} />
 
         {/* Public Routes */}
         <Route element={<PublicRoute />}>

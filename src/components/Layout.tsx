@@ -54,8 +54,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
       )}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2">
-            <Gauge className="w-8 h-8 text-red-600" />
-            <span className="text-xl font-bold">ChipTune<span className="text-red-500">Files</span></span>
+            <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
           </Link>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-zinc-800 rounded">
             <X size={20} />
@@ -176,13 +175,7 @@ export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }
       <div className="hidden lg:flex lg:w-1/2 bg-zinc-950 text-white items-center justify-center p-12 relative overflow-hidden">
         <div className="relative z-10 max-w-lg">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
-              <Gauge className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <span className="text-3xl font-bold">ChipTune</span>
-              <span className="text-3xl font-bold text-red-500">Files</span>
-            </div>
+            <img src="/logo.png" alt="ChipTuneFiles" className="h-14" />
           </div>
           <h2 className="text-4xl font-bold mb-4">Professional ECU File Service</h2>
           <p className="text-lg text-zinc-400 mb-8">

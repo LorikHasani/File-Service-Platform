@@ -83,10 +83,7 @@ export const LandingPage: React.FC = () => {
       >
         <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-16">
           <a href="#top" className="flex items-center gap-2" aria-label="ChipTuneFiles home">
-            <Gauge className="w-6 h-6 text-red-500" />
-            <span className="font-extrabold text-lg tracking-tight">
-              ChipTune<span className="text-red-500">Files</span>
-            </span>
+            <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
           </a>
 
           <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-neutral-400" aria-label="Main navigation">
@@ -371,8 +368,8 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-500 mb-0.5">Email</p>
-                    <a href="mailto:info@chiptunefiles.com" className="text-white hover:text-red-400 transition-colors font-medium">
-                      info@chiptunefiles.com
+                    <a href="mailto:kikzaperformance@gmail.com" className="text-white hover:text-red-400 transition-colors font-medium">
+                      kikzaperformance@gmail.com
                     </a>
                   </div>
                 </div>
@@ -383,8 +380,8 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-500 mb-0.5">WhatsApp</p>
-                    <a href="https://wa.me/38344123456" className="text-white hover:text-red-400 transition-colors font-medium">
-                      +383 44 123 456
+                    <a href="https://wa.me/491623900543" className="text-white hover:text-red-400 transition-colors font-medium">
+                      +49 162 3900543
                     </a>
                   </div>
                 </div>
@@ -405,7 +402,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-500 mb-0.5">Location</p>
-                    <p className="text-white font-medium">Pristina, Kosovo</p>
+                    <p className="text-white font-medium">Germany</p>
                     <p className="text-sm text-neutral-500">Serving clients worldwide</p>
                   </div>
                 </div>
@@ -424,7 +421,7 @@ export const LandingPage: React.FC = () => {
                   const email = data.get('email');
                   const message = data.get('message');
                   // Open mailto with prefilled data
-                  window.location.href = `mailto:info@chiptunefiles.com?subject=Inquiry from ${name}&body=${message}%0A%0AFrom: ${name} (${email})`;
+                  window.location.href = `mailto:kikzaperformance@gmail.com?subject=Inquiry from ${name}&body=${message}%0A%0AFrom: ${name} (${email})`;
                 }}
               >
                 <div>
@@ -506,17 +503,16 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <Gauge className="w-5 h-5 text-red-500" />
-              <span className="font-bold text-sm">
-                ChipTune<span className="text-red-500">Files</span>
-              </span>
+              <img src="/logo.png" alt="ChipTuneFiles" className="h-6" />
             </div>
 
             <nav className="flex flex-wrap items-center justify-center gap-6 text-xs text-neutral-500" aria-label="Footer navigation">
               <a href="#services" className="hover:text-white transition-colors">Services</a>
               <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-              <a href="#calculator" className="hover:text-white transition-colors">Calculator</a>
               <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+              <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
               <Link to="/login" className="hover:text-white transition-colors">Portal</Link>
             </nav>
 
