@@ -571,7 +571,7 @@ INSERT INTO services (category_id, code, name, description, base_price, estimate
 
 -- Credit Packages
 INSERT INTO credit_packages (name, credits, price, bonus_credits, sort_order) VALUES
-    ('Starter', 100.00, 100.00, 0, 1),
+    ('Starter', 55.00, 55.00, 0, 1),
     ('Professional', 250.00, 225.00, 25.00, 2),
     ('Business', 500.00, 425.00, 75.00, 3),
     ('Enterprise', 1000.00, 800.00, 200.00, 4);

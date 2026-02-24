@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, Settings, LogOut,
-  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag,
+  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
@@ -18,6 +18,7 @@ const clientNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
   { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={20} /> },
   { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
+  { label: 'Prices', href: '/prices', icon: <DollarSign size={20} /> },
   { label: 'Balance', href: '/credits', icon: <CreditCard size={20} /> },
   { label: 'Settings', href: '/settings', icon: <Settings size={20} /> },
 ];
