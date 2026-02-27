@@ -37,33 +37,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // ---------------------------------------------------------------
-      // AUTH STATE CHANGES
+      // AUTH STATE CHANGES — debounced SIGNED_OUT
       // ---------------------------------------------------------------
-      // CRITICAL: During tab-focus refresh, Supabase may fire a
-      // transient SIGNED_OUT before SIGNED_IN (token exchange).
-      // If we clear state on that transient event:
-      //   - ProtectedRoute sees user=null → redirects to /login
-      //   - Dashboard UNMOUNTS (all React state + refs destroyed)
-      //   - SIGNED_IN fires → redirect back to /dashboard
-      //   - Dashboard remounts fresh with loading=true
-      //   - But profile hasn't loaded yet → hooks bail → loading forever
+      // PROBLEM: When the tab is backgrounded, the browser kills
+      // Supabase's Realtime WebSocket. On tab return the WebSocket
+      // reconnects, detects the stale JWT, and fires a transient
+      // SIGNED_OUT *before* SIGNED_IN arrives with the new token.
+      // This happens BEFORE our visibilitychange handler runs, so
+      // flag-based suppression can't work (flag isn't set yet).
       //
-      // Fix: use `refreshingOnFocus` flag to suppress SIGNED_OUT
-      // events that fire during the visibility-triggered refresh.
-      // Genuine sign-outs (user clicks "Sign Out") go through
-      // signOut() which clears state directly, not via this handler.
+      // If we clear state on that transient SIGNED_OUT:
+      //   - ProtectedRoute sees user=null → redirects to /login
+      //   - Page UNMOUNTS (all React state + refs destroyed)
+      //   - SIGNED_IN fires → redirect back → page remounts fresh
+      //   - profile not loaded yet → hooks bail → loading forever
+      //
+      // FIX: Debounce SIGNED_OUT — wait 2 s for a SIGNED_IN to
+      // follow. If one arrives, cancel the clear (transient). If
+      // not, verify with getSession() and clear if truly gone.
+      // Genuine user sign-outs bypass this entirely because
+      // signOut() clears state directly before the event fires.
       // ---------------------------------------------------------------
-      let refreshingOnFocus = false;
+      let signOutTimer: ReturnType<typeof setTimeout> | null = null;
 
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT') {
-          if (refreshingOnFocus) {
-            // Transient event during tab-focus refresh — ignore it.
-            // The visibility handler will sort out the real state.
-            return;
-          }
-          set({ user: null, session: null, profile: null, isAdmin: false });
+          signOutTimer = setTimeout(async () => {
+            signOutTimer = null;
+            // Double-check: is the session truly gone?
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) {
+              set({ user: null, session: null, profile: null, isAdmin: false });
+            }
+          }, 2000);
           return;
+        }
+
+        // A valid session arrived — cancel any pending sign-out clear
+        if (signOutTimer && session?.user) {
+          clearTimeout(signOutTimer);
+          signOutTimer = null;
         }
 
         if (session?.user) {
@@ -85,20 +98,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // When tab is backgrounded, browser throttles JS timers so
       // Supabase's autoRefreshToken can't run → JWT expires.
       // On return we must:
-      //   1. Suppress transient SIGNED_OUT events (refreshingOnFocus)
-      //   2. Get a fresh JWT (refreshSession)
-      //   3. Ensure profile is in the store (fetchProfile if missing)
-      //   4. ALWAYS signal hooks to re-fetch (bump refreshKey)
+      //   1. Get a fresh JWT (refreshSession)
+      //   2. Ensure profile is in the store (fetchProfile if missing)
+      //   3. ALWAYS signal hooks to re-fetch (bump refreshKey)
       //
       // refreshKey is bumped in ALL code paths so hooks always
       // re-fetch. Hooks use a hasLoaded ref to keep showing old
       // data during re-fetch, preventing the "blank page" flash.
       // ---------------------------------------------------------------
+      let refreshing = false;
       document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState !== 'visible') return;
-        if (refreshingOnFocus) return;
+        if (refreshing) return;
         if (!get().user && !get().session) return; // not logged in
-        refreshingOnFocus = true;
+        refreshing = true;
 
         try {
           // Step 1: Fresh JWT
@@ -127,7 +140,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (get().user) {
             set({ refreshKey: get().refreshKey + 1 });
           }
-          refreshingOnFocus = false;
+          refreshing = false;
         }
       });
     } catch (error) {
