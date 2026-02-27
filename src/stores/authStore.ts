@@ -37,19 +37,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // ---------------------------------------------------------------
-      // AUTH STATE CHANGES
+      // AUTH STATE CHANGES — debounced SIGNED_OUT
       // ---------------------------------------------------------------
-      // CRITICAL: We ONLY clear auth state on explicit SIGNED_OUT.
-      // During token refresh, Supabase may fire intermediate events.
-      // Clearing profile/user on those events causes cascading failures:
-      //   - ProtectedRoute sees user=null → redirects to login
-      //   - Hooks see profile=null → bail with loading=false, no data
-      //   - Profile never gets restored (TOKEN_REFRESHED doesn't re-fetch it)
+      // PROBLEM: When the tab is backgrounded, the browser kills
+      // Supabase's Realtime WebSocket. On tab return the WebSocket
+      // reconnects, detects the stale JWT, and fires a transient
+      // SIGNED_OUT *before* SIGNED_IN arrives with the new token.
+      // This happens BEFORE our visibilitychange handler runs, so
+      // flag-based suppression can't work (flag isn't set yet).
+      //
+      // If we clear state on that transient SIGNED_OUT:
+      //   - ProtectedRoute sees user=null → redirects to /login
+      //   - Page UNMOUNTS (all React state + refs destroyed)
+      //   - SIGNED_IN fires → redirect back → page remounts fresh
+      //   - profile not loaded yet → hooks bail → loading forever
+      //
+      // FIX: Debounce SIGNED_OUT — wait 2 s for a SIGNED_IN to
+      // follow. If one arrives, cancel the clear (transient). If
+      // not, verify with getSession() and clear if truly gone.
+      // Genuine user sign-outs bypass this entirely because
+      // signOut() clears state directly before the event fires.
       // ---------------------------------------------------------------
+      let signOutTimer: ReturnType<typeof setTimeout> | null = null;
+
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT') {
-          set({ user: null, session: null, profile: null, isAdmin: false });
+          signOutTimer = setTimeout(async () => {
+            signOutTimer = null;
+            // Double-check: is the session truly gone?
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) {
+              set({ user: null, session: null, profile: null, isAdmin: false });
+            }
+          }, 2000);
           return;
+        }
+
+        // A valid session arrived — cancel any pending sign-out clear
+        if (signOutTimer && session?.user) {
+          clearTimeout(signOutTimer);
+          signOutTimer = null;
         }
 
         if (session?.user) {
@@ -66,17 +93,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       // ---------------------------------------------------------------
-      // TAB VISIBILITY — the core fix
+      // TAB VISIBILITY
       // ---------------------------------------------------------------
       // When tab is backgrounded, browser throttles JS timers so
       // Supabase's autoRefreshToken can't run → JWT expires.
       // On return we must:
       //   1. Get a fresh JWT (refreshSession)
       //   2. Ensure profile is in the store (fetchProfile if missing)
-      //   3. THEN signal hooks to re-fetch (bump refreshKey)
+      //   3. ALWAYS signal hooks to re-fetch (bump refreshKey)
       //
-      // Steps are sequential (awaited). Hooks only fire AFTER
-      // everything is guaranteed valid.
+      // refreshKey is bumped in ALL code paths so hooks always
+      // re-fetch. Hooks use a hasLoaded ref to keep showing old
+      // data during re-fetch, preventing the "blank page" flash.
       // ---------------------------------------------------------------
       let refreshing = false;
       document.addEventListener('visibilitychange', async () => {
@@ -90,25 +118,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const { data, error } = await supabase.auth.refreshSession();
 
           if (error || !data.session?.user) {
+            // Refresh failed — check if cached session still works
             const { data: cached } = await supabase.auth.getSession();
             if (!cached.session?.user) {
+              // Genuinely logged out
               set({ user: null, session: null, profile: null, isAdmin: false });
+              return;
             }
-            return;
+          } else {
+            set({ user: data.session.user, session: data.session });
           }
-
-          set({ user: data.session.user, session: data.session });
 
           // Step 2: Ensure profile exists (may have been wiped by a race)
           if (!get().profile) {
             await get().fetchProfile();
           }
-
-          // Step 3: Signal hooks (token valid + profile valid = safe to query)
-          set({ refreshKey: get().refreshKey + 1 });
         } catch (err) {
           console.error('Session refresh on tab focus failed:', err);
         } finally {
+          // Step 3: ALWAYS signal hooks to re-fetch, even on error.
+          if (get().user) {
+            set({ refreshKey: get().refreshKey + 1 });
+          }
           refreshing = false;
         }
       });
