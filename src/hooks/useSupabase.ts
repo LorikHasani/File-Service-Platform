@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { 
@@ -23,6 +23,7 @@ export function useJobs(status?: JobStatus) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoaded = useRef(false);
 
   // Subscribe to PRIMITIVES so the effect re-runs when auth state changes,
   // but without causing re-runs on object reference changes.
@@ -42,7 +43,13 @@ export function useJobs(status?: JobStatus) {
       return;
     }
 
-    setLoading(true);
+    // Only show loading spinner on initial fetch.
+    // On tab-focus re-fetches (refreshKey change), keep stale data visible
+    // so the user doesn't see a flash of "no data".
+    if (!hasLoaded.current) {
+      setLoading(true);
+    }
+
     const run = async () => {
       try {
         let query = supabase
@@ -59,7 +66,10 @@ export function useJobs(status?: JobStatus) {
 
         const { data, error: queryError } = await query;
         if (queryError) throw queryError;
-        if (!cancelled) setJobs(data || []);
+        if (!cancelled) {
+          setJobs(data || []);
+          hasLoaded.current = true;
+        }
       } catch (err) {
         if (!cancelled) setError(err as Error);
       } finally {
@@ -78,6 +88,7 @@ export function useJob(jobId: string | undefined) {
   const [job, setJob] = useState<JobWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoaded = useRef(false);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
   useEffect(() => {
@@ -88,7 +99,10 @@ export function useJob(jobId: string | undefined) {
       return;
     }
 
-    setLoading(true);
+    if (!hasLoaded.current) {
+      setLoading(true);
+    }
+
     const run = async () => {
       try {
         const { data: jobData, error: jobError } = await supabase
@@ -112,6 +126,7 @@ export function useJob(jobId: string | undefined) {
             files: files || [],
             client: client || undefined,
           });
+          hasLoaded.current = true;
         }
       } catch (err) {
         if (!cancelled) setError(err as Error);
@@ -217,10 +232,15 @@ export function useServices() {
   const [categories, setCategories] = useState<(ServiceCategory & { services: Service[] })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoaded = useRef(false);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!hasLoaded.current) {
+      setLoading(true);
+    }
 
     const run = async () => {
       try {
@@ -249,6 +269,7 @@ export function useServices() {
               services: typedServices.filter((s) => s.category_id === cat.id),
             }))
           );
+          hasLoaded.current = true;
         }
       } catch (err) {
         if (!cancelled) setError(err as Error);
@@ -381,6 +402,7 @@ export function useJobMessages(jobId: string | undefined) {
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
   const profileId = useAuthStore((s) => s.profile?.id ?? null);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
@@ -389,6 +411,10 @@ export function useTransactions() {
 
     if (!profileId) {
       return; // Stay loading — will re-run when profileId appears
+    }
+
+    if (!hasLoaded.current) {
+      setLoading(true);
     }
 
     const run = async () => {
@@ -400,6 +426,7 @@ export function useTransactions() {
 
       if (!cancelled) {
         setTransactions(data || []);
+        hasLoaded.current = true;
         setLoading(false);
       }
     };
@@ -444,6 +471,7 @@ export function useCreditPackages() {
 export function useAllJobs() {
   const [jobs, setJobs] = useState<JobWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
@@ -454,6 +482,10 @@ export function useAllJobs() {
       return; // Stay loading — will re-run if isAdmin changes
     }
 
+    if (!hasLoaded.current) {
+      setLoading(true);
+    }
+
     const run = async () => {
       try {
         const { data } = await supabase
@@ -461,7 +493,10 @@ export function useAllJobs() {
           .select('*, client:profiles!client_id(*)')
           .order('created_at', { ascending: false });
 
-        if (!cancelled) setJobs((data as unknown as JobWithClient[]) || []);
+        if (!cancelled) {
+          setJobs((data as unknown as JobWithClient[]) || []);
+          hasLoaded.current = true;
+        }
       } catch (err) {
         console.error('Error fetching all jobs:', err);
       } finally {
@@ -479,6 +514,7 @@ export function useAllJobs() {
 export function useAllJobsWithServices() {
   const [jobs, setJobs] = useState<(JobWithClient & { services: JobService[] })[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
@@ -487,6 +523,10 @@ export function useAllJobsWithServices() {
 
     if (!isAdmin) {
       return;
+    }
+
+    if (!hasLoaded.current) {
+      setLoading(true);
     }
 
     const run = async () => {
@@ -514,6 +554,7 @@ export function useAllJobsWithServices() {
               services: (servicesData || []).filter((s) => s.job_id === job.id),
             }))
           );
+          hasLoaded.current = true;
         }
       } catch (err) {
         console.error('Error fetching jobs with services:', err);
@@ -580,6 +621,7 @@ export function useAdminStats() {
     totalUsers: 0,
   });
   const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
@@ -588,6 +630,10 @@ export function useAdminStats() {
 
     if (!isAdmin) {
       return;
+    }
+
+    if (!hasLoaded.current) {
+      setLoading(true);
     }
 
     const run = async () => {
@@ -621,6 +667,7 @@ export function useAdminStats() {
             totalRevenue: (revenueData || []).reduce((sum, j) => sum + (j.credits_used || 0), 0),
             totalUsers: totalUsers || 0,
           });
+          hasLoaded.current = true;
         }
       } catch (error) {
         console.error('Error fetching admin stats:', error);

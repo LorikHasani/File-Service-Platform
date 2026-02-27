@@ -39,15 +39,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // ---------------------------------------------------------------
       // AUTH STATE CHANGES
       // ---------------------------------------------------------------
-      // CRITICAL: We ONLY clear auth state on explicit SIGNED_OUT.
-      // During token refresh, Supabase may fire intermediate events.
-      // Clearing profile/user on those events causes cascading failures:
-      //   - ProtectedRoute sees user=null → redirects to login
-      //   - Hooks see profile=null → bail with loading=false, no data
-      //   - Profile never gets restored (TOKEN_REFRESHED doesn't re-fetch it)
+      // CRITICAL: During tab-focus refresh, Supabase may fire a
+      // transient SIGNED_OUT before SIGNED_IN (token exchange).
+      // If we clear state on that transient event:
+      //   - ProtectedRoute sees user=null → redirects to /login
+      //   - Dashboard UNMOUNTS (all React state + refs destroyed)
+      //   - SIGNED_IN fires → redirect back to /dashboard
+      //   - Dashboard remounts fresh with loading=true
+      //   - But profile hasn't loaded yet → hooks bail → loading forever
+      //
+      // Fix: use `refreshingOnFocus` flag to suppress SIGNED_OUT
+      // events that fire during the visibility-triggered refresh.
+      // Genuine sign-outs (user clicks "Sign Out") go through
+      // signOut() which clears state directly, not via this handler.
       // ---------------------------------------------------------------
+      let refreshingOnFocus = false;
+
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT') {
+          if (refreshingOnFocus) {
+            // Transient event during tab-focus refresh — ignore it.
+            // The visibility handler will sort out the real state.
+            return;
+          }
           set({ user: null, session: null, profile: null, isAdmin: false });
           return;
         }
@@ -66,50 +80,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       // ---------------------------------------------------------------
-      // TAB VISIBILITY — the core fix
+      // TAB VISIBILITY
       // ---------------------------------------------------------------
       // When tab is backgrounded, browser throttles JS timers so
       // Supabase's autoRefreshToken can't run → JWT expires.
       // On return we must:
-      //   1. Get a fresh JWT (refreshSession)
-      //   2. Ensure profile is in the store (fetchProfile if missing)
-      //   3. THEN signal hooks to re-fetch (bump refreshKey)
+      //   1. Suppress transient SIGNED_OUT events (refreshingOnFocus)
+      //   2. Get a fresh JWT (refreshSession)
+      //   3. Ensure profile is in the store (fetchProfile if missing)
+      //   4. ALWAYS signal hooks to re-fetch (bump refreshKey)
       //
-      // Steps are sequential (awaited). Hooks only fire AFTER
-      // everything is guaranteed valid.
+      // refreshKey is bumped in ALL code paths so hooks always
+      // re-fetch. Hooks use a hasLoaded ref to keep showing old
+      // data during re-fetch, preventing the "blank page" flash.
       // ---------------------------------------------------------------
-      let refreshing = false;
       document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState !== 'visible') return;
-        if (refreshing) return;
+        if (refreshingOnFocus) return;
         if (!get().user && !get().session) return; // not logged in
-        refreshing = true;
+        refreshingOnFocus = true;
 
         try {
           // Step 1: Fresh JWT
           const { data, error } = await supabase.auth.refreshSession();
 
           if (error || !data.session?.user) {
+            // Refresh failed — check if cached session still works
             const { data: cached } = await supabase.auth.getSession();
             if (!cached.session?.user) {
+              // Genuinely logged out
               set({ user: null, session: null, profile: null, isAdmin: false });
+              return;
             }
-            return;
+          } else {
+            set({ user: data.session.user, session: data.session });
           }
-
-          set({ user: data.session.user, session: data.session });
 
           // Step 2: Ensure profile exists (may have been wiped by a race)
           if (!get().profile) {
             await get().fetchProfile();
           }
-
-          // Step 3: Signal hooks (token valid + profile valid = safe to query)
-          set({ refreshKey: get().refreshKey + 1 });
         } catch (err) {
           console.error('Session refresh on tab focus failed:', err);
         } finally {
-          refreshing = false;
+          // Step 3: ALWAYS signal hooks to re-fetch, even on error.
+          if (get().user) {
+            set({ refreshKey: get().refreshKey + 1 });
+          }
+          refreshingOnFocus = false;
         }
       });
     } catch (error) {
