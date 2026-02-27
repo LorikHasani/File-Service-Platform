@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore';
@@ -33,10 +33,40 @@ import { AdminServicesPage } from '@/pages/admin/AdminServices';
 // NOT when the user object reference changes (which happens on every
 // token refresh). Re-rendering ProtectedRoute re-renders Outlet which
 // can cause child components to lose state or cancel in-flight fetches.
+//
+// GRACE PERIOD: When the user was previously authenticated, don't
+// redirect immediately on auth drop. Supabase Realtime WebSocket
+// reconnection, token refresh, and background tab recovery can all
+// cause transient SIGNED_OUT events. Redirecting unmounts pages,
+// destroying all React state and refs — the root cause of the
+// "blank page / loading forever" bug on tab switch. Instead, keep
+// rendering the current page for up to 5 s. If auth recovers
+// (which it almost always does), the user never notices.
+// Genuine sign-outs use window.location (hard nav) so they bypass
+// this entirely.
 const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }) => {
   const isAuthenticated = useAuthStore((s) => !!s.user);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const wasAuthenticated = useRef(false);
+  const [graceExpired, setGraceExpired] = useState(false);
+
+  // Track that user has been authenticated at least once
+  useEffect(() => {
+    if (isAuthenticated) {
+      wasAuthenticated.current = true;
+      setGraceExpired(false);
+    }
+  }, [isAuthenticated]);
+
+  // Grace period: when auth drops after being authenticated,
+  // wait 5 s before redirecting to login
+  useEffect(() => {
+    if (!isAuthenticated && wasAuthenticated.current && !graceExpired) {
+      const timer = setTimeout(() => setGraceExpired(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, graceExpired]);
 
   if (isLoading) {
     return (
@@ -46,7 +76,15 @@ const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    // User was previously authenticated — keep showing the page
+    // during the grace period so components don't unmount
+    if (wasAuthenticated.current && !graceExpired) {
+      return <Outlet />;
+    }
+    return <Navigate to="/login" replace />;
+  }
+
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
 
   return <Outlet />;

@@ -186,8 +186,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
+    // Clear state first, then sign out from Supabase.
+    // Use window.location.replace for a hard redirect that bypasses
+    // ProtectedRoute's grace period (which would otherwise keep
+    // showing the page for 5 s waiting for auth to recover).
     set({ user: null, profile: null, session: null, isAdmin: false });
+    await supabase.auth.signOut();
+    window.location.replace('/login');
   },
 
   fetchProfile: async () => {
