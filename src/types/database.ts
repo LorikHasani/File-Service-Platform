@@ -277,6 +277,7 @@ export interface Database {
           sort_order: number;
           is_active: boolean;
           selection_type: string;
+          job_type: string;
           created_at: string;
         };
         Insert: {
@@ -286,6 +287,7 @@ export interface Database {
           sort_order?: number;
           is_active?: boolean;
           selection_type?: string;
+          job_type?: string;
         };
         Update: {
           id?: string;
@@ -294,6 +296,7 @@ export interface Database {
           sort_order?: number;
           is_active?: boolean;
           selection_type?: string;
+          job_type?: string;
         };
         Relationships: [];
       };

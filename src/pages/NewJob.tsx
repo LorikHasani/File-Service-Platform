@@ -97,6 +97,13 @@ export const NewJobPage: React.FC = () => {
   const [fileType, setFileType] = useState<'ecu' | 'gearbox'>('ecu');
   const [file, setFile] = useState<File | null>(null);
 
+  const handleFileTypeChange = (type: 'ecu' | 'gearbox') => {
+    setFileType(type);
+    // Reset service selections when switching file type
+    setSelectedStage('');
+    setSelectedOptions([]);
+  };
+
   // Step 2
   const [isOriginal, setIsOriginal] = useState(true);
   const [vin, setVin] = useState('');
@@ -107,6 +114,7 @@ export const NewJobPage: React.FC = () => {
   // Step 3
   const [selectedStage, setSelectedStage] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [clientNotes, setClientNotes] = useState('');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) setFile(acceptedFiles[0]!);
@@ -118,11 +126,18 @@ export const NewJobPage: React.FC = () => {
     multiple: false,
   });
 
-  // Split categories: selection_type='single' → stage cards, rest → option grid
+  // Filter categories by file type, then split: selection_type='single' → stage cards, rest → option grid
+  const jobTypeFilter = fileType === 'gearbox' ? 'tcu' : 'ecu';
+  const filteredCategories = useMemo(() =>
+    categories.filter((c) => {
+      const catJobType = (c as any).job_type || 'ecu';
+      return catJobType === jobTypeFilter || catJobType === 'all';
+    }), [categories, jobTypeFilter]);
+
   const stageCategories = useMemo(() =>
-    categories.filter((c) => (c as any).selection_type === 'single'), [categories]);
+    filteredCategories.filter((c) => (c as any).selection_type === 'single'), [filteredCategories]);
   const optionCategories = useMemo(() =>
-    categories.filter((c) => (c as any).selection_type !== 'single'), [categories]);
+    filteredCategories.filter((c) => (c as any).selection_type !== 'single'), [filteredCategories]);
 
   const allStageServices = stageCategories.flatMap((c) => c.services);
   const allOptionServices = optionCategories.flatMap((c) => c.services);
@@ -181,6 +196,7 @@ export const NewJobPage: React.FC = () => {
         ecu_type: ecuName,
         gearbox_type: gearbox,
         vin: vin || undefined,
+        client_notes: clientNotes || undefined,
         job_type: fileType === 'gearbox' ? 'tcu' : 'ecu',
       }, serviceCodes);
 
@@ -243,7 +259,7 @@ export const NewJobPage: React.FC = () => {
                   <button
                     key={ft.id}
                     type="button"
-                    onClick={() => setFileType(ft.id)}
+                    onClick={() => handleFileTypeChange(ft.id)}
                     className={clsx(
                       'flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all',
                       fileType === ft.id
@@ -491,11 +507,25 @@ export const NewJobPage: React.FC = () => {
                   </div>
                 ))}
 
-                {categories.length === 0 && (
+                {filteredCategories.length === 0 && (
                   <Card><div className="text-center py-8 text-zinc-500">No services available yet. Ask the admin to add them.</div></Card>
                 )}
               </>
             )}
+
+            {/* Comments */}
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                <Info size={16} /> Comments (optional)
+              </h3>
+              <Textarea
+                placeholder="Add any notes or special requests for this job..."
+                value={clientNotes}
+                onChange={(e) => setClientNotes(e.target.value)}
+                rows={3}
+                className="bg-zinc-800/50 border-zinc-700"
+              />
+            </div>
 
             {/* Summary */}
             <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700 space-y-3">

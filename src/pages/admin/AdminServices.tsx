@@ -16,6 +16,7 @@ interface ServiceCategory {
   sort_order: number;
   is_active: boolean;
   selection_type: string;
+  job_type: string;
   created_at: string;
 }
 
@@ -71,6 +72,7 @@ export const AdminServicesPage: React.FC = () => {
           sort_order: 9999,
           is_active: true,
           selection_type: 'multi',
+          job_type: 'all',
           created_at: '',
           services: uncategorized,
         });
@@ -188,6 +190,11 @@ export const AdminServicesPage: React.FC = () => {
                     <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                       {cat.services.length} services
                     </span>
+                    {cat.job_type && cat.id !== '__uncategorized__' && (
+                      <span className={clsx('text-xs px-2 py-0.5 rounded-full', cat.job_type === 'tcu' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' : cat.job_type === 'all' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500')}>
+                        {cat.job_type === 'tcu' ? 'TCU' : cat.job_type === 'all' ? 'ECU+TCU' : 'ECU'}
+                      </span>
+                    )}
                     {!cat.is_active && cat.id !== '__uncategorized__' && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600">
                         Disabled
@@ -337,6 +344,7 @@ const CategoryModal: React.FC<{
   const [description, setDescription] = useState(category?.description || '');
   const [sortOrder, setSortOrder] = useState(category?.sort_order ?? 0);
   const [selectionType, setSelectionType] = useState(category?.selection_type || 'multi');
+  const [jobType, setJobType] = useState(category?.job_type || 'ecu');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -349,6 +357,7 @@ const CategoryModal: React.FC<{
         description: description.trim() || null,
         sort_order: sortOrder,
         selection_type: selectionType,
+        job_type: jobType,
       };
       if (category) {
         const { error } = await supabase.from('service_categories').update(payload).eq('id', category.id);
@@ -383,6 +392,19 @@ const CategoryModal: React.FC<{
             <option value="multi">Multi Select (pick many — e.g. Additional Options)</option>
           </select>
           <p className="text-xs text-zinc-500 mt-1">Single = large cards, client picks one. Multi = grid cards, client picks many.</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5">File Type *</label>
+          <select
+            value={jobType}
+            onChange={(e) => setJobType(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            <option value="ecu">ECU Only</option>
+            <option value="tcu">Gearbox/TCU Only</option>
+            <option value="all">Both (ECU & Gearbox)</option>
+          </select>
+          <p className="text-xs text-zinc-500 mt-1">Controls which file type this category appears for during job creation.</p>
         </div>
         <Input label="Sort Order" type="number" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} />
         <div className="flex justify-end gap-3 pt-2">
