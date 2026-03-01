@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, CreditCard, Calendar } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Badge, Spinner, Avatar } from '@/components/ui';
@@ -7,6 +8,7 @@ import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 
 export const AdminUsersPage: React.FC = () => {
+  const navigate = useNavigate();
   const { users, loading, addCredits } = useAllUsers();
   const [search, setSearch] = useState('');
   const [creditModal, setCreditModal] = useState<{ userId: string; name: string } | null>(null);
@@ -109,7 +111,7 @@ export const AdminUsersPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => navigate(`/admin/users/${user.id}`)}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar name={user.contact_name} size="sm" />
@@ -137,10 +139,10 @@ export const AdminUsersPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
-                      onClick={() => setCreditModal({ userId: user.id, name: user.contact_name })}
+                      onClick={(e) => { e.stopPropagation(); setCreditModal({ userId: user.id, name: user.contact_name }); }}
                     >
                       <CreditCard size={14} />
                       Adjust

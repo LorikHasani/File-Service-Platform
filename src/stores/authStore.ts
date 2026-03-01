@@ -172,18 +172,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    // Clear state first, then sign out from Supabase.
-    // Use window.location.replace for a hard redirect that bypasses
-    // ProtectedRoute's grace period (which would otherwise keep
-    // showing the page for 5 s waiting for auth to recover).
-    //
-    // IMPORTANT: Do NOT await signOut() before redirecting.
-    // After bfcache restoration the Supabase client may have stale
-    // internal state that causes the network call to hang, blocking
-    // the redirect indefinitely. Fire-and-forget is safe because
-    // we already cleared local state above.
+    // Clear Zustand state first.
     set({ user: null, profile: null, session: null, isAdmin: false });
-    supabase.auth.signOut().catch(() => {});
+
+    // Use scope: 'local' to clear the Supabase session from
+    // localStorage WITHOUT making a network request. The global
+    // signOut (default) hits the Supabase API to revoke the
+    // refresh token, but after bfcache restoration the client
+    // may have stale internal state that causes the call to hang
+    // indefinitely, blocking the redirect. Local-only sign-out
+    // is synchronous in practice and guarantees localStorage is
+    // clean before the page reloads.
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+
+    // Hard redirect bypasses ProtectedRoute's grace period.
     window.location.replace('/login');
   },
 

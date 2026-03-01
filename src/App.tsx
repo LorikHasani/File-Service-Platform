@@ -24,6 +24,7 @@ import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
 import { AdminJobsPage } from '@/pages/admin/AdminJobs';
 import { AdminJobDetailPage } from '@/pages/admin/AdminJobDetail';
 import { AdminUsersPage } from '@/pages/admin/AdminUsers';
+import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetail';
 import { AdminStatsPage } from '@/pages/admin/AdminStats';
 import { AdminServicesPage } from '@/pages/admin/AdminServices';
 
@@ -166,6 +167,7 @@ const App: React.FC = () => {
           <Route path="/admin/jobs" element={<AdminJobsPage />} />
           <Route path="/admin/jobs/:id" element={<AdminJobDetailPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
           <Route path="/admin/stats" element={<AdminStatsPage />} />
           <Route path="/admin/services" element={<AdminServicesPage />} />
         </Route>

@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import type { 
-  Job, 
-  JobWithDetails, 
+import type {
+  Job,
+  JobWithDetails,
   JobWithClient,
-  Service, 
-  ServiceCategory, 
+  Service,
+  ServiceCategory,
   JobMessage,
   Transaction,
   CreditPackage,
   Profile,
   JobStatus,
   JobService,
+  FileRecord,
 } from '@/types/database';
 
 // ============================================================================
@@ -609,6 +610,89 @@ export function useAllUsers() {
   };
 
   return { users, loading, addCredits };
+}
+
+export function useUserDetail(userId: string | undefined) {
+  const [user, setUser] = useState<Profile | null>(null);
+  const [jobs, setJobs] = useState<(Job & { services: JobService[] })[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [files, setFiles] = useState<FileRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetchUser = useCallback(async () => {
+    if (!userId || !isAdmin) return;
+
+    try {
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) throw profileError;
+      setUser(profile);
+
+      // Fetch jobs, transactions, and files in parallel
+      const [jobsRes, transRes] = await Promise.all([
+        supabase
+          .from('jobs')
+          .select('*')
+          .eq('client_id', userId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      const userJobs = jobsRes.data || [];
+      setTransactions(transRes.data || []);
+
+      // Fetch job services and files for all jobs
+      if (userJobs.length > 0) {
+        const jobIds = userJobs.map((j) => j.id);
+        const [servicesRes, filesRes] = await Promise.all([
+          supabase.from('job_services').select('*').in('job_id', jobIds),
+          supabase.from('files').select('*').in('job_id', jobIds).order('created_at', { ascending: false }),
+        ]);
+
+        setJobs(
+          userJobs.map((job) => ({
+            ...job,
+            services: (servicesRes.data || []).filter((s) => s.job_id === job.id),
+          }))
+        );
+        setFiles(filesRes.data || []);
+      } else {
+        setJobs([]);
+        setFiles([]);
+      }
+
+      hasLoaded.current = true;
+    } catch (err) {
+      console.error('Error fetching user detail:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, isAdmin, refreshKey]);
+
+  useEffect(() => {
+    if (!userId || !isAdmin) {
+      setLoading(false);
+      return;
+    }
+    if (!hasLoaded.current) {
+      setLoading(true);
+    }
+    fetchUser();
+  }, [fetchUser, userId, isAdmin]);
+
+  return { user, jobs, transactions, files, loading, refetch: fetchUser };
 }
 
 export function useAdminStats() {
