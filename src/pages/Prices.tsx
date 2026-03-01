@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, Spinner } from '@/components/ui';
 import { useServices } from '@/hooks/useSupabase';
-import { Settings, Cpu, Info, X } from 'lucide-react';
+import { Settings, Cpu, Info, X, Cog } from 'lucide-react';
 import { clsx } from 'clsx';
 
 // Tooltip that shows on hover / click for mobile
@@ -52,29 +52,50 @@ export const PricesPage: React.FC = () => {
           <p className="text-zinc-400 mt-2">Transparent pricing for all our tuning services</p>
         </div>
 
-        {/* Tuning Stages — large cards */}
-        {stageCategories.map((cat) => (
-          <div key={cat.id}>
-            <div className="flex items-center gap-2 mb-4">
+        {/* Performance Tuning — ECU + TCU stages combined */}
+        {stageCategories.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-6">
               <Cpu size={20} className="text-blue-400" />
-              <h2 className="text-xl font-bold">{cat.name}</h2>
+              <h2 className="text-xl font-bold">Performance Tuning</h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {cat.services.map((svc) => (
-                <div
-                  key={svc.id}
-                  className="relative flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-zinc-700 bg-zinc-800/50 text-center"
-                >
-                  {svc.description && <InfoTooltip text={svc.description} />}
-                  <Cpu size={28} className="text-blue-400" />
-                  <h3 className="font-bold text-lg mt-1">{svc.name}</h3>
-                  <span className="text-2xl font-bold text-blue-400">€{svc.base_price}</span>
+            {stageCategories.map((cat) => {
+              const isTcu = (cat as any).job_type === 'tcu';
+              return (
+                <div key={cat.id} className="mb-6 last:mb-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    {isTcu ? <Cog size={16} className="text-purple-400" /> : <Cpu size={16} className="text-blue-400" />}
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
+                      {isTcu ? 'Gearbox / TCU' : 'ECU'}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {cat.services.map((svc) => (
+                      <div
+                        key={svc.id}
+                        className={clsx(
+                          'relative flex flex-col items-center gap-2 p-6 rounded-xl border-2 text-center',
+                          isTcu ? 'border-purple-700/50 bg-purple-900/10' : 'border-zinc-700 bg-zinc-800/50'
+                        )}
+                      >
+                        {svc.description && <InfoTooltip text={svc.description} />}
+                        {isTcu
+                          ? <Cog size={28} className="text-purple-400" />
+                          : <Cpu size={28} className="text-blue-400" />
+                        }
+                        <h3 className="font-bold text-lg mt-1">{svc.name}</h3>
+                        <span className={clsx('text-2xl font-bold', isTcu ? 'text-purple-400' : 'text-blue-400')}>
+                          €{svc.base_price}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        ))}
+        )}
 
         {/* Additional Options — grid of boxes */}
         {optionCategories.map((cat) => (
