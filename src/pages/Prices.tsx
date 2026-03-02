@@ -32,8 +32,15 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
 export const PricesPage: React.FC = () => {
   const { categories, loading } = useServices();
 
-  const stageCategories = categories.filter((c) => (c as any).selection_type === 'single');
-  const optionCategories = categories.filter((c) => (c as any).selection_type !== 'single');
+  // Stage categories: either single-select OR name contains "Tuning"/"Stage"
+  // This ensures ECU Performance Tuning + TCU Stages both show as large cards
+  const stageCategories = categories.filter((c) => {
+    const st = (c as any).selection_type;
+    const name = (c.name || '').toLowerCase();
+    return st === 'single' || name.includes('tuning') || name.includes('stage');
+  });
+  const stageCatIds = new Set(stageCategories.map((c) => c.id));
+  const optionCategories = categories.filter((c) => !stageCatIds.has(c.id));
 
   if (loading) {
     return (
@@ -70,22 +77,22 @@ export const PricesPage: React.FC = () => {
                       {isTcu ? 'Gearbox / TCU' : 'ECU'}
                     </h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {cat.services.map((svc) => (
                       <div
                         key={svc.id}
                         className={clsx(
-                          'relative flex flex-col items-center gap-2 p-6 rounded-xl border-2 text-center',
+                          'relative flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 text-center',
                           isTcu ? 'border-purple-700/50 bg-purple-900/10' : 'border-zinc-700 bg-zinc-800/50'
                         )}
                       >
                         {svc.description && <InfoTooltip text={svc.description} />}
                         {isTcu
-                          ? <Cog size={28} className="text-purple-400" />
-                          : <Cpu size={28} className="text-blue-400" />
+                          ? <Cog size={20} className="text-purple-400" />
+                          : <Cpu size={20} className="text-blue-400" />
                         }
-                        <h3 className="font-bold text-lg mt-1">{svc.name}</h3>
-                        <span className={clsx('text-2xl font-bold', isTcu ? 'text-purple-400' : 'text-blue-400')}>
+                        <h3 className="font-semibold text-sm">{svc.name}</h3>
+                        <span className={clsx('text-lg font-bold', isTcu ? 'text-purple-400' : 'text-blue-400')}>
                           €{svc.base_price}
                         </span>
                       </div>
