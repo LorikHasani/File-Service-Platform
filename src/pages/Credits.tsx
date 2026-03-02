@@ -24,16 +24,52 @@ export const CreditsPage: React.FC = () => {
 
   // Handle Stripe redirect
   useEffect(() => {
-    if (searchParams.get('success') === 'true') {
-      toast.success('Payment successful! Balance will be updated shortly.');
+    const sessionId = searchParams.get('session_id');
+
+    if (searchParams.get('success') === 'true' && sessionId) {
       setSearchParams({}, { replace: true });
 
+      const verifyAndRefresh = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) return;
+
+          const response = await fetch('/api/verify-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ sessionId }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            toast.success('Payment successful! Your balance has been updated.');
+          } else {
+            console.error('Verify session failed:', result);
+            toast.error('Payment received but balance update failed. Please contact support.');
+          }
+        } catch (err) {
+          console.error('Verify session error:', err);
+          toast.error('Payment received but balance update failed. Please contact support.');
+        }
+
+        await useAuthStore.getState().fetchProfile();
+      };
+      verifyAndRefresh();
+    } else if (searchParams.get('success') === 'true') {
+      // Fallback if no session_id in URL
+      toast.success('Payment successful! Balance will be updated shortly.');
+      setSearchParams({}, { replace: true });
       const refreshBalance = async () => {
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 3000));
         await useAuthStore.getState().fetchProfile();
       };
       refreshBalance();
     }
+
     if (searchParams.get('cancelled') === 'true') {
       toast.error('Payment was cancelled.');
       setSearchParams({}, { replace: true });
