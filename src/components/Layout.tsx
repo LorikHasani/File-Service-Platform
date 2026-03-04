@@ -191,7 +191,7 @@ export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }
               <div className="text-sm text-zinc-400">Files Delivered</div>
             </div>
             <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
-              <div className="text-2xl font-bold text-red-500">&lt;1h</div>
+              <div className="text-2xl font-bold text-red-500">&lt;15min</div>
               <div className="text-sm text-zinc-400">Avg. Turnaround</div>
             </div>
           </div>

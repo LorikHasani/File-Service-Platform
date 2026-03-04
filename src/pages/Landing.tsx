@@ -258,7 +258,7 @@ export const LandingPage: React.FC = () => {
               {
                 num: '02',
                 title: 'We Tune Your File',
-                desc: 'Our experienced engineers calibrate your file with precision. Most files are ready in under 1 hour.',
+                desc: 'Our experienced engineers calibrate your file with precision. Most files are ready in under 15 minutes.',
               },
               {
                 num: '03',
@@ -333,7 +333,7 @@ export const LandingPage: React.FC = () => {
                 {[
                   'Experienced engineers with 10+ years in ECU calibration',
                   'Files tested on dyno before delivery',
-                  'Average turnaround time under 1 hour',
+                  'Average turnaround time under 15 minutes',
                   '24/7 support via WhatsApp, email, and portal',
                   'Simple pricing in euros — pay only for what you need',
                   'Secure file transfers with encrypted storage',
