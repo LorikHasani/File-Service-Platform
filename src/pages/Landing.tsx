@@ -380,8 +380,8 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-500 mb-0.5">WhatsApp</p>
-                    <a href="https://wa.me/491623900543" className="text-white hover:text-red-400 transition-colors font-medium">
-                      +49 162 3900543
+                    <a href="https://wa.me/38344955389" className="text-white hover:text-red-400 transition-colors font-medium">
+                      +383 44 955 389
                     </a>
                   </div>
                 </div>

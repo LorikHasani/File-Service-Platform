@@ -78,7 +78,7 @@ export const RefundPolicyPage: React.FC = () => {
             <h2 className="text-xl font-semibold text-white mb-3">4. How to Request a Refund</h2>
             <p>To request a refund:</p>
             <ol className="list-decimal pl-6 mt-2 space-y-2">
-              <li>Contact us via email at <a href="mailto:kikzaperformance@gmail.com" className="text-red-400 hover:text-red-300">kikzaperformance@gmail.com</a> or WhatsApp at <a href="https://wa.me/491623900543" className="text-red-400 hover:text-red-300">+49 162 3900543</a>.</li>
+              <li>Contact us via email at <a href="mailto:kikzaperformance@gmail.com" className="text-red-400 hover:text-red-300">kikzaperformance@gmail.com</a> or WhatsApp at <a href="https://wa.me/38344955389" className="text-red-400 hover:text-red-300">+383 44 955 389</a>.</li>
               <li>Include your order reference number and a description of the issue.</li>
               <li>Our team will review your request within <strong className="text-white">24–48 hours</strong>.</li>
               <li>If approved, the refund will be processed to your original payment method or as account credit.</li>
@@ -117,7 +117,7 @@ export const RefundPolicyPage: React.FC = () => {
             <p>For refund requests or questions about this policy:</p>
             <ul className="mt-3 space-y-1">
               <li>Email: <a href="mailto:kikzaperformance@gmail.com" className="text-red-400 hover:text-red-300">kikzaperformance@gmail.com</a></li>
-              <li>WhatsApp: <a href="https://wa.me/491623900543" className="text-red-400 hover:text-red-300">+49 162 3900543</a></li>
+              <li>WhatsApp: <a href="https://wa.me/38344955389" className="text-red-400 hover:text-red-300">+383 44 955 389</a></li>
               <li>Address: Germany</li>
             </ul>
           </section>

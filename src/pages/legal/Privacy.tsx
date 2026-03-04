@@ -153,7 +153,7 @@ export const PrivacyPage: React.FC = () => {
             <p>For privacy-related inquiries:</p>
             <ul className="mt-3 space-y-1">
               <li>Email: <a href="mailto:kikzaperformance@gmail.com" className="text-red-400 hover:text-red-300">kikzaperformance@gmail.com</a></li>
-              <li>WhatsApp: <a href="https://wa.me/491623900543" className="text-red-400 hover:text-red-300">+49 162 3900543</a></li>
+              <li>WhatsApp: <a href="https://wa.me/38344955389" className="text-red-400 hover:text-red-300">+383 44 955 389</a></li>
               <li>Address: Germany</li>
             </ul>
           </section>
