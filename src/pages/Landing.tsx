@@ -173,7 +173,7 @@ export const LandingPage: React.FC = () => {
                 <div className="text-neutral-500">Files Delivered</div>
               </div>
               <div>
-                <div className="text-2xl font-extrabold">&lt;1h</div>
+                <div className="text-2xl font-extrabold">&lt;15min</div>
                 <div className="text-neutral-500">Turnaround</div>
               </div>
               <div>
