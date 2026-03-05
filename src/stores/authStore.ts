@@ -13,7 +13,7 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, metadata: { contact_name: string; company_name?: string }) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, metadata: { contact_name: string; company_name?: string; phone?: string; country?: string }) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -162,7 +162,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await new Promise((r) => setTimeout(r, 500));
         await supabase
           .from('profiles')
-          .update({ contact_name: metadata.contact_name, company_name: metadata.company_name || null })
+          .update({
+            contact_name: metadata.contact_name,
+            company_name: metadata.company_name || null,
+            phone: metadata.phone || null,
+            country: metadata.country || null,
+          })
           .eq('id', data.user.id);
       }
       return { error: null };
