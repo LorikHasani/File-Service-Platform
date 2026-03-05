@@ -10,6 +10,8 @@ export type UserRole = 'client' | 'admin' | 'superadmin';
 export type JobStatus = 'pending' | 'in_progress' | 'waiting_for_info' | 'completed' | 'revision_requested' | 'rejected';
 export type FileType = 'original' | 'modified';
 export type TransactionType = 'credit_purchase' | 'job_payment' | 'refund' | 'admin_adjustment';
+export type TicketStatus = 'open' | 'in_progress' | 'closed';
+export type AnnouncementType = 'info' | 'warning' | 'success';
 
 export interface Database {
   public: {
@@ -511,6 +513,121 @@ export interface Database {
           },
         ];
       };
+      tickets: {
+        Row: {
+          id: string;
+          client_id: string;
+          subject: string;
+          status: TicketStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          subject: string;
+          status?: TicketStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          subject?: string;
+          status?: TicketStatus;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tickets_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ticket_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          sender_id: string;
+          message: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          sender_id: string;
+          message: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          ticket_id?: string;
+          sender_id?: string;
+          message?: string;
+          is_read?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey";
+            columns: ["ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "tickets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ticket_messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          title: string;
+          message: string;
+          type: AnnouncementType;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          message: string;
+          type?: AnnouncementType;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          message?: string;
+          type?: AnnouncementType;
+          is_active?: boolean;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -581,6 +698,9 @@ export type JobMessage = Database['public']['Tables']['job_messages']['Row'];
 export type Transaction = Database['public']['Tables']['transactions']['Row'];
 export type CreditPackage = Database['public']['Tables']['credit_packages']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
+export type Ticket = Database['public']['Tables']['tickets']['Row'];
+export type TicketMessage = Database['public']['Tables']['ticket_messages']['Row'];
+export type Announcement = Database['public']['Tables']['announcements']['Row'];
 
 // Extended types with relations
 export interface JobWithDetails extends Job {
@@ -598,4 +718,14 @@ export interface JobWithClient extends Job {
 export interface JobWithClientAndServices extends Job {
   client: Profile | null;
   services?: JobService[];
+}
+
+// Ticket with client info (for admin list)
+export interface TicketWithClient extends Ticket {
+  client: Profile | null;
+}
+
+// Ticket message with sender profile
+export interface TicketMessageWithSender extends TicketMessage {
+  sender?: Profile;
 }

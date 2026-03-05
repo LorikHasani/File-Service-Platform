@@ -19,6 +19,11 @@ import { TermsPage } from '@/pages/legal/Terms';
 import { PrivacyPage } from '@/pages/legal/Privacy';
 import { RefundPolicyPage } from '@/pages/legal/RefundPolicy';
 
+// Client Pages (continued)
+import { ProfilePage } from '@/pages/Profile';
+import { TicketsPage } from '@/pages/Tickets';
+import { TicketDetailPage } from '@/pages/TicketDetail';
+
 // Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboard';
 import { AdminJobsPage } from '@/pages/admin/AdminJobs';
@@ -27,6 +32,10 @@ import { AdminUsersPage } from '@/pages/admin/AdminUsers';
 import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetail';
 import { AdminStatsPage } from '@/pages/admin/AdminStats';
 import { AdminServicesPage } from '@/pages/admin/AdminServices';
+import { AdminTicketsPage } from '@/pages/admin/AdminTickets';
+import { AdminTicketDetailPage } from '@/pages/admin/AdminTicketDetail';
+import { AdminEmailsPage } from '@/pages/admin/AdminEmails';
+import { AdminNewsPage } from '@/pages/admin/AdminNews';
 
 // Protected Route
 // CRITICAL: Use boolean selectors (!!user, not user) so this component
@@ -158,7 +167,9 @@ const App: React.FC = () => {
           <Route path="/calculator" element={<PerformanceCalculatorPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/prices" element={<PricesPage />} />
-          <Route path="/settings" element={<Placeholder title="Settings" />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/tickets" element={<TicketsPage />} />
+          <Route path="/tickets/:id" element={<TicketDetailPage />} />
         </Route>
 
         {/* Admin Routes */}
@@ -170,6 +181,10 @@ const App: React.FC = () => {
           <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
           <Route path="/admin/stats" element={<AdminStatsPage />} />
           <Route path="/admin/services" element={<AdminServicesPage />} />
+          <Route path="/admin/tickets" element={<AdminTicketsPage />} />
+          <Route path="/admin/tickets/:id" element={<AdminTicketDetailPage />} />
+          <Route path="/admin/emails" element={<AdminEmailsPage />} />
+          <Route path="/admin/news" element={<AdminNewsPage />} />
         </Route>
 
         {/* Catch-all */}

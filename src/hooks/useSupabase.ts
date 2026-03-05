@@ -14,6 +14,12 @@ import type {
   JobStatus,
   JobService,
   FileRecord,
+  Ticket,
+  TicketWithClient,
+  TicketMessage,
+  TicketMessageWithSender,
+  TicketStatus,
+  Announcement,
 } from '@/types/database';
 
 // ============================================================================
@@ -765,4 +771,270 @@ export function useAdminStats() {
   }, [isAdmin, refreshKey]);
 
   return { stats, loading };
+}
+
+// ============================================================================
+// TICKETS HOOKS
+// ============================================================================
+
+export function useTickets() {
+  const [tickets, setTickets] = useState<(Ticket | TicketWithClient)[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
+  const profileId = useAuthStore((s) => s.profile?.id ?? null);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetchTickets = useCallback(async () => {
+    if (!profileId) return;
+
+    try {
+      if (isAdmin) {
+        const { data } = await supabase
+          .from('tickets')
+          .select('*, client:profiles!client_id(*)')
+          .order('updated_at', { ascending: false });
+        setTickets((data as unknown as TicketWithClient[]) || []);
+      } else {
+        const { data } = await supabase
+          .from('tickets')
+          .select('*')
+          .eq('client_id', profileId)
+          .order('updated_at', { ascending: false });
+        setTickets(data || []);
+      }
+      hasLoaded.current = true;
+    } catch (err) {
+      console.error('Error fetching tickets:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [profileId, isAdmin, refreshKey]);
+
+  useEffect(() => {
+    if (!profileId) return;
+    if (!hasLoaded.current) setLoading(true);
+    fetchTickets();
+  }, [fetchTickets, profileId]);
+
+  return { tickets, loading, refetch: fetchTickets };
+}
+
+export function useTicket(ticketId: string | undefined) {
+  const [ticket, setTicket] = useState<TicketWithClient | null>(null);
+  const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!ticketId) { setLoading(false); return; }
+    if (!hasLoaded.current) setLoading(true);
+
+    const run = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tickets')
+          .select('*, client:profiles!client_id(*)')
+          .eq('id', ticketId)
+          .single();
+        if (error) throw error;
+        if (!cancelled) {
+          setTicket(data as unknown as TicketWithClient);
+          hasLoaded.current = true;
+        }
+      } catch (err) {
+        console.error('Error fetching ticket:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [ticketId, refreshKey]);
+
+  return { ticket, loading };
+}
+
+export function useTicketMessages(ticketId: string | undefined) {
+  const [messages, setMessages] = useState<TicketMessageWithSender[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMessages = useCallback(async () => {
+    if (!ticketId) return;
+    try {
+      const { data } = await supabase
+        .from('ticket_messages')
+        .select('*, sender:profiles(*)')
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+      setMessages((data as unknown as TicketMessageWithSender[]) || []);
+    } catch (err) {
+      console.error('Error fetching ticket messages:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticketId]);
+
+  useEffect(() => {
+    if (!ticketId) { setLoading(false); return; }
+    fetchMessages();
+  }, [ticketId, fetchMessages]);
+
+  // Poll every 10s
+  useEffect(() => {
+    if (!ticketId) return;
+    const interval = setInterval(fetchMessages, 10000);
+    return () => clearInterval(interval);
+  }, [ticketId, fetchMessages]);
+
+  const sendMessage = async (message: string) => {
+    const user = useAuthStore.getState().user;
+    if (!user || !ticketId) return { error: new Error('Not authenticated') };
+
+    const { error } = await supabase.from('ticket_messages').insert({
+      ticket_id: ticketId,
+      sender_id: user.id,
+      message,
+    });
+
+    if (!error) {
+      // Also update ticket's updated_at
+      await supabase.from('tickets').update({ updated_at: new Date().toISOString() }).eq('id', ticketId);
+      await fetchMessages();
+    }
+    return { error };
+  };
+
+  return { messages, loading, sendMessage };
+}
+
+export async function createTicket(
+  subject: string,
+  message: string
+): Promise<{ ticketId: string | null; error: Error | null }> {
+  try {
+    const user = useAuthStore.getState().user;
+    if (!user) throw new Error('Not authenticated');
+
+    const { data: ticket, error: ticketError } = await supabase
+      .from('tickets')
+      .insert({ client_id: user.id, subject })
+      .select()
+      .single();
+    if (ticketError) throw ticketError;
+
+    const { error: msgError } = await supabase.from('ticket_messages').insert({
+      ticket_id: ticket.id,
+      sender_id: user.id,
+      message,
+    });
+    if (msgError) throw msgError;
+
+    return { ticketId: ticket.id, error: null };
+  } catch (err) {
+    return { ticketId: null, error: err as Error };
+  }
+}
+
+export async function updateTicketStatus(
+  ticketId: string,
+  status: TicketStatus
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase
+      .from('tickets')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', ticketId);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+// ============================================================================
+// ANNOUNCEMENTS HOOKS
+// ============================================================================
+
+export function useAnnouncements(activeOnly = true) {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetchAnnouncements = useCallback(async () => {
+    try {
+      let query = supabase
+        .from('announcements')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (activeOnly) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data } = await query;
+      setAnnouncements(data || []);
+      hasLoaded.current = true;
+    } catch (err) {
+      console.error('Error fetching announcements:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOnly, refreshKey]);
+
+  useEffect(() => {
+    if (!hasLoaded.current) setLoading(true);
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
+
+  return { announcements, loading, refetch: fetchAnnouncements };
+}
+
+export async function createAnnouncement(
+  title: string,
+  message: string,
+  type: 'info' | 'warning' | 'success'
+): Promise<{ error: Error | null }> {
+  try {
+    const user = useAuthStore.getState().user;
+    const { error } = await supabase.from('announcements').insert({
+      title,
+      message,
+      type,
+      created_by: user?.id || null,
+    });
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+export async function updateAnnouncement(
+  id: string,
+  updates: { title?: string; message?: string; type?: 'info' | 'warning' | 'success'; is_active?: boolean }
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase
+      .from('announcements')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+export async function deleteAnnouncement(id: string): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.from('announcements').delete().eq('id', id);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
 }

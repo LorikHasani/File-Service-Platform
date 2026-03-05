@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
-  LayoutDashboard, FileUp, FolderOpen, CreditCard, Settings, LogOut,
+  LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
+  MessageSquare, User, Mail, Megaphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
 interface NavItem {
   label: string;
@@ -20,7 +22,8 @@ const clientNavItems: NavItem[] = [
   { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
   { label: 'Prices', href: '/prices', icon: <DollarSign size={20} /> },
   { label: 'Balance', href: '/credits', icon: <CreditCard size={20} /> },
-  { label: 'Settings', href: '/settings', icon: <Settings size={20} /> },
+  { label: 'Profile', href: '/profile', icon: <User size={20} /> },
+  { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={20} /> },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -28,6 +31,9 @@ const adminNavItems: NavItem[] = [
   { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={20} /> },
   { label: 'Services', href: '/admin/services', icon: <Tag size={20} /> },
   { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
+  { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={20} /> },
+  { label: 'Emails', href: '/admin/emails', icon: <Mail size={20} /> },
+  { label: 'News', href: '/admin/news', icon: <Megaphone size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
 ];
 
@@ -144,6 +150,7 @@ export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ 
 // Main Layout
 export const Layout: React.FC<{ children: React.ReactNode; title?: string }> = ({ children, title }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -151,7 +158,10 @@ export const Layout: React.FC<{ children: React.ReactNode; title?: string }> = (
       <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <Header onMenuClick={() => setSidebarOpen(true)} title={title} />
         <main className="flex-1 p-4 lg:p-6">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto">
+            {!isAdmin && <AnnouncementBanner />}
+            {children}
+          </div>
         </main>
       </div>
     </div>
