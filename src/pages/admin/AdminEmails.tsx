@@ -13,6 +13,7 @@ export const AdminEmailsPage: React.FC = () => {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [emailColor, setEmailColor] = useState<'blue' | 'red'>('blue');
 
   const clients = users.filter((u) => u.role === 'client');
   const filteredClients = clients.filter((user) =>
@@ -52,7 +53,8 @@ export const AdminEmailsPage: React.FC = () => {
       const result = await sendAdminEmail(
         Array.from(selectedEmails),
         subject.trim(),
-        body.trim()
+        body.trim(),
+        emailColor
       );
       toast.success(`Email sent to ${result.sent} client(s)`);
       if (result.failed && result.failed > 0) {
@@ -204,6 +206,39 @@ export const AdminEmailsPage: React.FC = () => {
                   placeholder="Write your message here..."
                   rows={10}
                 />
+              </div>
+
+              {/* Color Selector */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Email Color Theme
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEmailColor('blue')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+                      emailColor === 'blue'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                    }`}
+                  >
+                    <span className="w-4 h-4 rounded-full bg-blue-600" />
+                    <span className="text-sm font-medium">Blue</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEmailColor('red')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+                      emailColor === 'red'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                    }`}
+                  >
+                    <span className="w-4 h-4 rounded-full bg-red-600" />
+                    <span className="text-sm font-medium">Red</span>
+                  </button>
+                </div>
               </div>
 
               <Button

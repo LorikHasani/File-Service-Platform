@@ -12,9 +12,14 @@ const SITE_URL = process.env.SITE_URL || 'https://chiptunefiles.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || `${BRAND_NAME} <onboarding@resend.dev>`;
 const LOGO_URL = `${SITE_URL}/logo.png`;
 
-function composeEmailHtml(subject: string, body: string) {
-  // Convert newlines to <br> for HTML
+const COLORS = {
+  blue: '#2563eb',
+  red: '#dc2626',
+};
+
+function composeEmailHtml(subject: string, body: string, color: 'blue' | 'red' = 'blue') {
   const htmlBody = body.replace(/\n/g, '<br/>');
+  const accent = COLORS[color] || COLORS.blue;
 
   return `
 <!DOCTYPE html>
@@ -26,17 +31,14 @@ function composeEmailHtml(subject: string, body: string) {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <!-- Title in bold red -->
-          <h1 style="margin:0 0 24px;color:#2563eb;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">${subject}</h1>
-          <!-- Body -->
+          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">${subject}</h1>
           <div style="margin:0 0 30px;color:#333;font-size:15px;line-height:1.7;">
             ${htmlBody}
           </div>
-          <!-- CTA Button -->
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="left" style="padding:0 0 8px;">
               <a href="${SITE_URL}/login"
-                 style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
+                 style="display:inline-block;background-color:${accent};color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
                 &rarr; Log in to portal
               </a>
             </td></tr>
@@ -48,7 +50,7 @@ function composeEmailHtml(subject: string, body: string) {
             <tr>
               <td style="vertical-align:middle;">
                 <p style="margin:0 0 4px;font-size:13px;color:#333;">
-                  <strong style="color:#2563eb;">${BRAND_NAME}</strong> | Germany &amp; Kosovo
+                  <strong style="color:${accent};">${BRAND_NAME}</strong> | Germany &amp; Kosovo
                 </p>
                 <p style="margin:0;font-size:12px;color:#666;">
                   Tel: <a href="https://wa.me/38344955389" style="color:#333;text-decoration:none;">+38344955389</a> |
@@ -118,7 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { to, subject, body } = req.body;
+    const { to, subject, body, color } = req.body;
 
     if (!to || !Array.isArray(to) || to.length === 0) {
       return res.status(400).json({ error: 'Missing or invalid recipients (to)' });
@@ -127,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing subject or body' });
     }
 
-    const html = composeEmailHtml(subject, body);
+    const html = composeEmailHtml(subject, body, color === 'red' ? 'red' : 'blue');
     let sent = 0;
     const errors: string[] = [];
 
