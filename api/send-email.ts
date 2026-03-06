@@ -9,7 +9,7 @@ const supabase = createClient(
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
 const BRAND_NAME = 'ChipTuneFiles';
 const SITE_URL = process.env.SITE_URL || 'https://chiptunefiles.com';
-const FROM_EMAIL = process.env.FROM_EMAIL || `${BRAND_NAME} <kikzaperformance@gmail.com>`;
+const FROM_EMAIL = process.env.FROM_EMAIL || `${BRAND_NAME} <onboarding@resend.dev>`;
 const LOGO_URL = `${SITE_URL}/logo.png`;
 
 function composeEmailHtml(subject: string, body: string) {
