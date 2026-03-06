@@ -24,11 +24,11 @@ function emailFooter() {
             <tr>
               <td style="vertical-align:middle;">
                 <p style="margin:0 0 4px;font-size:13px;color:#333;">
-                  <strong style="color:#dc2626;">${BRAND_NAME}</strong> | Kosovo
+                  <strong style="color:#dc2626;">${BRAND_NAME}</strong> | Germany &amp; Kosovo
                 </p>
                 <p style="margin:0;font-size:12px;color:#666;">
                   Tel: <a href="https://wa.me/38344955389" style="color:#333;text-decoration:none;">+38344955389</a> |
-                  Email: <a href="mailto:support@chiptunefiles.com" style="color:#1a73e8;text-decoration:none;">support@chiptunefiles.com</a>
+                  Email: <a href="mailto:kikzaperformance@gmail.com" style="color:#1a73e8;text-decoration:none;">kikzaperformance@gmail.com</a>
                 </p>
               </td>
               <td style="vertical-align:middle;text-align:right;width:80px;">
