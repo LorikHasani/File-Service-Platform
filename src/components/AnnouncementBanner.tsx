@@ -44,9 +44,9 @@ export const AnnouncementBanner: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        {/* Header - sticky */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Megaphone size={20} className="text-red-600" />
             <h2 className="text-lg font-bold">
@@ -63,8 +63,8 @@ export const AnnouncementBanner: React.FC = () => {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - scrollable */}
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {/* Image */}
           {current.image_url && (
             <div className="mb-4 rounded-lg overflow-hidden">
@@ -87,8 +87,8 @@ export const AnnouncementBanner: React.FC = () => {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+        {/* Footer - sticky */}
+        <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 flex-shrink-0">
           {announcements.length > 1 ? (
             <>
               <div className="flex gap-1.5">
