@@ -32,8 +32,13 @@ const typeIcons: Record<string, React.ReactNode> = {
 
 export const AnnouncementBanner: React.FC = () => {
   const { announcements, loading } = useAnnouncements(true);
-  const [closed, setClosed] = useState(false);
+  const [closed, setClosed] = useState(() => sessionStorage.getItem('announcement_closed') === '1');
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleClose = () => {
+    sessionStorage.setItem('announcement_closed', '1');
+    setClosed(true);
+  };
 
   if (loading || announcements.length === 0 || closed) return null;
 
@@ -56,7 +61,7 @@ export const AnnouncementBanner: React.FC = () => {
             </h2>
           </div>
           <button
-            onClick={() => setClosed(true)}
+            onClick={handleClose}
             className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
           >
             <X size={18} />
@@ -124,7 +129,7 @@ export const AnnouncementBanner: React.FC = () => {
                 ) : (
                   <Button
                     size="sm"
-                    onClick={() => setClosed(true)}
+                    onClick={handleClose}
                   >
                     Close
                   </Button>
@@ -134,7 +139,7 @@ export const AnnouncementBanner: React.FC = () => {
           ) : (
             <Button
               className="w-full"
-              onClick={() => setClosed(true)}
+              onClick={handleClose}
             >
               Close
             </Button>

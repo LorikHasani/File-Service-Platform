@@ -7,9 +7,9 @@ const supabase = createClient(
 );
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'ChipTuneFiles <noreply@chiptunefiles.com>';
-const BRAND_NAME = process.env.BRAND_NAME || 'ChipTuneFiles';
+const BRAND_NAME = 'ChipTuneFiles';
 const SITE_URL = process.env.SITE_URL || 'https://chiptunefiles.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || `${BRAND_NAME} <noreply@chiptunefiles.com>`;
 const LOGO_URL = `${SITE_URL}/logo.png`;
 
 function composeEmailHtml(subject: string, body: string) {
@@ -26,7 +26,7 @@ function composeEmailHtml(subject: string, body: string) {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Logo -->
         <tr><td align="center" style="padding-bottom:30px;">
-          <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:40px;" />
+          <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:60px;max-width:250px;" />
         </td></tr>
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
