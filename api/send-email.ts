@@ -7,8 +7,10 @@ const supabase = createClient(
 );
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'TuneForge <noreply@tuneforge.com>';
-const BRAND_NAME = process.env.BRAND_NAME || 'TuneForge';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'ChipTuneFiles <noreply@chiptunefiles.com>';
+const BRAND_NAME = process.env.BRAND_NAME || 'ChipTuneFiles';
+const SITE_URL = process.env.SITE_URL || 'https://chiptunefiles.com';
+const LOGO_URL = `${SITE_URL}/logo.png`;
 
 function composeEmailHtml(subject: string, body: string) {
   // Convert newlines to <br> for HTML
@@ -24,7 +26,7 @@ function composeEmailHtml(subject: string, body: string) {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Logo -->
         <tr><td align="center" style="padding-bottom:30px;">
-          <span style="font-size:28px;font-weight:bold;color:#dc2626;">⚡ ${BRAND_NAME}</span>
+          <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:40px;" />
         </td></tr>
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
@@ -33,8 +35,18 @@ function composeEmailHtml(subject: string, body: string) {
             ${htmlBody}
           </div>
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-          <p style="margin:0;color:#999;font-size:13px;">
-            This email was sent by ${BRAND_NAME}. If you have questions, reply to this email.
+          <p style="margin:0 0 8px;color:#999;font-size:13px;">
+            This email was sent by ${BRAND_NAME}. Please do not reply to this message.
+          </p>
+          <p style="margin:0;color:#999;font-size:12px;">
+            <a href="https://wa.me/38344955389" style="color:#dc2626;text-decoration:none;">WhatsApp: +383 44 955 389</a>
+            &nbsp;&bull;&nbsp;
+            <a href="mailto:kikzaperformance@gmail.com" style="color:#dc2626;text-decoration:none;">kikzaperformance@gmail.com</a>
+          </p>
+          <p style="margin:8px 0 0;color:#999;font-size:12px;">
+            <a href="${SITE_URL}/login" style="color:#dc2626;text-decoration:none;font-weight:600;">Login to File Portal</a>
+            &nbsp;&bull;&nbsp;
+            <a href="${SITE_URL}" style="color:#999;text-decoration:none;">chiptunefiles.com</a>
           </p>
         </td></tr>
       </table>

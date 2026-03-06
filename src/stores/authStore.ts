@@ -206,6 +206,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (error) throw error;
+
+      // ---------------------------------------------------------------
+      // SYNC AUTH METADATA → PROFILE
+      // ---------------------------------------------------------------
+      // When a user registers, Supabase stores the metadata in
+      // raw_user_meta_data. If email confirmation is required the
+      // client may not have a session yet when signUp tries to
+      // update the profile row, so phone/company/country can be lost.
+      // On first login we detect missing fields and sync them.
+      // ---------------------------------------------------------------
+      const meta = user.user_metadata;
+      if (meta && data) {
+        const updates: Record<string, string> = {};
+        if (!data.contact_name && meta.contact_name) updates.contact_name = meta.contact_name;
+        if (!data.company_name && meta.company_name) updates.company_name = meta.company_name;
+        if (!data.phone && meta.phone) updates.phone = meta.phone;
+        if (!data.country && meta.country) updates.country = meta.country;
+
+        if (Object.keys(updates).length > 0) {
+          const { data: updated } = await supabase
+            .from('profiles')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', user.id)
+            .select('*')
+            .single();
+
+          if (updated) {
+            set({ profile: updated, isAdmin: updated.role === 'admin' || updated.role === 'superadmin' });
+            return;
+          }
+        }
+      }
+
       set({ profile: data, isAdmin: data.role === 'admin' || data.role === 'superadmin' });
     } catch (error) {
       console.error('Error fetching profile:', error);

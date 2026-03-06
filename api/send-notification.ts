@@ -7,10 +7,31 @@ const supabase = createClient(
 );
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'TuneForge <noreply@tuneforge.com>';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'ChipTuneFiles <noreply@chiptunefiles.com>';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
-const SITE_URL = process.env.SITE_URL || 'https://file-service-platform.vercel.app';
-const BRAND_NAME = process.env.BRAND_NAME || 'TuneForge';
+const SITE_URL = process.env.SITE_URL || 'https://chiptunefiles.com';
+const BRAND_NAME = process.env.BRAND_NAME || 'ChipTuneFiles';
+const LOGO_URL = `${SITE_URL}/logo.png`;
+
+// ─── Email Footer ───
+
+function emailFooter() {
+  return `
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+          <p style="margin:0 0 8px;color:#999;font-size:13px;">
+            Please do not reply to this message.
+          </p>
+          <p style="margin:0;color:#999;font-size:12px;">
+            <a href="https://wa.me/38344955389" style="color:#dc2626;text-decoration:none;">WhatsApp: +383 44 955 389</a>
+            &nbsp;&bull;&nbsp;
+            <a href="mailto:kikzaperformance@gmail.com" style="color:#dc2626;text-decoration:none;">kikzaperformance@gmail.com</a>
+          </p>
+          <p style="margin:8px 0 0;color:#999;font-size:12px;">
+            <a href="${SITE_URL}/login" style="color:#dc2626;text-decoration:none;font-weight:600;">Login to File Portal</a>
+            &nbsp;&bull;&nbsp;
+            <a href="${SITE_URL}" style="color:#999;text-decoration:none;">chiptunefiles.com</a>
+          </p>`;
+}
 
 // ─── HTML Email Templates ───
 
@@ -30,13 +51,13 @@ function fileDeliveredEmail(data: {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Logo -->
         <tr><td align="center" style="padding-bottom:30px;">
-          <span style="font-size:28px;font-weight:bold;color:#dc2626;">⚡ ${BRAND_NAME}</span>
+          <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:40px;" />
         </td></tr>
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <p style="margin:0 0 4px;color:#666;font-size:16px;">Hey</p>
           <p style="margin:0 0 20px;color:#22c55e;font-size:24px;font-weight:bold;">${data.clientName}!</p>
-          
+
           <p style="margin:0 0 24px;color:#333;font-size:15px;">
             Thank you for using <strong>${BRAND_NAME}</strong>. Your request has been delivered.
           </p>
@@ -60,19 +81,17 @@ function fileDeliveredEmail(data: {
           <!-- CTA Button -->
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center" style="padding:8px 0 24px;">
-              <a href="${SITE_URL}/jobs/${data.jobId}" 
+              <a href="${SITE_URL}/jobs/${data.jobId}"
                  style="display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
                 Request Details
               </a>
             </td></tr>
           </table>
 
-          <p style="margin:0 0 16px;color:#666;font-size:14px;line-height:1.6;">
-            If you have any questions about this request, simply reply to this email or reach out to our support team for help.
-          </p>
           <p style="margin:0;color:#666;font-size:14px;">
             Cheers,<br/>${BRAND_NAME} Team
           </p>
+          ${emailFooter()}
         </td></tr>
       </table>
     </td></tr>
@@ -99,13 +118,13 @@ function newRequestEmail(data: {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Logo -->
         <tr><td align="center" style="padding-bottom:30px;">
-          <span style="font-size:28px;font-weight:bold;color:#dc2626;">⚡ ${BRAND_NAME}</span>
+          <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:40px;" />
         </td></tr>
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <p style="margin:0 0 4px;color:#666;font-size:16px;">New Request</p>
           <p style="margin:0 0 20px;color:#dc2626;font-size:24px;font-weight:bold;">From ${data.clientName}</p>
-          
+
           <p style="margin:0 0 24px;color:#333;font-size:15px;">
             A new tuning request has been submitted and is waiting for your review.
           </p>
@@ -133,7 +152,7 @@ function newRequestEmail(data: {
           <!-- CTA Button -->
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center" style="padding:8px 0 24px;">
-              <a href="${SITE_URL}/admin/jobs/${data.jobId}" 
+              <a href="${SITE_URL}/admin/jobs/${data.jobId}"
                  style="display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
                 View Request
               </a>
@@ -143,6 +162,7 @@ function newRequestEmail(data: {
           <p style="margin:0;color:#666;font-size:14px;">
             — ${BRAND_NAME} System
           </p>
+          ${emailFooter()}
         </td></tr>
       </table>
     </td></tr>

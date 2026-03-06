@@ -996,7 +996,8 @@ export function useAnnouncements(activeOnly = true) {
 export async function createAnnouncement(
   title: string,
   message: string,
-  type: 'info' | 'warning' | 'success'
+  type: 'info' | 'warning' | 'success',
+  imageUrl?: string | null
 ): Promise<{ error: Error | null }> {
   try {
     const user = useAuthStore.getState().user;
@@ -1004,6 +1005,7 @@ export async function createAnnouncement(
       title,
       message,
       type,
+      image_url: imageUrl || null,
       created_by: user?.id || null,
     });
     if (error) throw error;
@@ -1015,7 +1017,7 @@ export async function createAnnouncement(
 
 export async function updateAnnouncement(
   id: string,
-  updates: { title?: string; message?: string; type?: 'info' | 'warning' | 'success'; is_active?: boolean }
+  updates: { title?: string; message?: string; type?: 'info' | 'warning' | 'success'; is_active?: boolean; image_url?: string | null }
 ): Promise<{ error: Error | null }> {
   try {
     const { error } = await supabase

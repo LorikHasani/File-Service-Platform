@@ -334,7 +334,7 @@ export const LandingPage: React.FC = () => {
                   'Experienced engineers with 10+ years in ECU calibration',
                   'Files tested on dyno before delivery',
                   'Average turnaround time under 15 minutes',
-                  '24/7 support via WhatsApp, email, and portal',
+                  'Support via WhatsApp, email, and portal (Mon–Sat 9 AM – 10 PM)',
                   'Simple pricing in euros — pay only for what you need',
                   'Secure file transfers with encrypted storage',
                 ].map((item) => (
@@ -391,8 +391,17 @@ export const LandingPage: React.FC = () => {
                     <Clock className="w-4 h-4 text-red-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-500 mb-0.5">Working Hours</p>
-                    <p className="text-white font-medium">24/7 — Always available</p>
+                    <p className="text-sm text-neutral-500 mb-2">Working Hours</p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-8">
+                        <span className="text-sm text-neutral-400">Monday - Saturday</span>
+                        <span className="text-sm text-white font-medium">9:00 AM - 10:00 PM</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-8">
+                        <span className="text-sm text-neutral-400">Sunday</span>
+                        <span className="text-sm text-red-400 font-medium">Closed</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -499,25 +508,100 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ═══ FOOTER ═══ */}
-      <footer className="border-t border-white/5 py-10" role="contentinfo">
+      <footer className="border-t border-white/5 py-14" role="contentinfo">
         <div className="max-w-6xl mx-auto px-5">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="ChipTuneFiles" className="h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
+            {/* Brand */}
+            <div>
+              <img src="/logo.png" alt="ChipTuneFiles" className="h-8 mb-4" />
+              <p className="text-sm text-neutral-500 leading-relaxed mb-4">
+                Professional ECU file service for workshops and tuners worldwide.
+              </p>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+              >
+                File Portal Login
+                <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
 
-            <nav className="flex flex-wrap items-center justify-center gap-6 text-xs text-neutral-500" aria-label="Footer navigation">
-              <a href="#services" className="hover:text-white transition-colors">Services</a>
-              <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-              <a href="#contact" className="hover:text-white transition-colors">Contact</a>
-              <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-              <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
-              <Link to="/login" className="hover:text-white transition-colors">Portal</Link>
-            </nav>
+            {/* Quick Links */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Quick Links</h4>
+              <nav className="space-y-2.5" aria-label="Footer navigation">
+                <a href="#services" className="block text-sm text-neutral-500 hover:text-white transition-colors">Services</a>
+                <a href="#how-it-works" className="block text-sm text-neutral-500 hover:text-white transition-colors">How It Works</a>
+                <a href="#calculator" className="block text-sm text-neutral-500 hover:text-white transition-colors">Calculator</a>
+                <a href="#contact" className="block text-sm text-neutral-500 hover:text-white transition-colors">Contact</a>
+                <Link to="/terms" className="block text-sm text-neutral-500 hover:text-white transition-colors">Terms of Service</Link>
+                <Link to="/privacy" className="block text-sm text-neutral-500 hover:text-white transition-colors">Privacy Policy</Link>
+                <Link to="/refund-policy" className="block text-sm text-neutral-500 hover:text-white transition-colors">Refund Policy</Link>
+              </nav>
+            </div>
 
+            {/* Contact */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Contact</h4>
+              <div className="space-y-3">
+                <a href="https://wa.me/38344955389" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors">
+                  <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
+                  +383 44 955 389 (WhatsApp)
+                </a>
+                <a href="mailto:kikzaperformance@gmail.com" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors">
+                  <Mail className="w-4 h-4 text-red-500 flex-shrink-0" />
+                  kikzaperformance@gmail.com
+                </a>
+                <div className="flex items-start gap-2 text-sm text-neutral-500">
+                  <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>Germany — Serving worldwide</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Working Hours */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Working Hours</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Monday</span>
+                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Tuesday</span>
+                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Wednesday</span>
+                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Thursday</span>
+                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Friday</span>
+                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Saturday</span>
+                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-500">Sunday</span>
+                  <span className="text-sm text-red-400 font-medium">Closed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-neutral-600">
               © {new Date().getFullYear()} chiptunefiles.com — All rights reserved.
+            </p>
+            <p className="text-xs text-neutral-600">
+              Automated emails from this platform are not monitored. Please do not reply to them.
             </p>
           </div>
         </div>

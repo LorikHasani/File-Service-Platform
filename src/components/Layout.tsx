@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
-  MessageSquare, User, Mail, Megaphone,
+  MessageSquare, User, Mail, Megaphone, Clock,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
@@ -36,6 +36,62 @@ const adminNavItems: NavItem[] = [
   { label: 'News', href: '/admin/news', icon: <Megaphone size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
 ];
+
+// Working Hours Widget
+const SCHEDULE = [
+  { day: 'Mon', hours: '9:00 AM - 10:00 PM' },
+  { day: 'Tue', hours: '9:00 AM - 10:00 PM' },
+  { day: 'Wed', hours: '9:00 AM - 10:00 PM' },
+  { day: 'Thu', hours: '9:00 AM - 10:00 PM' },
+  { day: 'Fri', hours: '9:00 AM - 10:00 PM' },
+  { day: 'Sat', hours: '9:00 AM - 10:00 PM' },
+  { day: 'Sun', hours: 'Closed' },
+];
+
+function isPortalOpen(): boolean {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  if (day === 0) return false;
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const minutes = h * 60 + m;
+  return minutes >= 540 && minutes < 1320; // 9:00–22:00
+}
+
+const WorkingHoursWidget: React.FC = () => {
+  const today = new Date().getDay(); // 0=Sun, 1=Mon...
+  const scheduleIndex = today === 0 ? 6 : today - 1;
+  const open = isPortalOpen();
+
+  return (
+    <div className="px-4 py-3 border-t border-zinc-800 flex-shrink-0">
+      <div className="flex items-center gap-2 mb-2">
+        <Clock size={14} className="text-zinc-500" />
+        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Working Hours</span>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`w-2 h-2 rounded-full ${open ? 'bg-green-500' : 'bg-red-500'}`} />
+        <span className={`text-xs font-medium ${open ? 'text-green-400' : 'text-red-400'}`}>
+          {open ? 'Portal Open' : 'Portal Closed'}
+        </span>
+      </div>
+      <div className="space-y-0.5">
+        {SCHEDULE.map((s, i) => (
+          <div
+            key={s.day}
+            className={clsx(
+              'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
+              i === scheduleIndex ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-500'
+            )}
+          >
+            <span>{s.day}</span>
+            <span className={s.hours === 'Closed' ? 'text-red-400' : ''}>{s.hours}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 // Sidebar
 export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -83,6 +139,9 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
             </NavLink>
           ))}
         </nav>
+
+        {/* Working Hours */}
+        {!isAdmin && <WorkingHoursWidget />}
 
         <div className="p-4 border-t border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-3 px-3 py-2">

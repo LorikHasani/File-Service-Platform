@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Megaphone, Plus, X, Pencil, Trash2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Megaphone, Plus, X, Pencil, Trash2, ImagePlus, Trash } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Badge, Spinner } from '@/components/ui';
 import {
@@ -8,6 +8,7 @@ import {
   updateAnnouncement,
   deleteAnnouncement,
 } from '@/hooks/useSupabase';
+import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import type { Announcement } from '@/types/database';
@@ -26,8 +27,13 @@ export const AdminNewsPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [type, setType] = useState<'info' | 'warning' | 'success'>('info');
   const [isActive, setIsActive] = useState(true);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openCreate = () => {
     setEditing(null);
@@ -35,6 +41,9 @@ export const AdminNewsPage: React.FC = () => {
     setMessage('');
     setType('info');
     setIsActive(true);
+    setImageUrl(null);
+    setImageFile(null);
+    setImagePreview(null);
     setShowModal(true);
   };
 
@@ -44,7 +53,63 @@ export const AdminNewsPage: React.FC = () => {
     setMessage(a.message);
     setType(a.type);
     setIsActive(a.is_active);
+    setImageUrl(a.image_url);
+    setImageFile(null);
+    setImagePreview(a.image_url);
     setShowModal(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return imageUrl; // Keep existing URL if no new file
+
+    setUploading(true);
+    try {
+      const ext = imageFile.name.split('.').pop();
+      const path = `announcements/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('ecu-files')
+        .upload(path, imageFile, { contentType: imageFile.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('ecu-files')
+        .getPublicUrl(path);
+
+      return publicUrl;
+    } catch (err: any) {
+      toast.error('Failed to upload image');
+      console.error('Image upload error:', err);
+      return null;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -54,12 +119,23 @@ export const AdminNewsPage: React.FC = () => {
     }
     setSaving(true);
 
+    // Upload image if a new file was selected
+    let finalImageUrl = imageUrl;
+    if (imageFile) {
+      finalImageUrl = await uploadImage();
+    }
+    // If user removed the image (preview is null and no file), set to null
+    if (!imagePreview && !imageFile) {
+      finalImageUrl = null;
+    }
+
     if (editing) {
       const { error } = await updateAnnouncement(editing.id, {
         title: title.trim(),
         message: message.trim(),
         type,
         is_active: isActive,
+        image_url: finalImageUrl,
       });
       if (error) toast.error('Failed to update');
       else {
@@ -68,7 +144,7 @@ export const AdminNewsPage: React.FC = () => {
         refetch();
       }
     } else {
-      const { error } = await createAnnouncement(title.trim(), message.trim(), type);
+      const { error } = await createAnnouncement(title.trim(), message.trim(), type, finalImageUrl);
       if (error) toast.error('Failed to create');
       else {
         toast.success('Announcement created');
@@ -139,19 +215,27 @@ export const AdminNewsPage: React.FC = () => {
           {announcements.map((a) => (
             <Card key={a.id} className={!a.is_active ? 'opacity-60' : ''}>
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold">{a.title}</h3>
-                    <Badge variant={typeColors[a.type] as any}>{a.type}</Badge>
-                    {!a.is_active && <Badge variant="default">Inactive</Badge>}
+                <div className="flex gap-4 flex-1 min-w-0">
+                  {a.image_url && (
+                    <img
+                      src={a.image_url}
+                      alt=""
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold">{a.title}</h3>
+                      <Badge variant={typeColors[a.type] as any}>{a.type}</Badge>
+                      {!a.is_active && <Badge variant="default">Inactive</Badge>}
+                    </div>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{a.message}</p>
+                    <p className="text-xs text-zinc-500 mt-2">
+                      Created {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                    </p>
                   </div>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{a.message}</p>
-                  <p className="text-xs text-zinc-500 mt-2">
-                    Created {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
-                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Toggle active */}
                   <button
                     onClick={() => handleToggle(a)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -190,7 +274,7 @@ export const AdminNewsPage: React.FC = () => {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-lg p-6 shadow-xl">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold">{editing ? 'Edit Announcement' : 'New Announcement'}</h2>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded">
@@ -207,6 +291,46 @@ export const AdminNewsPage: React.FC = () => {
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Message</label>
                 <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Announcement message..." rows={4} />
               </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Image (optional)
+                </label>
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700"
+                    />
+                    <button
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-lg"
+                      title="Remove image"
+                    >
+                      <Trash size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-32 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors text-zinc-500"
+                  >
+                    <ImagePlus size={24} />
+                    <span className="text-sm">Click to upload image</span>
+                    <span className="text-xs text-zinc-400">PNG, JPG up to 5MB</span>
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Type</label>
                 <select
@@ -239,8 +363,8 @@ export const AdminNewsPage: React.FC = () => {
             </div>
 
             <div className="flex gap-2 mt-6">
-              <Button onClick={handleSave} disabled={saving} isLoading={saving} className="flex-1">
-                {editing ? 'Update' : 'Create'}
+              <Button onClick={handleSave} disabled={saving || uploading} isLoading={saving || uploading} className="flex-1">
+                {uploading ? 'Uploading...' : editing ? 'Update' : 'Create'}
               </Button>
               <Button variant="ghost" onClick={() => setShowModal(false)}>
                 Cancel
