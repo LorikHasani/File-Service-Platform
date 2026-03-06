@@ -98,11 +98,13 @@ export const AdminNewsPage: React.FC = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedData, error: signError } = await supabase.storage
         .from('ecu-files')
-        .getPublicUrl(path);
+        .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year
 
-      return publicUrl;
+      if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to get signed URL');
+
+      return signedData.signedUrl;
     } catch (err: any) {
       toast.error('Failed to upload image');
       console.error('Image upload error:', err);
