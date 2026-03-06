@@ -24,30 +24,42 @@ function composeEmailHtml(subject: string, body: string) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f0;padding:40px 20px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-        <!-- Logo -->
-        <tr><td align="center" style="padding-bottom:30px;">
-          <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:60px;max-width:250px;" />
-        </td></tr>
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <h1 style="margin:0 0 20px;color:#333;font-size:22px;font-weight:bold;">${subject}</h1>
-          <div style="margin:0 0 24px;color:#333;font-size:15px;line-height:1.7;">
+          <!-- Title in bold red -->
+          <h1 style="margin:0 0 24px;color:#dc2626;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">${subject}</h1>
+          <!-- Body -->
+          <div style="margin:0 0 30px;color:#333;font-size:15px;line-height:1.7;">
             ${htmlBody}
           </div>
-          <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-          <p style="margin:0 0 8px;color:#999;font-size:13px;">
-            This email was sent by ${BRAND_NAME}. Please do not reply to this message.
-          </p>
-          <p style="margin:0;color:#999;font-size:12px;">
-            <a href="https://wa.me/38344955389" style="color:#dc2626;text-decoration:none;">WhatsApp: +383 44 955 389</a>
-            &nbsp;&bull;&nbsp;
-            <a href="mailto:kikzaperformance@gmail.com" style="color:#dc2626;text-decoration:none;">kikzaperformance@gmail.com</a>
-          </p>
-          <p style="margin:8px 0 0;color:#999;font-size:12px;">
-            <a href="${SITE_URL}/login" style="color:#dc2626;text-decoration:none;font-weight:600;">Login to File Portal</a>
-            &nbsp;&bull;&nbsp;
-            <a href="${SITE_URL}" style="color:#999;text-decoration:none;">chiptunefiles.com</a>
-          </p>
+          <!-- CTA Button -->
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="left" style="padding:0 0 8px;">
+              <a href="${SITE_URL}/login"
+                 style="display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
+                &rarr; Log in to portal
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:30px 10px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="vertical-align:middle;">
+                <p style="margin:0 0 4px;font-size:13px;color:#333;">
+                  <strong style="color:#dc2626;">${BRAND_NAME}</strong> | Kosovo
+                </p>
+                <p style="margin:0;font-size:12px;color:#666;">
+                  Tel: <a href="https://wa.me/38344955389" style="color:#333;text-decoration:none;">+38344955389</a> |
+                  Email: <a href="mailto:support@chiptunefiles.com" style="color:#1a73e8;text-decoration:none;">support@chiptunefiles.com</a>
+                </p>
+              </td>
+              <td style="vertical-align:middle;text-align:right;width:80px;">
+                <img src="${LOGO_URL}" alt="${BRAND_NAME}" style="height:45px;max-width:80px;" />
+              </td>
+            </tr>
+          </table>
         </td></tr>
       </table>
     </td></tr>
