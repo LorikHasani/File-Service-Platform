@@ -159,6 +159,128 @@ function newRequestEmail(data: {
 </html>`;
 }
 
+// ─── Credit Purchase Email Templates ───
+
+function creditPurchaseClientEmail(data: {
+  clientName: string;
+  credits: number;
+  packageName: string;
+  amountPaid: number;
+  balanceAfter: number;
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f0;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <!-- Card -->
+        <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <h1 style="margin:0 0 24px;color:#2563eb;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">CREDIT PURCHASE CONFIRMED</h1>
+
+          <p style="margin:0 0 20px;color:#333;font-size:15px;">
+            Hello <strong>${data.clientName}</strong>, your credit purchase has been successfully processed.
+          </p>
+
+          <!-- Purchase Details -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #eee;border-radius:8px;">
+            <tr style="background-color:#f9f9f9;">
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;">PACKAGE</td>
+              <td style="padding:12px 16px;color:#333;font-size:14px;">${data.packageName}</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">CREDITS ADDED</td>
+              <td style="padding:12px 16px;color:#22c55e;font-size:14px;font-weight:700;border-top:1px solid #eee;">+${data.credits} credits</td>
+            </tr>
+            <tr style="background-color:#f9f9f9;">
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">AMOUNT PAID</td>
+              <td style="padding:12px 16px;color:#333;font-size:14px;border-top:1px solid #eee;">&euro;${data.amountPaid.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">NEW BALANCE</td>
+              <td style="padding:12px 16px;color:#2563eb;font-size:14px;font-weight:700;border-top:1px solid #eee;">${data.balanceAfter.toFixed(2)} credits</td>
+            </tr>
+          </table>
+
+          <!-- CTA Button -->
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="left" style="padding:8px 0 0;">
+              <a href="${SITE_URL}/credits"
+                 style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
+                &rarr; Log in to portal
+              </a>
+            </td></tr>
+          </table>
+          ${emailFooter()}
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function creditPurchaseAdminEmail(data: {
+  clientName: string;
+  clientEmail: string;
+  credits: number;
+  packageName: string;
+  amountPaid: number;
+}) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f0;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <!-- Card -->
+        <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <h1 style="margin:0 0 24px;color:#2563eb;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">NEW CREDIT PURCHASE</h1>
+
+          <p style="margin:0 0 24px;color:#333;font-size:15px;">
+            A client has purchased credits on <strong>${BRAND_NAME}</strong>.
+          </p>
+
+          <!-- Purchase Details -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #eee;border-radius:8px;">
+            <tr style="background-color:#f9f9f9;">
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;">CLIENT</td>
+              <td style="padding:12px 16px;color:#333;font-size:14px;">${data.clientName} (${data.clientEmail})</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">PACKAGE</td>
+              <td style="padding:12px 16px;color:#333;font-size:14px;border-top:1px solid #eee;">${data.packageName}</td>
+            </tr>
+            <tr style="background-color:#f9f9f9;">
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">CREDITS</td>
+              <td style="padding:12px 16px;color:#22c55e;font-size:14px;font-weight:700;border-top:1px solid #eee;">+${data.credits} credits</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">AMOUNT PAID</td>
+              <td style="padding:12px 16px;color:#333;font-size:14px;font-weight:700;border-top:1px solid #eee;">&euro;${data.amountPaid.toFixed(2)}</td>
+            </tr>
+          </table>
+
+          <!-- CTA Button -->
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="left" style="padding:8px 0 0;">
+              <a href="${SITE_URL}/admin/users"
+                 style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
+                &rarr; Log in to portal
+              </a>
+            </td></tr>
+          </table>
+          ${emailFooter()}
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 // ─── Send via Resend ───
 
 async function sendEmail(to: string, subject: string, html: string) {
@@ -296,6 +418,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
 
       console.log(`Email sent to admin — new request ${job.reference_number}`);
+
+    } else if (type === 'credit_purchase') {
+      // ─── Credit purchased → email client + admin ───
+      const { credits, packageName, amountPaid, balanceAfter, clientId } = req.body;
+
+      if (!credits || !clientId) {
+        return res.status(400).json({ error: 'Missing credits or clientId' });
+      }
+
+      const { data: client } = await supabase
+        .from('profiles')
+        .select('contact_name, email')
+        .eq('id', clientId)
+        .single();
+
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+
+      // Email to client
+      const clientHtml = creditPurchaseClientEmail({
+        clientName: client.contact_name,
+        credits: Number(credits),
+        packageName: packageName || 'Custom',
+        amountPaid: Number(amountPaid || credits),
+        balanceAfter: Number(balanceAfter || 0),
+      });
+
+      await sendEmail(
+        client.email,
+        `Credit Purchase Confirmed — ${credits} Credits — ${BRAND_NAME}`,
+        clientHtml
+      );
+
+      console.log(`Email sent to ${client.email} — credit purchase ${credits} credits`);
+
+      // Email to admin
+      if (ADMIN_EMAIL) {
+        const adminHtml = creditPurchaseAdminEmail({
+          clientName: client.contact_name,
+          clientEmail: client.email,
+          credits: Number(credits),
+          packageName: packageName || 'Custom',
+          amountPaid: Number(amountPaid || credits),
+        });
+
+        await sendEmail(
+          ADMIN_EMAIL,
+          `Credit Purchase — ${client.contact_name} bought ${credits} credits — ${BRAND_NAME}`,
+          adminHtml
+        );
+
+        console.log(`Email sent to admin — credit purchase by ${client.contact_name}`);
+      }
 
     } else {
       return res.status(400).json({ error: `Unknown notification type: ${type}` });
