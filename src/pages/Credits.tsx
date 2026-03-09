@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield, Edit3 } from 'lucide-react';
+import { CreditCard, Zap, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield, Edit3 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -171,7 +171,9 @@ export const CreditsPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {packages.map((pkg, index) => {
             const credits = Number(pkg.credits);
-            const pricePerCredit = Number(pkg.price) / credits;
+            const price = Number(pkg.price);
+            const bonus = credits - price;
+            const pricePerCredit = price / credits;
             const isPopular = index === popularIndex;
             const isBuying = buyingId === pkg.id;
 
@@ -205,6 +207,12 @@ export const CreditsPage: React.FC = () => {
                     <CreditCard className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <span className="text-zinc-700 dark:text-zinc-300">€{credits.toFixed(0)} credits</span>
                   </div>
+                  {bonus > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Zap className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-green-600 font-medium">€{bonus.toFixed(0)} bonus</span>
+                    </div>
+                  )}
                 </div>
 
                 <Button
