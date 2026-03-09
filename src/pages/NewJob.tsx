@@ -56,20 +56,20 @@ const StepIndicator: React.FC<{ current: number }> = ({ current }) => {
         return (
           <React.Fragment key={i}>
             {i > 0 && (
-              <div className={clsx('w-16 h-0.5 mx-1', done ? 'bg-green-500' : 'bg-zinc-700')} />
+              <div className={clsx('w-16 h-0.5 mx-1', done ? 'bg-green-500' : 'bg-zinc-300 dark:bg-zinc-700')} />
             )}
             <div className="flex items-center gap-2">
               <div className={clsx(
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
                 done && 'bg-green-500 text-white',
                 active && 'bg-blue-600 text-white',
-                !done && !active && 'bg-zinc-700 text-zinc-400'
+                !done && !active && 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'
               )}>
                 {done ? <Check size={16} /> : stepNum}
               </div>
               <span className={clsx(
                 'text-sm font-medium hidden sm:inline',
-                active ? 'text-zinc-100' : 'text-zinc-500'
+                active ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500'
               )}>
                 {label}
               </span>
@@ -241,16 +241,16 @@ export const NewJobPage: React.FC = () => {
         {step === 1 && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-600/20 rounded-lg"><Upload size={20} className="text-blue-400" /></div>
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-600/20 rounded-lg"><Upload size={20} className="text-blue-500 dark:text-blue-400" /></div>
               <div>
-                <h2 className="text-xl font-bold">Step 1: Upload Your File</h2>
-                <p className="text-sm text-zinc-400">Select your ECU or Gearbox file</p>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Step 1: Upload Your File</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Select your ECU or Gearbox file</p>
               </div>
             </div>
 
             {/* File Type */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Car size={16} /> Select File Type
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -265,12 +265,12 @@ export const NewJobPage: React.FC = () => {
                     className={clsx(
                       'flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all',
                       fileType === ft.id
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                        : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:border-zinc-300 dark:hover:border-zinc-600'
                     )}
                   >
                     <div className={ft.color}>{ft.icon}</div>
-                    <span className="font-semibold">{ft.label}</span>
+                    <span className="font-semibold text-zinc-900 dark:text-white">{ft.label}</span>
                   </button>
                 ))}
               </div>
@@ -278,7 +278,7 @@ export const NewJobPage: React.FC = () => {
 
             {/* Upload */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Upload size={16} /> Upload File
               </h3>
               {!file ? (
@@ -286,34 +286,34 @@ export const NewJobPage: React.FC = () => {
                   {...getRootProps()}
                   className={clsx(
                     'border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all',
-                    isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 hover:border-zinc-500'
+                    isDragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                   )}
                 >
                   <input {...getInputProps()} />
-                  <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Upload size={24} className="text-blue-400" />
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Upload size={24} className="text-blue-500 dark:text-blue-400" />
                   </div>
-                  <p className="font-semibold text-lg">Click to upload or drag and drop</p>
+                  <p className="font-semibold text-lg text-zinc-900 dark:text-white">Click to upload or drag and drop</p>
                   <p className="text-sm text-zinc-500 mt-2">All file types allowed except ZIP, RAR, PHP, EXE (max 50MB)</p>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 p-4 rounded-xl border border-zinc-700 bg-zinc-800/50">
-                  <FileText size={20} className="text-blue-400" />
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+                  <FileText size={20} className="text-blue-500 dark:text-blue-400" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{file.name}</p>
+                    <p className="font-medium truncate text-zinc-900 dark:text-white">{file.name}</p>
                     <p className="text-xs text-zinc-500">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
-                  <button onClick={() => setFile(null)} className="p-1 hover:bg-zinc-700 rounded"><X size={16} className="text-zinc-400" /></button>
+                  <button onClick={() => setFile(null)} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded"><X size={16} className="text-zinc-400" /></button>
                 </div>
               )}
             </div>
 
             {/* Bottom */}
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
               <div className="flex items-center gap-2 text-sm">
-                <Info size={16} className="text-blue-400" />
-                <span className="text-zinc-400">Balance:</span>
-                <span className="text-blue-400 font-semibold">€{creditBalance}</span>
+                <Info size={16} className="text-blue-500 dark:text-blue-400" />
+                <span className="text-zinc-500 dark:text-zinc-400">Balance:</span>
+                <span className="text-blue-500 dark:text-blue-400 font-semibold">€{creditBalance}</span>
               </div>
               <Button onClick={() => setStep(2)} disabled={!canGoToStep2}>
                 Next Step <ChevronRight size={16} className="ml-1" />
@@ -326,17 +326,17 @@ export const NewJobPage: React.FC = () => {
         {step === 2 && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-600/20 rounded-lg"><Car size={20} className="text-blue-400" /></div>
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-600/20 rounded-lg"><Car size={20} className="text-blue-500 dark:text-blue-400" /></div>
               <div>
-                <h2 className="text-xl font-bold">Step 2: Vehicle Information</h2>
-                <p className="text-sm text-zinc-400">Tell us about your vehicle</p>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Step 2: Vehicle Information</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Tell us about your vehicle</p>
               </div>
             </div>
 
             {/* File bar */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
-              <FileText size={16} className="text-blue-400" />
-              <span className="text-sm truncate flex-1">File: {file?.name}</span>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+              <FileText size={16} className="text-blue-500 dark:text-blue-400" />
+              <span className="text-sm truncate flex-1 text-zinc-700 dark:text-zinc-300">File: {file?.name}</span>
               <span className={clsx('text-xs px-2 py-0.5 rounded font-semibold',
                 fileType === 'ecu' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white')}>
                 {fileType.toUpperCase()}
@@ -345,7 +345,7 @@ export const NewJobPage: React.FC = () => {
 
             {/* Original / Modified */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Info size={16} /> Is this an original file?
               </h3>
               <div className="flex gap-3">
@@ -357,13 +357,13 @@ export const NewJobPage: React.FC = () => {
                     className={clsx(
                       'px-4 py-2.5 rounded-lg text-sm font-medium border transition-all',
                       isOriginal === val
-                        ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600'
                     )}
                   >
                     <span className={clsx(
                       'inline-block w-2.5 h-2.5 rounded-full mr-2',
-                      isOriginal === val ? 'bg-blue-400' : 'bg-zinc-600'
+                      isOriginal === val ? 'bg-blue-500 dark:bg-blue-400' : 'bg-zinc-300 dark:bg-zinc-600'
                     )} />
                     {val ? 'Yes, Original' : 'No, Modified'}
                   </button>
@@ -373,7 +373,7 @@ export const NewJobPage: React.FC = () => {
 
             {/* Vehicle */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Car size={16} /> Vehicle Details
               </h3>
               <div className="space-y-4">
@@ -403,7 +403,7 @@ export const NewJobPage: React.FC = () => {
 
             {/* Reading Tool */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Wrench size={16} /> Reading Tool
               </h3>
               <div className="space-y-4">
@@ -412,7 +412,7 @@ export const NewJobPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
               <Button variant="ghost" onClick={() => setStep(1)}><ChevronLeft size={16} className="mr-1" /> Back</Button>
               <Button onClick={() => setStep(3)} disabled={!canGoToStep3}>Next Step <ChevronRight size={16} className="ml-1" /></Button>
             </div>
@@ -423,17 +423,17 @@ export const NewJobPage: React.FC = () => {
         {step === 3 && (
           <div className="space-y-6">
             {/* Summary bar */}
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700">
-              <div className="p-2 bg-blue-600/20 rounded-lg"><Settings size={20} className="text-blue-400" /></div>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+              <div className="p-2 bg-blue-100 dark:bg-blue-600/20 rounded-lg"><Settings size={20} className="text-blue-500 dark:text-blue-400" /></div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-bold">Select Services</h2>
-                <p className="text-sm text-zinc-400 truncate">{vehicleSummary || 'Vehicle'}</p>
+                <h2 className="font-bold text-zinc-900 dark:text-white">Select Services</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">{vehicleSummary || 'Vehicle'}</p>
               </div>
               <span className={clsx('text-xs px-2.5 py-1 rounded font-semibold',
                 fileType === 'ecu' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white')}>
                 {fileType === 'ecu' ? 'ECU File' : 'Gearbox File'}
               </span>
-              <span className="text-xs px-2.5 py-1 rounded font-semibold bg-zinc-700 text-zinc-300">
+              <span className="text-xs px-2.5 py-1 rounded font-semibold bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
                 {toolType === 'master' ? 'Master Tool' : 'Slave Tool'}
               </span>
             </div>
@@ -445,7 +445,7 @@ export const NewJobPage: React.FC = () => {
                 {/* Tuning Stages — single select */}
                 {stageCategories.map((cat) => (
                   <div key={cat.id}>
-                    <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                       <Settings size={16} /> {cat.name} <span className="text-red-500">*</span>
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -457,12 +457,12 @@ export const NewJobPage: React.FC = () => {
                             onClick={() => setSelectedStage(sel ? '' : svc.code)}
                             className={clsx(
                               'flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all text-center',
-                              sel ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                              sel ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:border-zinc-300 dark:hover:border-zinc-600'
                             )}
                           >
-                            <Cpu size={24} className={sel ? 'text-blue-400' : 'text-zinc-500'} />
-                            <span className="font-semibold text-sm">{svc.name}</span>
-                            <span className={clsx('text-sm font-bold', sel ? 'text-blue-400' : 'text-zinc-500')}>
+                            <Cpu size={24} className={sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-400 dark:text-zinc-500'} />
+                            <span className="font-semibold text-sm text-zinc-900 dark:text-white">{svc.name}</span>
+                            <span className={clsx('text-sm font-bold', sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-500')}>
                               €{svc.base_price}
                             </span>
                           </button>
@@ -475,10 +475,10 @@ export const NewJobPage: React.FC = () => {
                 {/* Additional Options — multi select */}
                 {optionCategories.map((cat) => (
                   <div key={cat.id}>
-                    <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center text-[10px] text-white font-bold">+</span>
                       {cat.name}
-                      <span className="text-zinc-600">({cat.services.length} available)</span>
+                      <span className="text-zinc-400 dark:text-zinc-600">({cat.services.length} available)</span>
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {cat.services.map((svc) => {
@@ -489,17 +489,17 @@ export const NewJobPage: React.FC = () => {
                             onClick={() => toggleOption(svc.code)}
                             className={clsx(
                               'relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center',
-                              sel ? 'border-green-500 bg-green-500/10' : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                              sel ? 'border-green-500 bg-green-50 dark:bg-green-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:border-zinc-300 dark:hover:border-zinc-600'
                             )}
                           >
-                            <Settings size={20} className={sel ? 'text-green-400' : 'text-zinc-500'} />
-                            <span className="text-xs font-medium leading-tight">{svc.name}</span>
-                            <span className={clsx('text-xs font-bold', sel ? 'text-green-400' : 'text-blue-400')}>
+                            <Settings size={20} className={sel ? 'text-green-500 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500'} />
+                            <span className="text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300">{svc.name}</span>
+                            <span className={clsx('text-xs font-bold', sel ? 'text-green-600 dark:text-green-400' : 'text-blue-500 dark:text-blue-400')}>
                               +€{svc.base_price}
                             </span>
                             {svc.description && (
                               <div className="absolute top-2 right-2">
-                                <Info size={12} className="text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                <Info size={12} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 cursor-help" />
                               </div>
                             )}
                           </button>
@@ -517,7 +517,7 @@ export const NewJobPage: React.FC = () => {
 
             {/* Comments */}
             <div>
-              <h3 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Info size={16} /> Comments (optional)
               </h3>
               <Textarea
@@ -525,44 +525,43 @@ export const NewJobPage: React.FC = () => {
                 value={clientNotes}
                 onChange={(e) => setClientNotes(e.target.value)}
                 rows={3}
-                className="bg-zinc-800/50 border-zinc-700"
               />
             </div>
 
             {/* Professional Declaration */}
-            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700">
+            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={professionalDeclaration}
                   onChange={(e) => setProfessionalDeclaration(e.target.checked)}
-                  className="mt-1 w-5 h-5 rounded border-zinc-600 text-blue-600 focus:ring-blue-500 bg-zinc-700 flex-shrink-0"
+                  className="mt-1 w-5 h-5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-zinc-700 flex-shrink-0"
                 />
-                <span className="text-sm text-zinc-300 leading-relaxed">
-                  <span className="font-semibold text-white">I hereby declare that I'm a professional.</span>
+                <span className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                  <span className="font-semibold text-zinc-900 dark:text-white">I hereby declare that I'm a professional.</span>
                   {' '}I confirm that I have the necessary expertise and qualifications to request this service, and I take full responsibility for the use of the modified files.
                 </span>
               </label>
             </div>
 
             {/* Summary */}
-            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700 space-y-3">
+            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 space-y-3">
               <div className="flex justify-between">
-                <span className="text-zinc-400">Selected services</span>
-                <span className="font-semibold">{(selectedStage ? 1 : 0) + selectedOptions.length}</span>
+                <span className="text-zinc-500 dark:text-zinc-400">Selected services</span>
+                <span className="font-semibold text-zinc-900 dark:text-white">{(selectedStage ? 1 : 0) + selectedOptions.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-400">Total cost</span>
-                <span className="text-xl font-bold text-blue-400">€{totalPrice}</span>
+                <span className="text-zinc-500 dark:text-zinc-400">Total cost</span>
+                <span className="text-xl font-bold text-blue-500 dark:text-blue-400">€{totalPrice}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-400">Your balance</span>
-                <span className={hasEnoughBalance ? 'text-green-400' : 'text-red-400'}>€{creditBalance}</span>
+                <span className="text-zinc-500 dark:text-zinc-400">Your balance</span>
+                <span className={hasEnoughBalance ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>€{creditBalance}</span>
               </div>
-              {!hasEnoughBalance && <p className="text-xs text-red-400">Insufficient balance. Please top up.</p>}
+              {!hasEnoughBalance && <p className="text-xs text-red-500 dark:text-red-400">Insufficient balance. Please top up.</p>}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
               <Button variant="ghost" onClick={() => setStep(2)}><ChevronLeft size={16} className="mr-1" /> Back</Button>
               <Button
                 onClick={handleSubmit}
