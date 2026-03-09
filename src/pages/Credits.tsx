@@ -206,16 +206,16 @@ export const CreditsPage: React.FC = () => {
                 <div className="space-y-2 mb-5 flex-1">
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span className="text-zinc-700 dark:text-zinc-300">{baseCredits.toFixed(0)} credits</span>
+                    <span className="text-zinc-700 dark:text-zinc-300">€{baseCredits.toFixed(0)}</span>
                   </div>
                   {bonus > 0 && (
                     <div className="flex items-center gap-2 text-sm">
                       <Zap className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-green-600 font-medium">+{bonus.toFixed(0)} credits bonus</span>
+                      <span className="text-green-600 font-medium">+€{bonus.toFixed(0)} bonus</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm pt-1 border-t border-zinc-200 dark:border-zinc-700">
-                    <span className="text-zinc-500 font-medium">Total: {credits.toFixed(0)} credits</span>
+                    <span className="text-zinc-500 font-medium">Total: €{credits.toFixed(0)}</span>
                   </div>
                 </div>
 
