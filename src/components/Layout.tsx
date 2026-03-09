@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
-  MessageSquare, User, Mail, Megaphone, Clock,
+  MessageSquare, User, Mail, Megaphone, Clock, Package,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
@@ -30,6 +30,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={20} /> },
   { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={20} /> },
   { label: 'Services', href: '/admin/services', icon: <Tag size={20} /> },
+  { label: 'Packages', href: '/admin/packages', icon: <Package size={20} /> },
   { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
   { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={20} /> },
   { label: 'Emails', href: '/admin/emails', icon: <Mail size={20} /> },

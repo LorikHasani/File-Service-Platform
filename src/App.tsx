@@ -36,6 +36,7 @@ import { AdminTicketsPage } from '@/pages/admin/AdminTickets';
 import { AdminTicketDetailPage } from '@/pages/admin/AdminTicketDetail';
 import { AdminEmailsPage } from '@/pages/admin/AdminEmails';
 import { AdminNewsPage } from '@/pages/admin/AdminNews';
+import { AdminPackagesPage } from '@/pages/admin/AdminPackages';
 
 // Protected Route
 // CRITICAL: Use boolean selectors (!!user, not user) so this component
@@ -185,6 +186,7 @@ const App: React.FC = () => {
           <Route path="/admin/tickets/:id" element={<AdminTicketDetailPage />} />
           <Route path="/admin/emails" element={<AdminEmailsPage />} />
           <Route path="/admin/news" element={<AdminNewsPage />} />
+          <Route path="/admin/packages" element={<AdminPackagesPage />} />
         </Route>
 
         {/* Catch-all */}

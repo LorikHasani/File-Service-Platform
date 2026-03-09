@@ -56,12 +56,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(404).json({ error: 'Package not found' });
       }
 
-      totalCredits = Number(pkg.credits) + Number(pkg.bonus_credits || 0);
+      totalCredits = Number(pkg.credits);
       priceInCents = Math.round(Number(pkg.price) * 100);
       productName = `${pkg.name} — ${totalCredits} Credits`;
-      productDescription = pkg.bonus_credits > 0
-        ? `${pkg.credits} credits + ${pkg.bonus_credits} bonus credits`
-        : `${pkg.credits} credits`;
+      productDescription = `${pkg.credits} credits`;
       label = pkg.name;
 
     } else if (customCredits) {

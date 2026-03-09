@@ -115,6 +115,7 @@ export const NewJobPage: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [clientNotes, setClientNotes] = useState('');
+  const [professionalDeclaration, setProfessionalDeclaration] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) setFile(acceptedFiles[0]!);
@@ -178,6 +179,7 @@ export const NewJobPage: React.FC = () => {
     if (!file) return toast.error('Please upload a file');
     if (!hasEnoughBalance) return toast.error('Insufficient balance');
     if (!selectedStage && selectedOptions.length === 0) return toast.error('Select at least one service');
+    if (!professionalDeclaration) return toast.error('Please confirm the professional declaration');
 
     setIsSubmitting(true);
     try {
@@ -527,6 +529,22 @@ export const NewJobPage: React.FC = () => {
               />
             </div>
 
+            {/* Professional Declaration */}
+            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={professionalDeclaration}
+                  onChange={(e) => setProfessionalDeclaration(e.target.checked)}
+                  className="mt-1 w-5 h-5 rounded border-zinc-600 text-blue-600 focus:ring-blue-500 bg-zinc-700 flex-shrink-0"
+                />
+                <span className="text-sm text-zinc-300 leading-relaxed">
+                  <span className="font-semibold text-white">I hereby declare that I'm a professional.</span>
+                  {' '}I confirm that I have the necessary expertise and qualifications to request this service, and I take full responsibility for the use of the modified files.
+                </span>
+              </label>
+            </div>
+
             {/* Summary */}
             <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700 space-y-3">
               <div className="flex justify-between">
@@ -548,7 +566,7 @@ export const NewJobPage: React.FC = () => {
               <Button variant="ghost" onClick={() => setStep(2)}><ChevronLeft size={16} className="mr-1" /> Back</Button>
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !hasEnoughBalance || (!selectedStage && selectedOptions.length === 0)}
+                disabled={isSubmitting || !hasEnoughBalance || (!selectedStage && selectedOptions.length === 0) || !professionalDeclaration}
                 size="lg" isLoading={isSubmitting}
               >
                 Submit Job (€{totalPrice})

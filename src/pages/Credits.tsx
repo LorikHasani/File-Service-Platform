@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CreditCard, Zap, Check, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield, Edit3 } from 'lucide-react';
+import { CreditCard, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield, Edit3 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -166,12 +166,12 @@ export const CreditsPage: React.FC = () => {
           <Sparkles className="w-5 h-5 text-red-600" />
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Top Up Balance</h2>
         </div>
-        <p className="text-zinc-500 mb-6">Choose a package. Larger packages include bonus euros.</p>
+        <p className="text-zinc-500 mb-6">Choose a package to add funds to your balance.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {packages.map((pkg, index) => {
-            const totalCredits = Number(pkg.credits) + Number(pkg.bonus_credits || 0);
-            const pricePerCredit = Number(pkg.price) / totalCredits;
+            const credits = Number(pkg.credits);
+            const pricePerCredit = Number(pkg.price) / credits;
             const isPopular = index === popularIndex;
             const isBuying = buyingId === pkg.id;
 
@@ -202,18 +202,8 @@ export const CreditsPage: React.FC = () => {
 
                 <div className="space-y-2 mb-5 flex-1">
                   <div className="flex items-center gap-2 text-sm">
-                    <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span className="text-zinc-700 dark:text-zinc-300">€{Number(pkg.credits).toFixed(0)}</span>
-                  </div>
-                  {pkg.bonus_credits > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                      <span className="text-green-600 font-medium">+€{Number(pkg.bonus_credits).toFixed(0)} bonus</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm">
-                    <CreditCard className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-                    <span className="text-zinc-500">€{totalCredits.toFixed(0)} total</span>
+                    <CreditCard className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <span className="text-zinc-700 dark:text-zinc-300">€{credits.toFixed(0)} credits</span>
                   </div>
                 </div>
 
