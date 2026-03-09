@@ -85,7 +85,7 @@ export const PricesPage: React.FC = () => {
                           'relative flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 text-center',
                           isTcu
                             ? 'border-purple-200 dark:border-purple-700/50 bg-purple-50 dark:bg-purple-900/10'
-                            : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50'
+                            : 'border-blue-200 dark:border-blue-700/50 bg-blue-50 dark:bg-blue-900/10'
                         )}
                       >
                         {svc.description && <InfoTooltip text={svc.description} />}
