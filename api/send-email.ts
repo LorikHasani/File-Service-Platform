@@ -70,19 +70,22 @@ function composeEmailHtml(subject: string, body: string, color: 'blue' | 'red' =
 </html>`;
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
-  const response = await fetch('https://api.resend.com/emails', {
+// Resend Batch API — up to 100 emails per call
+async function sendBatch(recipients: string[], subject: string, html: string) {
+  const emails = recipients.map((to) => ({ from: FROM_EMAIL, to, subject, html }));
+
+  const response = await fetch('https://api.resend.com/emails/batch', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${RESEND_API_KEY}`,
     },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+    body: JSON.stringify(emails),
   });
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(`Resend error: ${JSON.stringify(err)}`);
+    throw new Error(`Resend batch error: ${JSON.stringify(err)}`);
   }
 
   return response.json();
@@ -131,30 +134,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const html = composeEmailHtml(subject, body, color === 'red' ? 'red' : 'blue');
 
-    // Send in batches of 2 to respect Resend rate limits (2 emails/sec on free plan)
-    const BATCH_SIZE = 2;
-    const BATCH_DELAY_MS = 1200; // slightly over 1s to stay safe
-    const errors: string[] = [];
+    // Resend batch API supports up to 100 per call — split into chunks of 100
+    const BATCH_LIMIT = 100;
     let sent = 0;
+    const errors: string[] = [];
 
-    for (let i = 0; i < to.length; i += BATCH_SIZE) {
-      const batch = to.slice(i, i + BATCH_SIZE);
-      const results = await Promise.allSettled(
-        batch.map((recipient: string) => sendEmail(recipient, subject, html))
-      );
-
-      results.forEach((result, j) => {
-        if (result.status === 'fulfilled') {
-          sent++;
-        } else {
-          console.error(`Failed to send to ${batch[j]}:`, result.reason?.message);
-          errors.push(batch[j]);
-        }
-      });
-
-      // Wait between batches (skip delay after the last batch)
-      if (i + BATCH_SIZE < to.length) {
-        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+    for (let i = 0; i < to.length; i += BATCH_LIMIT) {
+      const chunk = to.slice(i, i + BATCH_LIMIT);
+      try {
+        const result = await sendBatch(chunk, subject, html);
+        // result.data is an array of { id } for each successfully queued email
+        sent += Array.isArray(result.data) ? result.data.length : chunk.length;
+      } catch (err: any) {
+        console.error(`Batch failed for chunk starting at index ${i}:`, err.message);
+        errors.push(...chunk);
       }
     }
 
