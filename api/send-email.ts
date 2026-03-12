@@ -130,18 +130,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const html = composeEmailHtml(subject, body, color === 'red' ? 'red' : 'blue');
-    let sent = 0;
-    const errors: string[] = [];
 
-    for (const recipient of to) {
-      try {
-        await sendEmail(recipient, subject, html);
+    const results = await Promise.allSettled(
+      to.map((recipient: string) => sendEmail(recipient, subject, html))
+    );
+
+    const errors: string[] = [];
+    let sent = 0;
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
         sent++;
-      } catch (err: any) {
-        console.error(`Failed to send to ${recipient}:`, err.message);
-        errors.push(recipient);
+      } else {
+        console.error(`Failed to send to ${to[i]}:`, result.reason?.message);
+        errors.push(to[i]);
       }
-    }
+    });
 
     return res.status(200).json({ success: true, sent, failed: errors.length, errors });
   } catch (err: any) {
