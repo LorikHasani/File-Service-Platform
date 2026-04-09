@@ -13,7 +13,7 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, metadata: { contact_name: string; company_name?: string; phone?: string; country?: string }) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, metadata: { contact_name: string; company_name?: string; phone?: string }) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -166,7 +166,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             contact_name: metadata.contact_name,
             company_name: metadata.company_name || null,
             phone: metadata.phone || null,
-            country: metadata.country || null,
           })
           .eq('id', data.user.id);
       }
@@ -213,7 +212,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // When a user registers, Supabase stores the metadata in
       // raw_user_meta_data. If email confirmation is required the
       // client may not have a session yet when signUp tries to
-      // update the profile row, so phone/company/country can be lost.
+      // update the profile row, so phone/company can be lost.
       // On first login we detect missing fields and sync them.
       // ---------------------------------------------------------------
       const meta = user.user_metadata;
@@ -222,7 +221,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (!data.contact_name && meta.contact_name) updates.contact_name = meta.contact_name;
         if (!data.company_name && meta.company_name) updates.company_name = meta.company_name;
         if (!data.phone && meta.phone) updates.phone = meta.phone;
-        if (!data.country && meta.country) updates.country = meta.country;
 
         if (Object.keys(updates).length > 0) {
           const { data: updated } = await supabase
