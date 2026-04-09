@@ -441,7 +441,10 @@ export const AdminJobDetailPage: React.FC = () => {
                       <p className="font-medium text-sm text-green-700 dark:text-green-400 truncate">{modifiedFile.original_name}</p>
                       <p className="text-xs text-green-600">{(modifiedFile.file_size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={() => handleDownload(modifiedFile.storage_path, modifiedFile.original_name)}>
+                        <Download size={16} />
+                      </Button>
                       <Check size={16} className="text-green-600" />
                     </div>
                   </div>
