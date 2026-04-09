@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Building, Phone, Globe, Bell, Save } from 'lucide-react';
+import { User, Mail, Building, Phone, Bell, Save } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,7 +13,6 @@ export const ProfilePage: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -22,7 +21,6 @@ export const ProfilePage: React.FC = () => {
       setContactName(profile.contact_name || '');
       setCompanyName(profile.company_name || '');
       setPhone(profile.phone || '');
-      setCountry(profile.country || '');
       setEmailNotifications(profile.email_notifications);
     }
   }, [profile]);
@@ -38,7 +36,6 @@ export const ProfilePage: React.FC = () => {
         contact_name: contactName.trim(),
         company_name: companyName.trim() || null,
         phone: phone.trim() || null,
-        country: country.trim() || null,
         email_notifications: emailNotifications,
       });
       toast.success('Profile updated');
@@ -126,18 +123,6 @@ export const ProfilePage: React.FC = () => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Your phone number (optional)"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-              <Globe size={16} />
-              Country
-            </label>
-            <Input
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              placeholder="Your country (optional)"
             />
           </div>
 

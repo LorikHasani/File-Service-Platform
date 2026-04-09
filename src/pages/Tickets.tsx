@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { MessageSquare, Plus, X } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Input, Textarea } from '@/components/ui';
-import { useTickets, createTicket } from '@/hooks/useSupabase';
+import { useTickets, createTicket, notifyAdmins } from '@/hooks/useSupabase';
+import { useAuthStore } from '@/stores/authStore';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export const TicketsPage: React.FC = () => {
+  const profile = useAuthStore((s) => s.profile);
   const { tickets, loading, refetch } = useTickets();
   const [showModal, setShowModal] = useState(false);
   const [subject, setSubject] = useState('');
@@ -37,6 +39,12 @@ export const TicketsPage: React.FC = () => {
       toast.error('Failed to create ticket');
     } else {
       toast.success('Ticket created');
+      notifyAdmins(
+        'New Support Ticket',
+        `${profile?.contact_name || 'Client'} opened a new ticket: "${subject.trim()}".`,
+        'ticket',
+        undefined
+      );
       setShowModal(false);
       setSubject('');
       setMessage('');

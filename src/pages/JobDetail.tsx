@@ -4,7 +4,7 @@ import { ArrowLeft, Download, MessageSquare, Send, FileText, Clock, Car } from '
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, statusLabels } from '@/components/ui';
-import { useJob, useJobMessages, downloadFile, requestRevision } from '@/hooks/useSupabase';
+import { useJob, useJobMessages, downloadFile, requestRevision, notifyAdmins } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -22,17 +22,37 @@ export const JobDetailPage: React.FC = () => {
     if (!newMessage.trim()) return;
     setSending(true);
     const { error } = await sendMessage(newMessage);
-    if (error) toast.error('Failed to send message');
-    else setNewMessage('');
+    if (error) {
+      toast.error('Failed to send message');
+    } else {
+      if (job) {
+        notifyAdmins(
+          'New Message',
+          `${profile?.contact_name || 'Client'} sent a message on job ${job.reference_number}.`,
+          'job',
+          job.id
+        );
+      }
+      setNewMessage('');
+    }
     setSending(false);
   };
 
   const handleRequestRevision = async () => {
     if (!revisionReason.trim() || !id) return;
     const { error } = await requestRevision(id, revisionReason);
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success('Revision requested');
+      if (job) {
+        notifyAdmins(
+          'Revision Requested',
+          `${profile?.contact_name || 'Client'} requested a revision for job ${job.reference_number}.`,
+          'job',
+          job.id
+        );
+      }
       setShowRevisionForm(false);
       setRevisionReason('');
     }

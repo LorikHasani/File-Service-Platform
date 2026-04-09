@@ -3,12 +3,13 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
-  Menu, X, Bell, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
+  Menu, X, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
   MessageSquare, User, Mail, Megaphone, Clock, Package,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
+import { NotificationDropdown } from '@/components/NotificationDropdown';
 
 interface NavItem {
   label: string;
@@ -168,6 +169,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
 // Header
 export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ onMenuClick, title }) => {
   const profile = useAuthStore((s) => s.profile);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
   const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
   const toggleDarkMode = () => {
@@ -198,9 +200,7 @@ export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ 
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
 
-          <button className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg relative">
-            <Bell size={20} />
-          </button>
+          <NotificationDropdown isAdmin={isAdmin} />
         </div>
       </div>
     </header>

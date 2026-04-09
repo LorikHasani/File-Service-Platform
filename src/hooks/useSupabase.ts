@@ -20,6 +20,7 @@ import type {
   TicketMessageWithSender,
   TicketStatus,
   Announcement,
+  Notification,
 } from '@/types/database';
 
 // ============================================================================
@@ -1038,5 +1039,125 @@ export async function deleteAnnouncement(id: string): Promise<{ error: Error | n
     return { error: null };
   } catch (err) {
     return { error: err as Error };
+  }
+}
+
+// ============================================================================
+// NOTIFICATIONS HOOKS
+// ============================================================================
+
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const profileId = useAuthStore((s) => s.profile?.id ?? null);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!profileId) return;
+
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      const items = data || [];
+      setNotifications(items);
+      setUnreadCount(items.filter((n) => !n.is_read).length);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [profileId]);
+
+  useEffect(() => {
+    if (!profileId) {
+      setLoading(false);
+      return;
+    }
+    fetchNotifications();
+  }, [profileId, fetchNotifications]);
+
+  // Poll every 15s
+  useEffect(() => {
+    if (!profileId) return;
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
+  }, [profileId, fetchNotifications]);
+
+  const markAsRead = async (notificationId: string) => {
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
+  const markAllAsRead = async () => {
+    if (!profileId) return;
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', profileId)
+      .eq('is_read', false);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+  };
+
+  return { notifications, unreadCount, loading, markAsRead, markAllAsRead, refetch: fetchNotifications };
+}
+
+// Helper to create a notification for a specific user
+export async function createNotification(
+  userId: string,
+  title: string,
+  message: string,
+  linkType?: string,
+  linkId?: string
+): Promise<void> {
+  try {
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      title,
+      message,
+      link_type: linkType || null,
+      link_id: linkId || null,
+    });
+  } catch (err) {
+    console.error('Failed to create notification:', err);
+  }
+}
+
+// Helper to notify all admins
+export async function notifyAdmins(
+  title: string,
+  message: string,
+  linkType?: string,
+  linkId?: string
+): Promise<void> {
+  try {
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'superadmin']);
+
+    if (admins && admins.length > 0) {
+      const inserts = admins.map((admin) => ({
+        user_id: admin.id,
+        title,
+        message,
+        link_type: linkType || null,
+        link_id: linkId || null,
+      }));
+      await supabase.from('notifications').insert(inserts);
+    }
+  } catch (err) {
+    console.error('Failed to notify admins:', err);
   }
 }

@@ -9,7 +9,7 @@ import {
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
-import { useServices, createJob, uploadFile } from '@/hooks/useSupabase';
+import { useServices, createJob, uploadFile, notifyAdmins } from '@/hooks/useSupabase';
 import { useVehicleApi } from '@/hooks/useVehicleApi';
 import { sendNotification } from '@/lib/notifications';
 import { clsx } from 'clsx';
@@ -33,6 +33,12 @@ const readingTools = [
 const toolTypes = [
   { value: 'master', label: 'Master' },
   { value: 'slave', label: 'Slave' },
+];
+
+const readingMethods = [
+  { value: 'OBD', label: 'OBD' },
+  { value: 'BENCH', label: 'BENCH' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 const gearboxOptions = [
@@ -110,6 +116,8 @@ export const NewJobPage: React.FC = () => {
   const [gearbox, setGearbox] = useState('');
   const [readingTool, setReadingTool] = useState('');
   const [toolType, setToolType] = useState('master');
+  const [readingMethod, setReadingMethod] = useState('OBD');
+  const [customMethod, setCustomMethod] = useState('');
 
   // Step 3
   const [selectedStage, setSelectedStage] = useState('');
@@ -206,16 +214,24 @@ export const NewJobPage: React.FC = () => {
 
       if (jobId) {
         const { supabase } = await import('@/lib/supabase');
+        const methodValue = readingMethod === 'custom' ? customMethod : readingMethod;
         await supabase.from('jobs').update({
           file_type: fileType,
           is_original: isOriginal,
           reading_tool: readingTool || null,
           tool_type: toolType,
+          car_notes: methodValue || null,
         }).eq('id', jobId);
 
         const { error: uploadError } = await uploadFile(jobId, file, 'original');
         if (uploadError) console.error('File upload error:', uploadError);
         sendNotification('new_request', jobId);
+        notifyAdmins(
+          'New File Request',
+          `${profile?.contact_name || 'Client'} submitted a new ${fileType.toUpperCase()} file request for ${makeName} ${modelName}.`,
+          'job',
+          jobId
+        );
       }
 
       await fetchProfile();
@@ -409,6 +425,40 @@ export const NewJobPage: React.FC = () => {
               <div className="space-y-4">
                 <Select label="Select Tool *" placeholder="Select Your Tool" options={readingTools} value={readingTool} onChange={(e) => setReadingTool(e.target.value)} />
                 <Select label="Tool Type *" options={toolTypes} value={toolType} onChange={(e) => setToolType(e.target.value)} />
+
+                {/* Reading Method */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Reading Method *</label>
+                  <div className="flex gap-3">
+                    {readingMethods.map((method) => (
+                      <button
+                        key={method.value}
+                        type="button"
+                        onClick={() => setReadingMethod(method.value)}
+                        className={clsx(
+                          'px-4 py-2.5 rounded-lg text-sm font-medium border transition-all',
+                          readingMethod === method.value
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                            : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600'
+                        )}
+                      >
+                        <span className={clsx(
+                          'inline-block w-2.5 h-2.5 rounded-full mr-2',
+                          readingMethod === method.value ? 'bg-blue-500 dark:bg-blue-400' : 'bg-zinc-300 dark:bg-zinc-600'
+                        )} />
+                        {method.label}
+                      </button>
+                    ))}
+                  </div>
+                  {readingMethod === 'custom' && (
+                    <Input
+                      placeholder="Enter your reading method..."
+                      value={customMethod}
+                      onChange={(e) => setCustomMethod(e.target.value)}
+                      className="mt-3"
+                    />
+                  )}
+                </div>
               </div>
             </div>
 

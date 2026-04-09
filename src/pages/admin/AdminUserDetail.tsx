@@ -6,7 +6,7 @@ import {
   Mail,
   Building2,
   Phone,
-  Globe,
+
   Calendar,
   CreditCard,
   Briefcase,
@@ -203,13 +203,6 @@ export const AdminUserDetailPage: React.FC = () => {
                 <div>
                   <p className="text-sm text-zinc-500">Phone</p>
                   <p className="font-medium text-sm">{user.phone || '-'}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <Globe size={16} className="text-zinc-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm text-zinc-500">Country</p>
-                  <p className="font-medium text-sm">{user.country || '-'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Send, User } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Avatar } from '@/components/ui';
-import { useTicket, useTicketMessages, updateTicketStatus } from '@/hooks/useSupabase';
+import { useTicket, useTicketMessages, updateTicketStatus, createNotification } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { formatDistanceToNow, format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -34,8 +34,21 @@ export const AdminTicketDetailPage: React.FC = () => {
     if (!newMessage.trim()) return;
     setSending(true);
     const { error } = await sendMessage(newMessage);
-    if (error) toast.error('Failed to send message');
-    else setNewMessage('');
+    if (error) {
+      toast.error('Failed to send message');
+    } else {
+      // Notify client about admin reply
+      if (ticket && (ticket as any).client_id && id) {
+        createNotification(
+          (ticket as any).client_id,
+          'Ticket Reply',
+          `Admin replied to your ticket "${ticket.subject}".`,
+          'ticket',
+          id
+        );
+      }
+      setNewMessage('');
+    }
     setSending(false);
   };
 

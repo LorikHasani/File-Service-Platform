@@ -1,16 +1,32 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check } from 'lucide-react';
+import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
-import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus } from '@/hooks/useSupabase';
+import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, createNotification } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { sendNotification } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
 import type { JobStatus } from '@/types/database';
+
+const readingToolLabels: Record<string, string> = {
+  kess_v2: 'KESS V2',
+  ktag: 'KTAG',
+  autotuner: 'Autotuner',
+  cmd_flash: 'CMD Flash',
+  flex: 'Flex',
+  trasdata: 'Trasdata',
+  dimsport: 'Dimsport',
+  magic_motorsport: 'Magic Motorsport',
+  bitbox: 'BitBox',
+  pcmflash: 'PCMFlash',
+  mpps: 'MPPS',
+  galletto: 'Galletto',
+  other: 'Other',
+};
 
 const statusOptions = [
   { value: 'pending', label: 'Pending' },
@@ -44,6 +60,16 @@ export const AdminJobDetailPage: React.FC = () => {
         toast.success('Modified file uploaded!');
         // Send email notification to client
         sendNotification('file_delivered', id);
+        // In-app notification
+        if (job?.client_id) {
+          createNotification(
+            job.client_id,
+            'File Ready',
+            `Your modified file for ${job.reference_number} is ready for download.`,
+            'job',
+            id
+          );
+        }
       }
       setUploading(false);
     },
@@ -63,6 +89,17 @@ export const AdminJobDetailPage: React.FC = () => {
       if (newStatus === 'completed') {
         toast.success('Job marked as completed!');
       }
+      // Notify client about status change
+      if (job?.client_id) {
+        const statusLabel = statusOptions.find((s) => s.value === newStatus)?.label || newStatus;
+        createNotification(
+          job.client_id,
+          'Job Status Updated',
+          `Your job ${job.reference_number} status changed to "${statusLabel}".`,
+          'job',
+          id!
+        );
+      }
     }
     setUpdatingStatus(false);
   };
@@ -71,8 +108,21 @@ export const AdminJobDetailPage: React.FC = () => {
     if (!newMessage.trim()) return;
     setSending(true);
     const { error } = await sendMessage(newMessage, false);
-    if (error) toast.error('Failed to send message');
-    else setNewMessage('');
+    if (error) {
+      toast.error('Failed to send message');
+    } else {
+      // Notify client about new message
+      if (job?.client_id) {
+        createNotification(
+          job.client_id,
+          'New Message',
+          `Admin sent a message on job ${job.reference_number}.`,
+          'job',
+          id!
+        );
+      }
+      setNewMessage('');
+    }
     setSending(false);
   };
 
@@ -220,6 +270,48 @@ export const AdminJobDetailPage: React.FC = () => {
               </div>
             )}
           </Card>
+
+          {/* File & Tool Details */}
+          {(job.reading_tool || job.tool_type || job.file_type || job.car_notes) && (
+            <Card>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-semibold">File & Tool Details</h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {job.file_type && (
+                  <div>
+                    <p className="text-sm text-zinc-500">File Type</p>
+                    <p className="font-medium">{job.file_type.toUpperCase()}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-zinc-500">Original File</p>
+                  <p className="font-medium">{job.is_original ? 'Yes' : 'No (Modified)'}</p>
+                </div>
+                {job.reading_tool && (
+                  <div>
+                    <p className="text-sm text-zinc-500">Reading Tool</p>
+                    <p className="font-medium">{readingToolLabels[job.reading_tool] || job.reading_tool}</p>
+                  </div>
+                )}
+                {job.tool_type && (
+                  <div>
+                    <p className="text-sm text-zinc-500">Tool Type</p>
+                    <p className="font-medium capitalize">{job.tool_type}</p>
+                  </div>
+                )}
+                {job.car_notes && (
+                  <div>
+                    <p className="text-sm text-zinc-500">Reading Method</p>
+                    <p className="font-medium">{job.car_notes}</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
 
           {/* Services */}
           <Card>

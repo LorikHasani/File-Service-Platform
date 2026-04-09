@@ -405,16 +405,6 @@ export const LandingPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-4 h-4 text-red-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-neutral-500 mb-0.5">Location</p>
-                    <p className="text-white font-medium">Germany</p>
-                    <p className="text-sm text-neutral-500">Serving clients worldwide</p>
-                  </div>
-                </div>
               </div>
             </div>
 

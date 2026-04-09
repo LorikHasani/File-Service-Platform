@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, Eye, EyeOff, User, Building, Phone, Globe } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Building, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthLayout } from '@/components/Layout';
 import { Button, Input } from '@/components/ui';
@@ -16,7 +16,6 @@ const registerSchema = z.object({
   contactName: z.string().min(2, 'Name is required'),
   companyName: z.string().min(2, 'Company name is required'),
   phone: z.string().min(5, 'Phone number is required'),
-  country: z.string().min(2, 'Country is required'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -41,7 +40,6 @@ export const RegisterPage: React.FC = () => {
         contact_name: data.contactName,
         company_name: data.companyName,
         phone: data.phone,
-        country: data.country,
       });
 
       if (error) {
@@ -89,14 +87,6 @@ export const RegisterPage: React.FC = () => {
           leftIcon={<Phone size={18} />}
           error={errors.phone?.message}
           {...register('phone')}
-        />
-
-        <Input
-          label="Country"
-          placeholder="Your country"
-          leftIcon={<Globe size={18} />}
-          error={errors.country?.message}
-          {...register('country')}
         />
 
         <Input
