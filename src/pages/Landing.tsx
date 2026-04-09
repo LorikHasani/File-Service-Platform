@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Gauge, Zap, Shield, Clock, ArrowRight, Check,
-  ChevronRight, Mail, Phone, MapPin, Send, Menu, X,
+  ChevronRight, Mail, Phone, Send, Menu, X,
   Settings, Flame, Cpu, TrendingUp,
 } from 'lucide-react';
 
@@ -542,10 +542,6 @@ export const LandingPage: React.FC = () => {
                   <Mail className="w-4 h-4 text-red-500 flex-shrink-0" />
                   kikzaperformance@gmail.com
                 </a>
-                <div className="flex items-start gap-2 text-sm text-neutral-500">
-                  <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Germany — Serving worldwide</span>
-                </div>
               </div>
             </div>
 
