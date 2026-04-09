@@ -1073,6 +1073,7 @@ export function useNotifications() {
     }
   }, [profileId]);
 
+  // Initial fetch
   useEffect(() => {
     if (!profileId) {
       setLoading(false);
@@ -1081,10 +1082,50 @@ export function useNotifications() {
     fetchNotifications();
   }, [profileId, fetchNotifications]);
 
-  // Poll every 15s
+  // Supabase Realtime: instant notification when a new row is inserted for this user
   useEffect(() => {
     if (!profileId) return;
-    const interval = setInterval(fetchNotifications, 15000);
+
+    const channel = supabase
+      .channel(`notifications:${profileId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${profileId}`,
+        },
+        (payload) => {
+          const newNotif = payload.new as Notification;
+          setNotifications((prev) => [newNotif, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${profileId}`,
+        },
+        () => {
+          // Refetch on updates (mark as read, etc.)
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profileId, fetchNotifications]);
+
+  // Fallback poll every 30s in case realtime connection drops
+  useEffect(() => {
+    if (!profileId) return;
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [profileId, fetchNotifications]);
 
@@ -1113,6 +1154,30 @@ export function useNotifications() {
   return { notifications, unreadCount, loading, markAsRead, markAllAsRead, refetch: fetchNotifications };
 }
 
+// Helper: call the server-side notification API (uses service role → bypasses RLS)
+async function callNotificationApi(body: Record<string, unknown>): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    const res = await fetch('/api/create-notification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      console.error('Notification API error:', data.error);
+    }
+  } catch (err) {
+    console.error('Failed to call notification API:', err);
+  }
+}
+
 // Helper to create a notification for a specific user
 export async function createNotification(
   userId: string,
@@ -1121,17 +1186,14 @@ export async function createNotification(
   linkType?: string,
   linkId?: string
 ): Promise<void> {
-  try {
-    await supabase.from('notifications').insert({
-      user_id: userId,
-      title,
-      message,
-      link_type: linkType || null,
-      link_id: linkId || null,
-    });
-  } catch (err) {
-    console.error('Failed to create notification:', err);
-  }
+  await callNotificationApi({
+    action: 'notify_user',
+    userId,
+    title,
+    message,
+    linkType: linkType || null,
+    linkId: linkId || null,
+  });
 }
 
 // Helper to notify all admins
@@ -1141,23 +1203,11 @@ export async function notifyAdmins(
   linkType?: string,
   linkId?: string
 ): Promise<void> {
-  try {
-    const { data: admins } = await supabase
-      .from('profiles')
-      .select('id')
-      .in('role', ['admin', 'superadmin']);
-
-    if (admins && admins.length > 0) {
-      const inserts = admins.map((admin) => ({
-        user_id: admin.id,
-        title,
-        message,
-        link_type: linkType || null,
-        link_id: linkId || null,
-      }));
-      await supabase.from('notifications').insert(inserts);
-    }
-  } catch (err) {
-    console.error('Failed to notify admins:', err);
-  }
+  await callNotificationApi({
+    action: 'notify_admins',
+    title,
+    message,
+    linkType: linkType || null,
+    linkId: linkId || null,
+  });
 }
