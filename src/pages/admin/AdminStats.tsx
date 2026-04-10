@@ -96,9 +96,11 @@ export const AdminStatsPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">Total Revenue</p>
+              <p className="text-sm font-medium text-zinc-500">Net Revenue</p>
               <p className="text-2xl font-bold mt-1">€{stats.totalRevenue.toFixed(0)}</p>
-              <p className="text-xs text-zinc-500">earned</p>
+              <p className="text-xs text-zinc-500">
+                €{stats.grossRevenue.toFixed(0)} − €{stats.totalRefunds.toFixed(0)} refunds
+              </p>
             </div>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <DollarSign className="w-5 h-5 text-green-600" />
@@ -239,6 +241,15 @@ export const AdminStatsPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-500">Revenue This Month</span>
                 <span className="font-semibold text-green-600">€{revenueThisMonth.toFixed(0)}</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-500">Total Refunds</span>
+                <span className="font-semibold text-red-600">
+                  -€{stats.totalRefunds.toFixed(0)}
+                </span>
               </div>
             </div>
           </div>

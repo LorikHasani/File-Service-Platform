@@ -60,14 +60,16 @@ export const AdminDashboardPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">Total Revenue</p>
+              <p className="text-sm font-medium text-zinc-500">Net Revenue</p>
               <p className="text-2xl font-bold mt-1">€{stats.totalRevenue.toFixed(0)}</p>
             </div>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
           </div>
-          <div className="text-sm text-zinc-500 mt-3">Revenue earned</div>
+          <div className="text-sm text-zinc-500 mt-3">
+            €{stats.grossRevenue.toFixed(0)} purchases − €{stats.totalRefunds.toFixed(0)} refunds
+          </div>
         </Card>
 
         <Card>

@@ -89,13 +89,15 @@ export const AdminJobDetailPage: React.FC = () => {
       if (newStatus === 'completed') {
         toast.success('Job marked as completed!');
       }
-      // Notify client about status change
-      if (job?.client_id) {
-        const statusLabel = statusOptions.find((s) => s.value === newStatus)?.label || newStatus;
+      // Only notify the client when the job is finalized — completed or rejected
+      if (job?.client_id && (newStatus === 'completed' || newStatus === 'rejected')) {
+        const isCompleted = newStatus === 'completed';
         createNotification(
           job.client_id,
-          'Job Status Updated',
-          `Your job ${job.reference_number} status changed to "${statusLabel}".`,
+          isCompleted ? 'Job Completed' : 'Job Rejected',
+          isCompleted
+            ? `Your job ${job.reference_number} has been completed.`
+            : `Your job ${job.reference_number} has been rejected.`,
           'job',
           id!
         );

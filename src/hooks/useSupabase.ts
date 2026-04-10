@@ -702,6 +702,53 @@ export function useUserDetail(userId: string | undefined) {
   return { user, jobs, transactions, files, loading, refetch: fetchUser };
 }
 
+// Transaction joined with the client profile (for the admin transactions page)
+export type TransactionWithClient = Transaction & {
+  client: Pick<Profile, 'id' | 'contact_name' | 'email' | 'company_name'> | null;
+};
+
+export function useAllTransactions() {
+  const [transactions, setTransactions] = useState<TransactionWithClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    const run = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*, client:profiles!user_id(id, contact_name, email, company_name)')
+          .order('created_at', { ascending: false })
+          .limit(500);
+
+        if (error) throw error;
+        if (!cancelled) {
+          setTransactions((data || []) as TransactionWithClient[]);
+        }
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, refreshKey]);
+
+  return { transactions, loading };
+}
+
 export function useAdminStats() {
   const [stats, setStats] = useState({
     totalJobs: 0,
@@ -709,6 +756,8 @@ export function useAdminStats() {
     inProgressJobs: 0,
     completedToday: 0,
     totalRevenue: 0,
+    grossRevenue: 0,
+    totalRefunds: 0,
     totalUsers: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -734,7 +783,7 @@ export function useAdminStats() {
           { count: pendingJobs },
           { count: inProgressJobs },
           { count: completedToday },
-          { data: revenueData },
+          { data: revenueTxs },
           { count: totalUsers },
         ] = await Promise.all([
           supabase.from('jobs').select('*', { count: 'exact', head: true }),
@@ -745,9 +794,29 @@ export function useAdminStats() {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'completed')
             .gte('completed_at', new Date().toISOString().split('T')[0]),
-          supabase.from('jobs').select('credits_used'),
+          // Pull purchases, refunds and admin_adjustments — we compute net revenue from these
+          supabase
+            .from('transactions')
+            .select('type, amount')
+            .in('type', ['credit_purchase', 'refund', 'admin_adjustment']),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'client'),
         ]);
+
+        // Compute gross revenue (purchases) and refunds separately so the
+        // admin can see both. Admin adjustments with a negative amount are
+        // treated as refunds (that's how admins currently revoke credits).
+        let grossRevenue = 0;
+        let totalRefunds = 0;
+        for (const tx of revenueTxs || []) {
+          const amount = Number(tx.amount) || 0;
+          if (tx.type === 'credit_purchase' && amount > 0) {
+            grossRevenue += amount;
+          } else if (tx.type === 'refund') {
+            totalRefunds += Math.abs(amount);
+          } else if (tx.type === 'admin_adjustment' && amount < 0) {
+            totalRefunds += Math.abs(amount);
+          }
+        }
 
         if (!cancelled) {
           setStats({
@@ -755,7 +824,9 @@ export function useAdminStats() {
             pendingJobs: pendingJobs || 0,
             inProgressJobs: inProgressJobs || 0,
             completedToday: completedToday || 0,
-            totalRevenue: (revenueData || []).reduce((sum, j) => sum + (j.credits_used || 0), 0),
+            grossRevenue,
+            totalRefunds,
+            totalRevenue: grossRevenue - totalRefunds,
             totalUsers: totalUsers || 0,
           });
           hasLoaded.current = true;
@@ -1115,6 +1186,26 @@ export function useNotifications() {
           fetchNotifications();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${profileId}`,
+        },
+        (payload) => {
+          const deletedId = (payload.old as { id?: string })?.id;
+          if (!deletedId) return;
+          setNotifications((prev) => {
+            const target = prev.find((n) => n.id === deletedId);
+            if (target && !target.is_read) {
+              setUnreadCount((c) => Math.max(0, c - 1));
+            }
+            return prev.filter((n) => n.id !== deletedId);
+          });
+        }
+      )
       .subscribe();
 
     return () => {
@@ -1151,7 +1242,52 @@ export function useNotifications() {
     setUnreadCount(0);
   };
 
-  return { notifications, unreadCount, loading, markAsRead, markAllAsRead, refetch: fetchNotifications };
+  const deleteNotification = async (notificationId: string) => {
+    // Optimistic update
+    let wasUnread = false;
+    setNotifications((prev) => {
+      const target = prev.find((n) => n.id === notificationId);
+      wasUnread = !!(target && !target.is_read);
+      return prev.filter((n) => n.id !== notificationId);
+    });
+    if (wasUnread) setUnreadCount((prev) => Math.max(0, prev - 1));
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Failed to delete notification:', error);
+      // Roll back on failure
+      fetchNotifications();
+    }
+  };
+
+  const clearAll = async () => {
+    if (!profileId) return;
+    setNotifications([]);
+    setUnreadCount(0);
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', profileId);
+    if (error) {
+      console.error('Failed to clear notifications:', error);
+      fetchNotifications();
+    }
+  };
+
+  return {
+    notifications,
+    unreadCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+    refetch: fetchNotifications,
+  };
 }
 
 // Helper: call the server-side notification API (uses service role → bypasses RLS)
