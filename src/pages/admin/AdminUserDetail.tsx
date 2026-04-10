@@ -14,11 +14,13 @@ import {
   Trash2,
   ArrowUpRight,
   Download,
+  Undo2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Badge, Spinner, Input, Avatar, statusLabels } from '@/components/ui';
-import { useUserDetail, downloadFile } from '@/hooks/useSupabase';
+import { Card, Button, Badge, Spinner, Input, Textarea, Avatar, statusLabels } from '@/components/ui';
+import { useUserDetail, downloadFile, adminRefundCredits } from '@/hooks/useSupabase';
+import type { Transaction } from '@/types/database';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -34,7 +36,7 @@ const transactionTypeLabels: Record<TransactionType, string> = {
 const transactionTypeBadge: Record<TransactionType, 'success' | 'error' | 'pending' | 'in_progress'> = {
   credit_purchase: 'success',
   job_payment: 'pending',
-  refund: 'in_progress',
+  refund: 'error',
   admin_adjustment: 'in_progress',
 };
 
@@ -53,6 +55,75 @@ export const AdminUserDetailPage: React.FC = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // Refund modal state
+  const [refundModal, setRefundModal] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundOriginalTx, setRefundOriginalTx] = useState<Transaction | null>(null);
+  const [refunding, setRefunding] = useState(false);
+
+  const openRefundModal = (originalTx?: Transaction) => {
+    if (originalTx) {
+      setRefundOriginalTx(originalTx);
+      setRefundAmount(Math.abs(Number(originalTx.amount)).toFixed(2));
+      setRefundReason('');
+    } else {
+      setRefundOriginalTx(null);
+      setRefundAmount('');
+      setRefundReason('');
+    }
+    setRefundModal(true);
+  };
+
+  const closeRefundModal = () => {
+    setRefundModal(false);
+    setRefundOriginalTx(null);
+    setRefundAmount('');
+    setRefundReason('');
+  };
+
+  const handleRefund = async () => {
+    if (!user) return;
+
+    const amount = parseFloat(refundAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    if (!refundReason.trim()) {
+      toast.error('A reason is required');
+      return;
+    }
+
+    setRefunding(true);
+    const { error } = await adminRefundCredits({
+      userId: user.id,
+      amount,
+      reason: refundReason.trim(),
+      originalTransactionId: refundOriginalTx?.id ?? null,
+      jobId: refundOriginalTx?.job_id ?? null,
+    });
+
+    if (error) {
+      toast.error(error.message || 'Failed to issue refund');
+    } else {
+      toast.success(`Refunded €${amount.toFixed(2)}`);
+      closeRefundModal();
+      refetch();
+    }
+    setRefunding(false);
+  };
+
+  // Set of credit_purchase transaction IDs that have already been refunded,
+  // detected by matching `(original tx <id>)` in refund descriptions.
+  const refundedTxIds = new Set<string>();
+  for (const tx of transactions) {
+    if (tx.type === 'refund' && tx.description) {
+      const match = tx.description.match(/original tx ([0-9a-f-]+)/i);
+      if (match) refundedTxIds.add(match[1]);
+    }
+  }
 
   const handleAddCredits = async () => {
     if (!user || !creditAmount || !creditDescription) return;
@@ -375,40 +446,63 @@ export const AdminUserDetailPage: React.FC = () => {
                       <th className="text-left px-4 py-3 text-sm font-semibold">Balance</th>
                       <th className="text-left px-4 py-3 text-sm font-semibold">Description</th>
                       <th className="text-left px-4 py-3 text-sm font-semibold">Date</th>
+                      <th className="text-right px-4 py-3 text-sm font-semibold"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {transactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                        <td className="px-4 py-3">
-                          <Badge variant={transactionTypeBadge[tx.type]}>
-                            {transactionTypeLabels[tx.type]}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`font-semibold text-sm ${
-                              tx.amount > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}
-                          >
-                            {tx.amount > 0 ? '+' : ''}€{tx.amount.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-zinc-500">
-                            €{tx.balance_before.toFixed(2)} → €{tx.balance_after.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-zinc-500">{tx.description || '-'}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-zinc-500">
-                            {format(new Date(tx.created_at), 'MMM d, yyyy HH:mm')}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {transactions.map((tx) => {
+                      const alreadyRefunded = refundedTxIds.has(tx.id);
+                      const canRefund =
+                        tx.type === 'credit_purchase' && tx.amount > 0 && !alreadyRefunded;
+                      return (
+                        <tr key={tx.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                          <td className="px-4 py-3">
+                            <Badge variant={transactionTypeBadge[tx.type]}>
+                              {transactionTypeLabels[tx.type]}
+                            </Badge>
+                            {alreadyRefunded && (
+                              <span className="ml-2 text-[10px] uppercase tracking-wide text-red-600 font-semibold">
+                                refunded
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`font-semibold text-sm ${
+                                tx.amount > 0 ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
+                              {tx.amount > 0 ? '+' : ''}€{tx.amount.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-zinc-500">
+                              €{tx.balance_before.toFixed(2)} → €{tx.balance_after.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-zinc-500">{tx.description || '-'}</span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm text-zinc-500">
+                              {format(new Date(tx.created_at), 'MMM d, yyyy HH:mm')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {canRefund && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openRefundModal(tx)}
+                              >
+                                <Undo2 size={12} />
+                                Refund
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -454,6 +548,14 @@ export const AdminUserDetailPage: React.FC = () => {
               >
                 <CreditCard size={16} />
                 Adjust Credits
+              </Button>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => openRefundModal()}
+              >
+                <Undo2 size={16} />
+                Issue Refund
               </Button>
               <Button
                 className="w-full"
@@ -528,6 +630,88 @@ export const AdminUserDetailPage: React.FC = () => {
                 isLoading={processing}
               >
                 {parseFloat(creditAmount || '0') >= 0 ? 'Add' : 'Remove'} €
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Refund Modal */}
+      {refundModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                <Undo2 className="w-5 h-5 text-red-600" />
+              </div>
+              <h2 className="text-xl font-semibold">Issue Refund</h2>
+            </div>
+
+            <p className="text-sm text-zinc-500 mb-4">
+              Refund credits to{' '}
+              <span className="font-medium text-zinc-900 dark:text-white">
+                {user.contact_name}
+              </span>
+              . This creates a proper refund transaction and reduces their balance.
+            </p>
+
+            {refundOriginalTx && (
+              <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <p className="text-[11px] uppercase tracking-wide text-zinc-500 font-semibold mb-1">
+                  Refunding original purchase
+                </p>
+                <p className="text-sm font-medium">
+                  €{Math.abs(Number(refundOriginalTx.amount)).toFixed(2)} &middot;{' '}
+                  {format(new Date(refundOriginalTx.created_at), 'MMM d, yyyy')}
+                </p>
+                {refundOriginalTx.description && (
+                  <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">
+                    {refundOriginalTx.description}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <Input
+                label="Amount (€)"
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="0.00"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+              <Textarea
+                label="Reason"
+                placeholder="e.g. Customer requested refund, job could not be completed, etc."
+                rows={3}
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+              />
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                This will remove €
+                {(parseFloat(refundAmount) || 0).toFixed(2)} from the client's balance
+                (current: €{Number(user.credit_balance || 0).toFixed(2)}) and record a refund
+                in the transaction history. It does <strong>not</strong> automatically refund
+                the original Stripe payment — issue that separately from your Stripe dashboard
+                if needed.
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <Button variant="ghost" className="flex-1" onClick={closeRefundModal}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleRefund}
+                disabled={!refundAmount || !refundReason.trim() || refunding}
+                isLoading={refunding}
+              >
+                <Undo2 size={14} />
+                Issue Refund
               </Button>
             </div>
           </Card>

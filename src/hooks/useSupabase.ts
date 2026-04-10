@@ -619,6 +619,24 @@ export function useAllUsers() {
   return { users, loading, addCredits };
 }
 
+// Admin: issue a refund (creates a `refund` transaction and reduces balance)
+export async function adminRefundCredits(params: {
+  userId: string;
+  amount: number;
+  reason: string;
+  jobId?: string | null;
+  originalTransactionId?: string | null;
+}): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('admin_refund_credits', {
+    p_user_id: params.userId,
+    p_amount: params.amount,
+    p_reason: params.reason,
+    p_job_id: params.jobId ?? null,
+    p_original_transaction_id: params.originalTransactionId ?? null,
+  });
+  return { error: error as Error | null };
+}
+
 export function useUserDetail(userId: string | undefined) {
   const [user, setUser] = useState<Profile | null>(null);
   const [jobs, setJobs] = useState<(Job & { services: JobService[] })[]>([]);
@@ -794,17 +812,18 @@ export function useAdminStats() {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'completed')
             .gte('completed_at', new Date().toISOString().split('T')[0]),
-          // Pull purchases, refunds and admin_adjustments — we compute net revenue from these
+          // Pull purchases and refunds — revenue = purchases − refunds.
+          // Admin adjustments are intentionally NOT subtracted here: they
+          // are used for ad-hoc balance corrections / promos, not refunds.
+          // Real refunds go through admin_refund_credits which creates a
+          // `refund`-type transaction.
           supabase
             .from('transactions')
             .select('type, amount')
-            .in('type', ['credit_purchase', 'refund', 'admin_adjustment']),
+            .in('type', ['credit_purchase', 'refund']),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'client'),
         ]);
 
-        // Compute gross revenue (purchases) and refunds separately so the
-        // admin can see both. Admin adjustments with a negative amount are
-        // treated as refunds (that's how admins currently revoke credits).
         let grossRevenue = 0;
         let totalRefunds = 0;
         for (const tx of revenueTxs || []) {
@@ -812,8 +831,6 @@ export function useAdminStats() {
           if (tx.type === 'credit_purchase' && amount > 0) {
             grossRevenue += amount;
           } else if (tx.type === 'refund') {
-            totalRefunds += Math.abs(amount);
-          } else if (tx.type === 'admin_adjustment' && amount < 0) {
             totalRefunds += Math.abs(amount);
           }
         }

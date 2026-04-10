@@ -53,22 +53,24 @@ export const AdminTransactionsPage: React.FC = () => {
     let purchases = 0;
     let refunds = 0;
     let jobPayments = 0;
+    let adjustments = 0;
     for (const tx of transactions) {
       const amount = Number(tx.amount) || 0;
       if (tx.type === 'credit_purchase' && amount > 0) {
         purchases += amount;
       } else if (tx.type === 'refund') {
         refunds += Math.abs(amount);
-      } else if (tx.type === 'admin_adjustment' && amount < 0) {
-        refunds += Math.abs(amount);
       } else if (tx.type === 'job_payment') {
         jobPayments += Math.abs(amount);
+      } else if (tx.type === 'admin_adjustment') {
+        adjustments += amount;
       }
     }
     return {
       purchases,
       refunds,
       jobPayments,
+      adjustments,
       net: purchases - refunds,
     };
   }, [transactions]);

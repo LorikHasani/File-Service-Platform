@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench } from 'lucide-react';
+import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench, Phone, ArrowUpRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
@@ -189,28 +189,75 @@ export const AdminJobDetailPage: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Client Info */}
           <Card>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                <User className="w-5 h-5" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                  <User className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-semibold">Client Information</h2>
               </div>
-              <h2 className="text-lg font-semibold">Client Information</h2>
+              {job.client?.id && (
+                <Link
+                  to={`/admin/users/${job.client.id}`}
+                  className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-700 hover:underline font-medium"
+                >
+                  View profile
+                  <ArrowUpRight size={14} />
+                </Link>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-zinc-500">Name</p>
-                <p className="font-medium">{job.client?.contact_name}</p>
+                {job.client?.id ? (
+                  <Link
+                    to={`/admin/users/${job.client.id}`}
+                    className="font-medium text-red-600 hover:underline"
+                  >
+                    {job.client.contact_name}
+                  </Link>
+                ) : (
+                  <p className="font-medium">{job.client?.contact_name}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-zinc-500">Email</p>
-                <p className="font-medium">{job.client?.email}</p>
+                {job.client?.email ? (
+                  <a
+                    href={`mailto:${job.client.email}`}
+                    className="font-medium hover:underline break-all"
+                  >
+                    {job.client.email}
+                  </a>
+                ) : (
+                  <p className="font-medium">-</p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-zinc-500">Phone</p>
+                {job.client?.phone ? (
+                  <a
+                    href={`tel:${job.client.phone}`}
+                    className="font-medium hover:underline inline-flex items-center gap-1"
+                  >
+                    <Phone size={12} />
+                    {job.client.phone}
+                  </a>
+                ) : (
+                  <p className="font-medium text-zinc-400">-</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-zinc-500">Company</p>
                 <p className="font-medium">{job.client?.company_name || '-'}</p>
               </div>
               <div>
+                <p className="text-sm text-zinc-500">Country</p>
+                <p className="font-medium">{job.client?.country || '-'}</p>
+              </div>
+              <div>
                 <p className="text-sm text-zinc-500">Balance</p>
-                <p className="font-medium">€{job.client?.credit_balance}</p>
+                <p className="font-medium">€{Number(job.client?.credit_balance || 0).toFixed(2)}</p>
               </div>
             </div>
           </Card>

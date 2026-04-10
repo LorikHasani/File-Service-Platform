@@ -669,6 +669,16 @@ export interface Database {
         };
         Returns: boolean;
       };
+      admin_refund_credits: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_reason: string;
+          p_job_id: string | null;
+          p_original_transaction_id: string | null;
+        };
+        Returns: string;
+      };
       request_job_revision: {
         Args: {
           p_job_id: string;
