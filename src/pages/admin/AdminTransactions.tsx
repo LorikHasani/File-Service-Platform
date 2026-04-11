@@ -222,17 +222,17 @@ export const AdminTransactionsPage: React.FC = () => {
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-zinc-500">No transactions found</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div>
+            <table className="w-full table-fixed">
               <thead className="bg-zinc-50 dark:bg-zinc-800/50">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-semibold">Date</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold">Client</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold">Type</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold">Amount</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold">Balance</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold w-[150px]">Date</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold w-[180px]">Client</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold w-[120px]">Type</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold w-[110px]">Amount</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold w-[170px]">Balance</th>
                   <th className="text-left px-4 py-3 text-sm font-semibold">Description</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold"></th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold w-[130px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -247,9 +247,19 @@ export const AdminTransactionsPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         {tx.client ? (
-                          <div>
-                            <p className="font-medium text-sm">{tx.client.contact_name}</p>
-                            <p className="text-xs text-zinc-500">{tx.client.email}</p>
+                          <div className="min-w-0">
+                            <p
+                              className="font-medium text-sm truncate"
+                              title={tx.client.contact_name}
+                            >
+                              {tx.client.contact_name}
+                            </p>
+                            <p
+                              className="text-xs text-zinc-500 truncate"
+                              title={tx.client.email}
+                            >
+                              {tx.client.email}
+                            </p>
                           </div>
                         ) : (
                           <span className="text-sm text-zinc-400">Unknown user</span>
@@ -276,7 +286,10 @@ export const AdminTransactionsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-zinc-500 line-clamp-1">
+                        <span
+                          className="block text-sm text-zinc-500 truncate"
+                          title={tx.description || ''}
+                        >
                           {tx.description || '-'}
                         </span>
                       </td>

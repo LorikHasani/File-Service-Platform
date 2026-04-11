@@ -5,10 +5,10 @@ import type { Transaction } from '@/types/database';
 // Company constants — update here to re-brand invoices across the app.
 // ---------------------------------------------------------------------------
 export const INVOICE_COMPANY = {
-  name: 'RONI Performance Software SHPK',
-  email: 'support@roniperformancesoftware.com',
-  phone: '+38348599500',
-  address: 'Vragoli, Fushekosove 12000, Kosovo',
+  name: 'ChipTuneFiles',
+  email: 'kikzaperformance@gmail.com',
+  phone: '+383 44 955 389',
+  address: 'Worldwide',
   logoUrl: '/logo.png',
 } as const;
 
@@ -121,6 +121,7 @@ export async function generateInvoicePDF(
   doc.text(INVOICE_COMPANY.name, pageWidth - marginRight, 20, { align: 'right' });
   doc.text(INVOICE_COMPANY.email, pageWidth - marginRight, 26, { align: 'right' });
   doc.text(`Tel: ${INVOICE_COMPANY.phone}`, pageWidth - marginRight, 32, { align: 'right' });
+  doc.text(`Location: ${INVOICE_COMPANY.address}`, pageWidth - marginRight, 38, { align: 'right' });
 
   // ── "Invoice" label strip ────────────────────────────────────────────────
   const labelY = 50;
