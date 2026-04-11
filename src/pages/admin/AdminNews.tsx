@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Megaphone, Plus, X, Pencil, Trash2, ImagePlus, Trash } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Input, Textarea, Badge, Spinner } from '@/components/ui';
+import { Card, Button, Input, Textarea, Badge, Spinner, Pagination, usePagination } from '@/components/ui';
 import {
   useAnnouncements,
   createAnnouncement,
@@ -177,6 +177,16 @@ export const AdminNewsPage: React.FC = () => {
 
   const activeCount = announcements.filter((a) => a.is_active).length;
 
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageAnnouncements,
+  } = usePagination(announcements, 10);
+
   if (loading) {
     return (
       <Layout title="News & Announcements">
@@ -214,7 +224,7 @@ export const AdminNewsPage: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {announcements.map((a) => (
+          {pageAnnouncements.map((a) => (
             <Card key={a.id} className={!a.is_active ? 'opacity-60' : ''}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex gap-4 flex-1 min-w-0">
@@ -270,6 +280,18 @@ export const AdminNewsPage: React.FC = () => {
               </div>
             </Card>
           ))}
+          {totalPages > 1 && (
+            <Card padding="none">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </Card>
+          )}
         </div>
       )}
 

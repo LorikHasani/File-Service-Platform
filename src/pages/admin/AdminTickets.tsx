@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MessageSquare } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Input, Badge, Spinner, Avatar } from '@/components/ui';
+import { Card, Input, Badge, Spinner, Avatar, Pagination, usePagination } from '@/components/ui';
 import { useTickets } from '@/hooks/useSupabase';
 import { formatDistanceToNow } from 'date-fns';
 import type { TicketWithClient } from '@/types/database';
@@ -35,6 +35,16 @@ export const AdminTicketsPage: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageTickets,
+  } = usePagination(filteredTickets, 25);
 
   const openCount = typedTickets.filter((t) => t.status === 'open').length;
   const inProgressCount = typedTickets.filter((t) => t.status === 'in_progress').length;
@@ -117,7 +127,7 @@ export const AdminTicketsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((ticket) => (
+                {pageTickets.map((ticket) => (
                   <tr
                     key={ticket.id}
                     onClick={() => navigate(`/admin/tickets/${ticket.id}`)}
@@ -151,6 +161,16 @@ export const AdminTicketsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          )}
         </Card>
       )}
     </Layout>

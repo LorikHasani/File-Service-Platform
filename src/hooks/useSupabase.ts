@@ -722,7 +722,7 @@ export function useUserDetail(userId: string | undefined) {
 
 // Transaction joined with the client profile (for the admin transactions page)
 export type TransactionWithClient = Transaction & {
-  client: Pick<Profile, 'id' | 'contact_name' | 'email' | 'company_name'> | null;
+  client: Pick<Profile, 'id' | 'contact_name' | 'email' | 'company_name' | 'country'> | null;
 };
 
 export function useAllTransactions() {
@@ -743,7 +743,7 @@ export function useAllTransactions() {
       try {
         const { data, error } = await supabase
           .from('transactions')
-          .select('*, client:profiles!user_id(id, contact_name, email, company_name)')
+          .select('*, client:profiles!user_id(id, contact_name, email, company_name, country)')
           .order('created_at', { ascending: false })
           .limit(500);
 

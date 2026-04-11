@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowRight, FileText, Clock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Input, Badge, EmptyState, Spinner, statusLabels } from '@/components/ui';
+import { Card, Button, Input, Badge, EmptyState, Spinner, statusLabels, Pagination, usePagination } from '@/components/ui';
 import { useJobs } from '@/hooks/useSupabase';
 import { clsx } from 'clsx';
 import type { JobStatus } from '@/types/database';
@@ -28,6 +28,16 @@ export const JobsListPage: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageJobs,
+  } = usePagination(filteredJobs, 10);
 
   if (loading) {
     return (
@@ -81,7 +91,7 @@ export const JobsListPage: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredJobs.map((job) => (
+          {pageJobs.map((job) => (
             <Link key={job.id} to={`/jobs/${job.id}`}>
               <Card hover padding="none" className="overflow-hidden">
                 <div className="flex flex-col lg:flex-row lg:items-center">
@@ -123,6 +133,18 @@ export const JobsListPage: React.FC = () => {
               </Card>
             </Link>
           ))}
+          {totalPages > 1 && (
+            <Card padding="none">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </Card>
+          )}
         </div>
       )}
     </Layout>

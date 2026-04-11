@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Plus, X } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Badge, Spinner, Input, Textarea } from '@/components/ui';
+import { Card, Button, Badge, Spinner, Input, Textarea, Pagination, usePagination } from '@/components/ui';
 import { useTickets, createTicket, notifyAdmins } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { formatDistanceToNow } from 'date-fns';
@@ -27,6 +27,16 @@ export const TicketsPage: React.FC = () => {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [creating, setCreating] = useState(false);
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageTickets,
+  } = usePagination(tickets, 10);
 
   const handleCreate = async () => {
     if (!subject.trim() || !message.trim()) {
@@ -87,7 +97,7 @@ export const TicketsPage: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {tickets.map((ticket) => (
+          {pageTickets.map((ticket) => (
             <Link key={ticket.id} to={`/tickets/${ticket.id}`}>
               <Card className="hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer">
                 <div className="flex items-center justify-between">
@@ -107,6 +117,18 @@ export const TicketsPage: React.FC = () => {
               </Card>
             </Link>
           ))}
+          {totalPages > 1 && (
+            <Card padding="none">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </Card>
+          )}
         </div>
       )}
 

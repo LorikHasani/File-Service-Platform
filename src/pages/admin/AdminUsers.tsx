@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, CreditCard, Calendar } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Input, Badge, Spinner, Avatar } from '@/components/ui';
+import { Card, Button, Input, Badge, Spinner, Avatar, Pagination, usePagination } from '@/components/ui';
 import { useAllUsers } from '@/hooks/useSupabase';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -23,6 +23,16 @@ export const AdminUsersPage: React.FC = () => {
       user.company_name?.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
   });
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageUsers,
+  } = usePagination(filteredUsers, 25);
 
   const handleAddCredits = async () => {
     if (!creditModal || !creditAmount || !creditDescription) return;
@@ -110,7 +120,7 @@ export const AdminUsersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {filteredUsers.map((user) => (
+              {pageUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => navigate(`/admin/users/${user.id}`)}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -157,6 +167,16 @@ export const AdminUsersPage: React.FC = () => {
           <div className="text-center py-12 text-zinc-500">
             No users found
           </div>
+        )}
+        {totalPages > 1 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPageChange={setPage}
+          />
         )}
       </Card>
 

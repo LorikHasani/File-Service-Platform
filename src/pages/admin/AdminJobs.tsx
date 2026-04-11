@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowRight, Clock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Input, Spinner } from '@/components/ui';
+import { Card, Button, Input, Spinner, Pagination, usePagination } from '@/components/ui';
 import { useAllJobs, updateJobStatus } from '@/hooks/useSupabase';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
@@ -43,6 +43,16 @@ export const AdminJobsPage: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageJobs,
+  } = usePagination(filteredJobs, 25);
 
   const handleStatusChange = async (jobId: string, newStatus: JobStatus) => {
     setUpdatingJob(jobId);
@@ -131,7 +141,7 @@ export const AdminJobsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {filteredJobs.map((job) => (
+              {pageJobs.map((job) => (
                 <tr key={job.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                   <td className="px-4 py-3">
                     <Link to={`/admin/jobs/${job.id}`} className="font-mono text-sm font-semibold text-red-600 hover:underline">
@@ -193,6 +203,16 @@ export const AdminJobsPage: React.FC = () => {
           <div className="text-center py-12 text-zinc-500">
             No jobs found
           </div>
+        )}
+        {totalPages > 1 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPageChange={setPage}
+          />
         )}
       </Card>
     </Layout>

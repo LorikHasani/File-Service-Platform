@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CreditCard, Zap, ArrowUpRight, ArrowDownRight, Clock, Sparkles, Shield, Edit3 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Badge, Spinner, Input } from '@/components/ui';
+import { Card, Button, Badge, Spinner, Input, Pagination, usePagination } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useCreditPackages, useTransactions } from '@/hooks/useSupabase';
 import { supabase } from '@/lib/supabase';
@@ -128,6 +128,16 @@ export const CreditsPage: React.FC = () => {
   const customValid = customCreditsNum >= MIN_CUSTOM && customCreditsNum <= MAX_CUSTOM;
 
   const popularIndex = packages.length >= 3 ? 2 : -1;
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageTransactions,
+  } = usePagination(transactions, 10);
 
   if (packagesLoading) {
     return (
@@ -326,7 +336,7 @@ export const CreditsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((tx) => {
+                  {pageTransactions.map((tx) => {
                     const isCredit = tx.type === 'credit_purchase' || tx.type === 'refund' || tx.type === 'admin_adjustment';
                     const typeLabels: Record<string, string> = {
                       credit_purchase: 'Purchase',
@@ -369,6 +379,16 @@ export const CreditsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            )}
           </Card>
         )}
       </div>

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
-import { Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { JobStatus } from '@/types/database';
 
 // ============================================================================
@@ -308,4 +308,150 @@ export const statusLabels: Record<JobStatus, string> = {
   completed: 'Completed',
   revision_requested: 'Revision Requested',
   rejected: 'Rejected',
+};
+
+// ============================================================================
+// PAGINATION
+// ============================================================================
+
+/**
+ * Hook to paginate a client-side array.
+ * - `items`: the full (already filtered/sorted) array to paginate
+ * - `pageSize`: number of rows per page (defaults to 10)
+ *
+ * Returns the current page slice plus controls. Automatically resets to
+ * page 1 when the length of `items` changes (e.g. when a filter narrows
+ * the list) so the user never ends up on an empty page.
+ */
+export function usePagination<T>(items: T[], pageSize = 10) {
+  const [page, setPage] = useState(1);
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  // Reset to page 1 whenever the dataset size changes
+  useEffect(() => {
+    setPage(1);
+  }, [totalItems]);
+
+  // Clamp the page if it ever falls outside the valid range
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paged = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }, [items, page, pageSize]);
+
+  return {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    pagedItems: paged,
+    rangeStart: totalItems === 0 ? 0 : (page - 1) * pageSize + 1,
+    rangeEnd: Math.min(page * pageSize, totalItems),
+  };
+}
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  rangeStart: number;
+  rangeEnd: number;
+  onPageChange: (page: number) => void;
+  className?: string;
+}
+
+/**
+ * Compact pagination footer. Renders nothing when there's only one page.
+ * Designed to sit inside a `<Card padding="none">` below a table.
+ */
+export const Pagination: React.FC<PaginationProps> = ({
+  page,
+  totalPages,
+  totalItems,
+  rangeStart,
+  rangeEnd,
+  onPageChange,
+  className,
+}) => {
+  if (totalPages <= 1) return null;
+
+  // Build a compact page list with ellipses
+  const pages: (number | 'ellipsis-l' | 'ellipsis-r')[] = [];
+  const push = (v: number | 'ellipsis-l' | 'ellipsis-r') => pages.push(v);
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) push(i);
+  } else {
+    push(1);
+    if (page > 3) push('ellipsis-l');
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+    for (let i = start; i <= end; i++) push(i);
+    if (page < totalPages - 2) push('ellipsis-r');
+    push(totalPages);
+  }
+
+  const baseBtn =
+    'inline-flex items-center justify-center min-w-[32px] h-8 px-2 text-sm rounded-md border transition-colors';
+  const inactive =
+    'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800';
+  const active = 'bg-red-600 border-red-600 text-white hover:bg-red-700';
+  const disabled = 'opacity-40 cursor-not-allowed';
+
+  return (
+    <div
+      className={clsx(
+        'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3',
+        className
+      )}
+    >
+      <p className="text-xs text-zinc-500">
+        Showing <span className="font-semibold text-zinc-700 dark:text-zinc-300">{rangeStart}</span>
+        {' – '}
+        <span className="font-semibold text-zinc-700 dark:text-zinc-300">{rangeEnd}</span>
+        {' of '}
+        <span className="font-semibold text-zinc-700 dark:text-zinc-300">{totalItems}</span>
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className={clsx(baseBtn, inactive, page === 1 && disabled)}
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        {pages.map((p, idx) =>
+          p === 'ellipsis-l' || p === 'ellipsis-r' ? (
+            <span key={`${p}-${idx}`} className="px-1 text-zinc-400 text-sm">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPageChange(p)}
+              className={clsx(baseBtn, p === page ? active : inactive)}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+          className={clsx(baseBtn, inactive, page === totalPages && disabled)}
+          aria-label="Next page"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
 };

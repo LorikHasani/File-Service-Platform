@@ -15,10 +15,12 @@ import {
   ArrowUpRight,
   Download,
   Undo2,
+  Receipt,
 } from 'lucide-react';
+import { generateInvoicePDF } from '@/lib/invoice';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
-import { Card, Button, Badge, Spinner, Input, Textarea, Avatar, statusLabels } from '@/components/ui';
+import { Card, Button, Badge, Spinner, Input, Textarea, Avatar, statusLabels, Pagination, usePagination } from '@/components/ui';
 import { useUserDetail, downloadFile, adminRefundCredits } from '@/hooks/useSupabase';
 import type { Transaction } from '@/types/database';
 import { supabase } from '@/lib/supabase';
@@ -45,6 +47,11 @@ export const AdminUserDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, jobs, transactions, files, loading, refetch } = useUserDetail(id);
 
+  // Pagination for jobs, files, and transactions tables
+  const jobsPagination = usePagination(jobs, 10);
+  const filesPagination = usePagination(files, 10);
+  const transactionsPagination = usePagination(transactions, 10);
+
   // Credit modal state
   const [creditModal, setCreditModal] = useState(false);
   const [creditAmount, setCreditAmount] = useState('');
@@ -66,6 +73,7 @@ export const AdminUserDetailPage: React.FC = () => {
   const openRefundModal = (originalTx?: Transaction) => {
     if (originalTx) {
       setRefundOriginalTx(originalTx);
+      // Suggest the full amount that was charged for the original job payment
       setRefundAmount(Math.abs(Number(originalTx.amount)).toFixed(2));
       setRefundReason('');
     } else {
@@ -191,6 +199,25 @@ export const AdminUserDetailPage: React.FC = () => {
       toast.success('Download started');
     } catch {
       toast.error('Download failed');
+    }
+  };
+
+  const [invoiceDownloadingId, setInvoiceDownloadingId] = useState<string | null>(null);
+  const handleDownloadInvoice = async (tx: Transaction) => {
+    if (!user) return;
+    setInvoiceDownloadingId(tx.id);
+    try {
+      await generateInvoicePDF(tx, {
+        contact_name: user.contact_name,
+        company_name: user.company_name,
+        country: user.country,
+        email: user.email,
+      });
+    } catch (err) {
+      console.error('Invoice PDF generation failed', err);
+      toast.error('Failed to generate invoice PDF');
+    } finally {
+      setInvoiceDownloadingId(null);
     }
   };
 
@@ -320,7 +347,7 @@ export const AdminUserDetailPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {jobs.map((job) => (
+                    {jobsPagination.pagedItems.map((job) => (
                       <tr key={job.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-sm">{job.reference_number}</p>
@@ -367,6 +394,16 @@ export const AdminUserDetailPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                {jobsPagination.totalPages > 1 && (
+                  <Pagination
+                    page={jobsPagination.page}
+                    totalPages={jobsPagination.totalPages}
+                    totalItems={jobsPagination.totalItems}
+                    rangeStart={jobsPagination.rangeStart}
+                    rangeEnd={jobsPagination.rangeEnd}
+                    onPageChange={jobsPagination.setPage}
+                  />
+                )}
               </div>
             )}
           </Card>
@@ -384,7 +421,7 @@ export const AdminUserDetailPage: React.FC = () => {
               <div className="text-center py-8 text-zinc-500">No files uploaded</div>
             ) : (
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                {files.map((file) => (
+                {filesPagination.pagedItems.map((file) => (
                   <div key={file.id} className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
@@ -421,6 +458,16 @@ export const AdminUserDetailPage: React.FC = () => {
                     </Button>
                   </div>
                 ))}
+                {filesPagination.totalPages > 1 && (
+                  <Pagination
+                    page={filesPagination.page}
+                    totalPages={filesPagination.totalPages}
+                    totalItems={filesPagination.totalItems}
+                    rangeStart={filesPagination.rangeStart}
+                    rangeEnd={filesPagination.rangeEnd}
+                    onPageChange={filesPagination.setPage}
+                  />
+                )}
               </div>
             )}
           </Card>
@@ -450,10 +497,13 @@ export const AdminUserDetailPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {transactions.map((tx) => {
+                    {transactionsPagination.pagedItems.map((tx) => {
                       const alreadyRefunded = refundedTxIds.has(tx.id);
+                      // A refund returns credits to the client by reversing a
+                      // job payment, so the refund button only makes sense on
+                      // job_payment rows that haven't already been refunded.
                       const canRefund =
-                        tx.type === 'credit_purchase' && tx.amount > 0 && !alreadyRefunded;
+                        tx.type === 'job_payment' && Number(tx.amount) < 0 && !alreadyRefunded;
                       return (
                         <tr key={tx.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                           <td className="px-4 py-3">
@@ -489,22 +539,46 @@ export const AdminUserDetailPage: React.FC = () => {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            {canRefund && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openRefundModal(tx)}
-                              >
-                                <Undo2 size={12} />
-                                Refund
-                              </Button>
-                            )}
+                            <div className="flex items-center justify-end gap-2">
+                              {tx.type === 'credit_purchase' && Number(tx.amount) > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDownloadInvoice(tx)}
+                                  disabled={invoiceDownloadingId === tx.id}
+                                  isLoading={invoiceDownloadingId === tx.id}
+                                >
+                                  <Receipt size={12} />
+                                  PDF
+                                </Button>
+                              )}
+                              {canRefund && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openRefundModal(tx)}
+                                >
+                                  <Undo2 size={12} />
+                                  Refund
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
+                {transactionsPagination.totalPages > 1 && (
+                  <Pagination
+                    page={transactionsPagination.page}
+                    totalPages={transactionsPagination.totalPages}
+                    totalItems={transactionsPagination.totalItems}
+                    rangeStart={transactionsPagination.rangeStart}
+                    rangeEnd={transactionsPagination.rangeEnd}
+                    onPageChange={transactionsPagination.setPage}
+                  />
+                )}
               </div>
             )}
           </Card>
@@ -652,13 +726,14 @@ export const AdminUserDetailPage: React.FC = () => {
               <span className="font-medium text-zinc-900 dark:text-white">
                 {user.contact_name}
               </span>
-              . This creates a proper refund transaction and reduces their balance.
+              . This creates a refund transaction and adds the credits back to
+              their balance.
             </p>
 
             {refundOriginalTx && (
               <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
                 <p className="text-[11px] uppercase tracking-wide text-zinc-500 font-semibold mb-1">
-                  Refunding original purchase
+                  Refunding original job payment
                 </p>
                 <p className="text-sm font-medium">
                   €{Math.abs(Number(refundOriginalTx.amount)).toFixed(2)} &middot;{' '}
@@ -689,13 +764,12 @@ export const AdminUserDetailPage: React.FC = () => {
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
               />
-              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
-                This will remove €
-                {(parseFloat(refundAmount) || 0).toFixed(2)} from the client's balance
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-800 dark:text-emerald-300">
+                This will add €
+                {(parseFloat(refundAmount) || 0).toFixed(2)} back to the client's balance
                 (current: €{Number(user.credit_balance || 0).toFixed(2)}) and record a refund
-                in the transaction history. It does <strong>not</strong> automatically refund
-                the original Stripe payment — issue that separately from your Stripe dashboard
-                if needed.
+                in the transaction history. Use this when a tuning job can't be completed
+                and the client's credits need to be returned.
               </div>
             </div>
 

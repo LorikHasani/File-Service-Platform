@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, CreditCard, TrendingUp, TrendingDown, Search } from 'lucide-react';
+import { ArrowUpRight, CreditCard, TrendingUp, TrendingDown, Search, Receipt } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Badge, Spinner, Input } from '@/components/ui';
+import { Card, Button, Badge, Spinner, Input, Pagination, usePagination } from '@/components/ui';
 import { useAllTransactions } from '@/hooks/useSupabase';
 import { format } from 'date-fns';
 import type { TransactionType } from '@/types/database';
+import { generateInvoicePDF } from '@/lib/invoice';
+import toast from 'react-hot-toast';
 
 const transactionTypeLabels: Record<TransactionType, string> = {
   credit_purchase: 'Purchase',
@@ -36,6 +38,28 @@ export const AdminTransactionsPage: React.FC = () => {
   const { transactions, loading } = useAllTransactions();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
+  const [invoiceDownloadingId, setInvoiceDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async (tx: (typeof transactions)[number]) => {
+    if (!tx.client) {
+      toast.error('No client data available for this invoice');
+      return;
+    }
+    setInvoiceDownloadingId(tx.id);
+    try {
+      await generateInvoicePDF(tx, {
+        contact_name: tx.client.contact_name,
+        company_name: tx.client.company_name,
+        country: tx.client.country,
+        email: tx.client.email,
+      });
+    } catch (err) {
+      console.error('Invoice PDF generation failed', err);
+      toast.error('Failed to generate invoice PDF');
+    } finally {
+      setInvoiceDownloadingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -59,6 +83,7 @@ export const AdminTransactionsPage: React.FC = () => {
       if (tx.type === 'credit_purchase' && amount > 0) {
         purchases += amount;
       } else if (tx.type === 'refund') {
+        // Refunds reverse job payments (credits returned to the client)
         refunds += Math.abs(amount);
       } else if (tx.type === 'job_payment') {
         jobPayments += Math.abs(amount);
@@ -66,14 +91,27 @@ export const AdminTransactionsPage: React.FC = () => {
         adjustments += amount;
       }
     }
+    // Net job payments = credits actually spent on jobs after refunds
+    const netJobPayments = jobPayments - refunds;
     return {
       purchases,
       refunds,
-      jobPayments,
+      jobPayments: netJobPayments,
       adjustments,
-      net: purchases - refunds,
+      // Refunds return credits, not actual money, so real revenue is unchanged
+      net: purchases,
     };
   }, [transactions]);
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    pagedItems: pageTransactions,
+  } = usePagination(filtered, 25);
 
   if (loading) {
     return (
@@ -124,7 +162,7 @@ export const AdminTransactionsPage: React.FC = () => {
               <p className="text-2xl font-bold mt-1 text-green-600">
                 €{totals.net.toFixed(2)}
               </p>
-              <p className="text-xs text-zinc-500">purchases − refunds</p>
+              <p className="text-xs text-zinc-500">total credit purchases</p>
             </div>
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <CreditCard className="w-5 h-5 text-blue-600" />
@@ -198,7 +236,7 @@ export const AdminTransactionsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                {filtered.map((tx) => {
+                {pageTransactions.map((tx) => {
                   const amount = Number(tx.amount) || 0;
                   return (
                     <tr key={tx.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
@@ -243,15 +281,29 @@ export const AdminTransactionsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {tx.client && (
-                          <Link
-                            to={`/admin/users/${tx.client.id}`}
-                            className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline"
-                          >
-                            View user
-                            <ArrowUpRight size={12} />
-                          </Link>
-                        )}
+                        <div className="flex items-center justify-end gap-3">
+                          {tx.type === 'credit_purchase' && amount > 0 && tx.client && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownloadInvoice(tx)}
+                              disabled={invoiceDownloadingId === tx.id}
+                              isLoading={invoiceDownloadingId === tx.id}
+                            >
+                              <Receipt size={12} />
+                              PDF
+                            </Button>
+                          )}
+                          {tx.client && (
+                            <Link
+                              to={`/admin/users/${tx.client.id}`}
+                              className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline"
+                            >
+                              View user
+                              <ArrowUpRight size={12} />
+                            </Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -259,6 +311,16 @@ export const AdminTransactionsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {totalPages > 1 && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPageChange={setPage}
+          />
         )}
       </Card>
     </Layout>

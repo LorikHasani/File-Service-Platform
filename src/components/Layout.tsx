@@ -23,6 +23,7 @@ const clientNavItems: NavItem[] = [
   { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
   { label: 'Prices', href: '/prices', icon: <DollarSign size={20} /> },
   { label: 'Balance', href: '/credits', icon: <CreditCard size={20} /> },
+  { label: 'Invoices', href: '/invoices', icon: <Receipt size={20} /> },
   { label: 'Profile', href: '/profile', icon: <User size={20} /> },
   { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={20} /> },
 ];
