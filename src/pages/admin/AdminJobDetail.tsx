@@ -5,7 +5,7 @@ import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
-import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, createNotification } from '@/hooks/useSupabase';
+import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, createNotification, logAdminAction } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { sendNotification } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
@@ -48,28 +48,41 @@ export const AdminJobDetailPage: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [revisionNote, setRevisionNote] = useState('');
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: async (files) => {
       if (files.length === 0 || !id) return;
       setUploading(true);
-      const { error } = await uploadFile(id, files[0]!, 'modified');
+      const note = revisionNote.trim();
+      const { error, version } = await uploadFile(id, files[0]!, 'modified', note || null);
       if (error) {
         toast.error('Failed to upload file');
       } else {
-        toast.success('Modified file uploaded!');
+        const isRevision = (version ?? 1) > 1;
+        toast.success(isRevision ? `Revision v${version} uploaded!` : 'Modified file uploaded!');
         // Send email notification to client
         sendNotification('file_delivered', id);
         // In-app notification
         if (job?.client_id) {
           createNotification(
             job.client_id,
-            'File Ready',
-            `Your modified file for ${job.reference_number} is ready for download.`,
+            isRevision ? `Revision v${version} Ready` : 'File Ready',
+            isRevision
+              ? `A new revision (v${version}) of your file for ${job.reference_number} is ready.`
+              : `Your modified file for ${job.reference_number} is ready for download.`,
             'job',
             id
           );
         }
+        // Audit log
+        logAdminAction(
+          isRevision ? 'upload_revision' : 'upload_modified_file',
+          'job',
+          id,
+          { version, original_name: files[0]!.name, revision_note: note || null }
+        );
+        setRevisionNote('');
       }
       setUploading(false);
     },
@@ -81,11 +94,17 @@ export const AdminJobDetailPage: React.FC = () => {
   const handleStatusChange = async (newStatus: JobStatus) => {
     if (!id) return;
     setUpdatingStatus(true);
+    const prevStatus = job?.status;
     const { error } = await updateJobStatus(id, newStatus, adminNotes || undefined);
     if (error) {
       toast.error('Failed to update status');
     } else {
       toast.success('Status updated!');
+      logAdminAction('update_job_status', 'job', id, {
+        from: prevStatus,
+        to: newStatus,
+        admin_notes: adminNotes || null,
+      });
       if (newStatus === 'completed') {
         toast.success('Job marked as completed!');
       }
@@ -160,8 +179,11 @@ export const AdminJobDetailPage: React.FC = () => {
     );
   }
 
-  const originalFile = job.files?.find((f) => f.file_type === 'original');
-  const modifiedFile = job.files?.find((f) => f.file_type === 'modified');
+  const allFiles = (job.files || []).slice().sort((a, b) => (b.version ?? 1) - (a.version ?? 1));
+  const originalFiles = allFiles.filter((f) => f.file_type === 'original');
+  const modifiedFiles = allFiles.filter((f) => f.file_type === 'modified');
+  const latestOriginal = originalFiles[0];
+  const latestModified = modifiedFiles[0];
 
   return (
     <Layout>
@@ -459,47 +481,120 @@ export const AdminJobDetailPage: React.FC = () => {
               <FileText size={20} />
               <h2 className="text-lg font-semibold">Files</h2>
             </div>
-            
-            {/* Original File (from client) */}
-            <div className="mb-4">
-              <p className="text-sm font-medium text-zinc-500 mb-2">Original File (from client)</p>
-              {originalFile ? (
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{originalFile.original_name}</p>
-                      <p className="text-xs text-zinc-500">{(originalFile.file_size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                    <Button size="sm" onClick={() => handleDownload(originalFile.storage_path, originalFile.original_name)}>
-                      <Download size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
+
+            {/* Original uploads */}
+            <div className="mb-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Original {originalFiles.length > 1 ? `(${originalFiles.length} versions)` : '(from client)'}
+              </p>
+              {originalFiles.length === 0 ? (
                 <p className="text-sm text-zinc-500">No file uploaded by client</p>
+              ) : (
+                <div className="space-y-2">
+                  {originalFiles.map((f) => (
+                    <div
+                      key={f.id}
+                      className={clsx(
+                        'p-3 rounded-lg',
+                        f.id === latestOriginal?.id
+                          ? 'bg-zinc-100 dark:bg-zinc-800'
+                          : 'bg-zinc-50 dark:bg-zinc-800/40 opacity-80'
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700">
+                              v{f.version ?? 1}
+                            </span>
+                            <p className="font-medium text-sm truncate">{f.original_name}</p>
+                          </div>
+                          <p className="text-xs text-zinc-500 mt-0.5">
+                            {(f.file_size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <Button size="sm" onClick={() => handleDownload(f.storage_path, f.original_name)}>
+                          <Download size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
-            {/* Modified File (upload) */}
+            {/* Modified / revision history */}
             <div>
-              <p className="text-sm font-medium text-zinc-500 mb-2">Modified File (tuned)</p>
-              {modifiedFile ? (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm text-green-700 dark:text-green-400 truncate">{modifiedFile.original_name}</p>
-                      <p className="text-xs text-green-600">{(modifiedFile.file_size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" onClick={() => handleDownload(modifiedFile.storage_path, modifiedFile.original_name)}>
-                        <Download size={16} />
-                      </Button>
-                      <Check size={16} className="text-green-600" />
-                    </div>
-                  </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Modified {modifiedFiles.length > 1 ? `(${modifiedFiles.length} versions)` : '(tuned)'}
+              </p>
+              {modifiedFiles.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {modifiedFiles.map((f) => {
+                    const isLatest = f.id === latestModified?.id;
+                    return (
+                      <div
+                        key={f.id}
+                        className={clsx(
+                          'p-3 rounded-lg border',
+                          isLatest
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                            : 'bg-zinc-50 dark:bg-zinc-800/40 border-transparent opacity-85'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={clsx(
+                                  'text-xs font-semibold px-1.5 py-0.5 rounded',
+                                  isLatest
+                                    ? 'bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100'
+                                    : 'bg-zinc-200 dark:bg-zinc-700'
+                                )}
+                              >
+                                v{f.version ?? 1}
+                              </span>
+                              {isLatest && (
+                                <span className="text-[10px] uppercase tracking-wider font-semibold text-green-700 dark:text-green-400">
+                                  Latest
+                                </span>
+                              )}
+                              <Check size={14} className="text-green-600" />
+                            </div>
+                            <p className="font-medium text-sm truncate mt-1">{f.original_name}</p>
+                            <p className="text-xs text-zinc-500">{(f.file_size / 1024 / 1024).toFixed(2)} MB</p>
+                            {f.revision_note && (
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400 italic mt-1">
+                                &ldquo;{f.revision_note}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={isLatest ? 'primary' : 'ghost'}
+                            onClick={() => handleDownload(f.storage_path, f.original_name)}
+                          >
+                            <Download size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : null}
-              
+              )}
+
+              {/* Optional revision note for the next upload */}
+              {latestModified && (
+                <Textarea
+                  placeholder="Revision note (optional) — shown to the client with the next version"
+                  value={revisionNote}
+                  onChange={(e) => setRevisionNote(e.target.value)}
+                  rows={2}
+                  className="mb-3"
+                />
+              )}
+
               <div
                 {...getRootProps()}
                 className={clsx(
@@ -513,7 +608,9 @@ export const AdminJobDetailPage: React.FC = () => {
                 ) : (
                   <>
                     <Upload className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium">{modifiedFile ? 'Replace' : 'Upload'} modified file</p>
+                    <p className="text-sm font-medium">
+                      {latestModified ? `Upload revision v${(latestModified.version ?? 1) + 1}` : 'Upload modified file'}
+                    </p>
                     <p className="text-xs text-zinc-500">Drop or click</p>
                   </>
                 )}
@@ -533,15 +630,15 @@ export const AdminJobDetailPage: React.FC = () => {
               >
                 Start Working
               </Button>
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={() => handleStatusChange('completed')}
-                disabled={job.status === 'completed' || !modifiedFile}
+                disabled={job.status === 'completed' || !latestModified}
               >
                 Mark Complete
               </Button>
             </div>
-            {!modifiedFile && job.status !== 'completed' && (
+            {!latestModified && job.status !== 'completed' && (
               <p className="text-xs text-zinc-500 mt-2">Upload modified file to mark as complete</p>
             )}
           </Card>

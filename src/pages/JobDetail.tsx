@@ -1,22 +1,96 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, MessageSquare, Send, FileText, Clock, Car } from 'lucide-react';
+import { ArrowLeft, Download, MessageSquare, Send, FileText, Clock, Car, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, statusLabels } from '@/components/ui';
-import { useJob, useJobMessages, downloadFile, requestRevision, notifyAdmins } from '@/hooks/useSupabase';
+import {
+  useJob,
+  useJobMessages,
+  downloadFile,
+  requestRevision,
+  notifyAdmins,
+  useJobRating,
+  submitJobRating,
+} from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
+import { clsx } from 'clsx';
+
+// Inline star-picker used for submitting a new rating
+const StarPicker: React.FC<{ value: number; onChange: (v: number) => void }> = ({ value, onChange }) => {
+  const [hover, setHover] = useState(0);
+  const active = hover || value;
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onMouseEnter={() => setHover(n)}
+          onMouseLeave={() => setHover(0)}
+          onClick={() => onChange(n)}
+          className="p-1 transition-transform hover:scale-110"
+          aria-label={`${n} star${n > 1 ? 's' : ''}`}
+        >
+          <Star
+            size={28}
+            className={clsx(
+              'transition-colors',
+              n <= active ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300 dark:text-zinc-600'
+            )}
+          />
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// Read-only star row for a submitted rating
+const StarRow: React.FC<{ value: number; size?: number }> = ({ value, size = 16 }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((n) => (
+      <Star
+        key={n}
+        size={size}
+        className={n <= value ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300 dark:text-zinc-600'}
+      />
+    ))}
+  </div>
+);
 
 export const JobDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const profile = useAuthStore((s) => s.profile);
   const { job, loading } = useJob(id);
   const { messages, sendMessage } = useJobMessages(id);
+  const { rating: existingRating, refetch: refetchRating } = useJobRating(id);
   const [newMessage, setNewMessage] = useState('');
   const [revisionReason, setRevisionReason] = useState('');
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [sending, setSending] = useState(false);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
+
+  const handleSubmitRating = async () => {
+    if (!id || ratingValue < 1) return;
+    setSubmittingRating(true);
+    const { error } = await submitJobRating({
+      jobId: id,
+      rating: ratingValue,
+      comment: ratingComment.trim() || undefined,
+    });
+    if (error) {
+      toast.error(error.message || 'Failed to submit rating');
+    } else {
+      toast.success('Thanks for your feedback!');
+      setRatingValue(0);
+      setRatingComment('');
+      await refetchRating();
+    }
+    setSubmittingRating(false);
+  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -90,8 +164,12 @@ export const JobDetailPage: React.FC = () => {
     );
   }
 
-  const originalFile = job.files?.find((f) => f.file_type === 'original');
-  const modifiedFile = job.files?.find((f) => f.file_type === 'modified');
+  // Sort all files by version desc so the latest is always first.
+  const allFiles = (job.files || []).slice().sort((a, b) => (b.version ?? 1) - (a.version ?? 1));
+  const originalFiles = allFiles.filter((f) => f.file_type === 'original');
+  const modifiedFiles = allFiles.filter((f) => f.file_type === 'modified');
+  const latestOriginal = originalFiles[0];
+  const latestModified = modifiedFiles[0];
 
   return (
     <Layout>
@@ -185,6 +263,56 @@ export const JobDetailPage: React.FC = () => {
             </div>
           </Card>
 
+          {/* Rating — only on completed jobs */}
+          {job.status === 'completed' && (
+            <Card>
+              <div className="flex items-center gap-2 mb-3">
+                <Star size={20} className="text-yellow-500" />
+                <h2 className="text-lg font-semibold">
+                  {existingRating ? 'Your Rating' : 'Rate this job'}
+                </h2>
+              </div>
+              {existingRating ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <StarRow value={existingRating.rating} size={22} />
+                    <span className="text-sm text-zinc-500">
+                      Submitted {formatDistanceToNow(new Date(existingRating.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  {existingRating.comment && (
+                    <p className="text-sm bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">
+                      {existingRating.comment}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-zinc-500 mb-3">
+                    How did we do? Your feedback helps us improve and future clients pick with confidence.
+                  </p>
+                  <StarPicker value={ratingValue} onChange={setRatingValue} />
+                  <Textarea
+                    placeholder="Share a few words about your experience (optional)"
+                    value={ratingComment}
+                    onChange={(e) => setRatingComment(e.target.value)}
+                    rows={3}
+                    className="mt-3"
+                  />
+                  <div className="mt-3">
+                    <Button
+                      onClick={handleSubmitRating}
+                      disabled={ratingValue < 1 || submittingRating}
+                      isLoading={submittingRating}
+                    >
+                      Submit Rating
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
           {/* Revision Form */}
           {showRevisionForm && (
             <Card>
@@ -259,72 +387,161 @@ export const JobDetailPage: React.FC = () => {
               <FileText size={20} />
               <h2 className="text-lg font-semibold">Files</h2>
             </div>
-            <div className="space-y-3">
-              {originalFile && (
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm">Original File</p>
-                      <p className="text-xs text-zinc-500">{originalFile.original_name}</p>
-                    </div>
-                    <Button size="sm" variant="ghost" onClick={() => handleDownload(originalFile.storage_path, originalFile.original_name)}>
-                      <Download size={16} />
-                    </Button>
+            <div className="space-y-4">
+              {/* Original uploads (versioned) */}
+              {originalFiles.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                    Original {originalFiles.length > 1 ? `(${originalFiles.length} versions)` : ''}
+                  </p>
+                  <div className="space-y-2">
+                    {originalFiles.map((f) => (
+                      <div
+                        key={f.id}
+                        className={clsx(
+                          'p-3 rounded-lg',
+                          f.id === latestOriginal?.id
+                            ? 'bg-zinc-100 dark:bg-zinc-800'
+                            : 'bg-zinc-50 dark:bg-zinc-800/40 opacity-80'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700">
+                                v{f.version ?? 1}
+                              </span>
+                              <p className="font-medium text-sm truncate">{f.original_name}</p>
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-0.5">
+                              {format(new Date(f.created_at), 'MMM d, yyyy HH:mm')}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDownload(f.storage_path, f.original_name)}
+                          >
+                            <Download size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-              {modifiedFile ? (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm text-green-700 dark:text-green-400">Modified File</p>
-                      <p className="text-xs text-green-600 dark:text-green-500">{modifiedFile.original_name}</p>
-                    </div>
-                    <Button size="sm" onClick={() => handleDownload(modifiedFile.storage_path, modifiedFile.original_name)}>
-                      <Download size={16} />
-                    </Button>
+
+              {/* Modified files (versioned — latest highlighted in green) */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Modified {modifiedFiles.length > 1 ? `(${modifiedFiles.length} versions)` : ''}
+                </p>
+                {modifiedFiles.length === 0 ? (
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg text-center">
+                    <p className="text-sm text-zinc-500">Modified file not available yet</p>
                   </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg text-center">
-                  <p className="text-sm text-zinc-500">Modified file not available yet</p>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-2">
+                    {modifiedFiles.map((f) => {
+                      const isLatest = f.id === latestModified?.id;
+                      return (
+                        <div
+                          key={f.id}
+                          className={clsx(
+                            'p-3 rounded-lg border',
+                            isLatest
+                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                              : 'bg-zinc-50 dark:bg-zinc-800/40 border-transparent opacity-85'
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={clsx(
+                                    'text-xs font-semibold px-1.5 py-0.5 rounded',
+                                    isLatest
+                                      ? 'bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100'
+                                      : 'bg-zinc-200 dark:bg-zinc-700'
+                                  )}
+                                >
+                                  v{f.version ?? 1}
+                                </span>
+                                {isLatest && (
+                                  <span className="text-[10px] uppercase tracking-wider font-semibold text-green-700 dark:text-green-400">
+                                    Latest
+                                  </span>
+                                )}
+                              </div>
+                              <p className="font-medium text-sm truncate mt-1">{f.original_name}</p>
+                              <p className="text-xs text-zinc-500 mt-0.5">
+                                {format(new Date(f.created_at), 'MMM d, yyyy HH:mm')}
+                              </p>
+                              {f.revision_note && (
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 italic">
+                                  &ldquo;{f.revision_note}&rdquo;
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={isLatest ? 'primary' : 'ghost'}
+                              onClick={() => handleDownload(f.storage_path, f.original_name)}
+                            >
+                              <Download size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
 
-          {/* Status Timeline */}
+          {/* Status Timeline — merged with revision upload history */}
           <Card>
             <div className="flex items-center gap-2 mb-4">
               <Clock size={20} />
               <h2 className="text-lg font-semibold">Timeline</h2>
             </div>
             <div className="space-y-4">
-              <div className="flex gap-3">
-                <div className="w-2 h-2 mt-2 rounded-full bg-green-500" />
-                <div>
-                  <p className="font-medium text-sm">Job Created</p>
-                  <p className="text-xs text-zinc-500">{new Date(job.created_at).toLocaleString()}</p>
-                </div>
-              </div>
-              {job.started_at && (
-                <div className="flex gap-3">
-                  <div className="w-2 h-2 mt-2 rounded-full bg-blue-500" />
-                  <div>
-                    <p className="font-medium text-sm">Processing Started</p>
-                    <p className="text-xs text-zinc-500">{new Date(job.started_at).toLocaleString()}</p>
+              {(() => {
+                type TimelineItem = { at: string; color: string; title: string; detail?: string };
+                const items: TimelineItem[] = [
+                  { at: job.created_at, color: 'bg-green-500', title: 'Job Created' },
+                ];
+                if (job.started_at) {
+                  items.push({ at: job.started_at, color: 'bg-blue-500', title: 'Processing Started' });
+                }
+                // Add an entry for every modified file upload (revision track)
+                for (const f of modifiedFiles) {
+                  const v = f.version ?? 1;
+                  items.push({
+                    at: f.created_at,
+                    color: v === 1 ? 'bg-emerald-500' : 'bg-amber-500',
+                    title: v === 1 ? 'Modified File Delivered' : `Revision v${v} Delivered`,
+                    detail: f.revision_note || undefined,
+                  });
+                }
+                if (job.completed_at) {
+                  items.push({ at: job.completed_at, color: 'bg-green-500', title: 'Completed' });
+                }
+                items.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+                return items.map((it, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <div className={clsx('w-2 h-2 mt-2 rounded-full flex-shrink-0', it.color)} />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{it.title}</p>
+                      <p className="text-xs text-zinc-500">{new Date(it.at).toLocaleString()}</p>
+                      {it.detail && (
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 italic mt-0.5">&ldquo;{it.detail}&rdquo;</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-              {job.completed_at && (
-                <div className="flex gap-3">
-                  <div className="w-2 h-2 mt-2 rounded-full bg-green-500" />
-                  <div>
-                    <p className="font-medium text-sm">Completed</p>
-                    <p className="text-xs text-zinc-500">{new Date(job.completed_at).toLocaleString()}</p>
-                  </div>
-                </div>
-              )}
+                ));
+              })()}
             </div>
           </Card>
         </div>

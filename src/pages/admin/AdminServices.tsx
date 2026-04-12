@@ -6,6 +6,7 @@ import {
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Spinner } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { logAdminAction } from '@/hooks/useSupabase';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -103,6 +104,7 @@ export const AdminServicesPage: React.FC = () => {
     const { error } = await supabase.from(table).update({ is_active: !current }).eq('id', id);
     if (error) { toast.error('Failed to update'); return; }
     toast.success(!current ? 'Enabled' : 'Disabled');
+    logAdminAction(`toggle_${table}_active`, table === 'services' ? 'service' : 'service_category', id, { is_active: !current });
     fetchAll();
   };
 
@@ -111,6 +113,7 @@ export const AdminServicesPage: React.FC = () => {
     const { error } = await supabase.from('services').delete().eq('id', id);
     if (error) { toast.error('Failed to delete service'); return; }
     toast.success('Service deleted');
+    logAdminAction('delete_service', 'service', id, { name });
     fetchAll();
   };
 
@@ -123,6 +126,7 @@ export const AdminServicesPage: React.FC = () => {
     const { error } = await supabase.from('service_categories').delete().eq('id', id);
     if (error) { toast.error('Failed to delete category'); return; }
     toast.success('Category deleted');
+    logAdminAction('delete_service_category', 'service_category', id, { name });
     fetchAll();
   };
 

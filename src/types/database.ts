@@ -312,6 +312,8 @@ export interface Database {
           file_size: number;
           uploaded_by: string;
           created_at: string;
+          version: number;
+          revision_note: string | null;
         };
         Insert: {
           id?: string;
@@ -321,6 +323,8 @@ export interface Database {
           storage_path: string;
           file_size: number;
           uploaded_by: string;
+          version?: number;
+          revision_note?: string | null;
         };
         Update: {
           id?: string;
@@ -330,6 +334,8 @@ export interface Database {
           storage_path?: string;
           file_size?: number;
           uploaded_by?: string;
+          version?: number;
+          revision_note?: string | null;
         };
         Relationships: [
           {
@@ -588,6 +594,138 @@ export interface Database {
           },
         ];
       };
+      job_ratings: {
+        Row: {
+          id: string;
+          job_id: string;
+          user_id: string;
+          rating: number;
+          comment: string | null;
+          is_public: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          user_id: string;
+          rating: number;
+          comment?: string | null;
+          is_public?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          rating?: number;
+          comment?: string | null;
+          is_public?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_ratings_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: true;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_ratings_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      admin_audit_log: {
+        Row: {
+          id: string;
+          admin_id: string | null;
+          action: string;
+          target_type: string | null;
+          target_id: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id?: string | null;
+          action: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          action?: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          metadata?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      saved_vehicles: {
+        Row: {
+          id: string;
+          user_id: string;
+          nickname: string | null;
+          vehicle_brand: string;
+          vehicle_model: string;
+          vehicle_generation: string | null;
+          vehicle_year: string | null;
+          engine_type: string;
+          ecu_type: string | null;
+          gearbox_type: string | null;
+          vin: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          nickname?: string | null;
+          vehicle_brand: string;
+          vehicle_model: string;
+          vehicle_generation?: string | null;
+          vehicle_year?: string | null;
+          engine_type: string;
+          ecu_type?: string | null;
+          gearbox_type?: string | null;
+          vin?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          nickname?: string | null;
+          vehicle_brand?: string;
+          vehicle_model?: string;
+          vehicle_generation?: string | null;
+          vehicle_year?: string | null;
+          engine_type?: string;
+          ecu_type?: string | null;
+          gearbox_type?: string | null;
+          vin?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "saved_vehicles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       announcements: {
         Row: {
           id: string;
@@ -690,6 +828,22 @@ export interface Database {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      log_admin_action: {
+        Args: {
+          p_action: string;
+          p_target_type?: string | null;
+          p_target_id?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: string;
+      };
+      next_file_version: {
+        Args: {
+          p_job_id: string;
+          p_file_type: FileType;
+        };
+        Returns: number;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -714,6 +868,20 @@ export type Notification = Database['public']['Tables']['notifications']['Row'];
 export type Ticket = Database['public']['Tables']['tickets']['Row'];
 export type TicketMessage = Database['public']['Tables']['ticket_messages']['Row'];
 export type Announcement = Database['public']['Tables']['announcements']['Row'];
+export type JobRating = Database['public']['Tables']['job_ratings']['Row'];
+export type AdminAuditEntry = Database['public']['Tables']['admin_audit_log']['Row'];
+export type SavedVehicle = Database['public']['Tables']['saved_vehicles']['Row'];
+
+// Admin audit entry joined with the admin's profile
+export interface AdminAuditEntryWithAdmin extends AdminAuditEntry {
+  admin: Pick<Profile, 'id' | 'contact_name' | 'email'> | null;
+}
+
+// Rating joined with the rater's profile (for public landing-page carousel)
+export interface JobRatingWithUser extends JobRating {
+  user: Pick<Profile, 'id' | 'contact_name' | 'company_name' | 'country'> | null;
+  job?: Pick<Job, 'vehicle_brand' | 'vehicle_model' | 'engine_type'> | null;
+}
 
 // Extended types with relations
 export interface JobWithDetails extends Job {

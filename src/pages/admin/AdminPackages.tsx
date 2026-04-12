@@ -5,6 +5,7 @@ import {
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Spinner } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { logAdminAction } from '@/hooks/useSupabase';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -52,6 +53,7 @@ export const AdminPackagesPage: React.FC = () => {
 
     if (error) { toast.error('Failed to update'); return; }
     toast.success(!current ? 'Package enabled' : 'Package disabled');
+    logAdminAction('toggle_package_active', 'credit_package', id, { is_active: !current });
     fetchPackages();
   };
 
@@ -60,6 +62,7 @@ export const AdminPackagesPage: React.FC = () => {
     const { error } = await supabase.from('credit_packages').delete().eq('id', id);
     if (error) { toast.error('Failed to delete package'); return; }
     toast.success('Package deleted');
+    logAdminAction('delete_package', 'credit_package', id, { name });
     fetchPackages();
   };
 

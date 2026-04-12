@@ -21,7 +21,7 @@ import { generateInvoicePDF } from '@/lib/invoice';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Input, Textarea, Avatar, statusLabels, Pagination, usePagination } from '@/components/ui';
-import { useUserDetail, downloadFile, adminRefundCredits } from '@/hooks/useSupabase';
+import { useUserDetail, downloadFile, adminRefundCredits, logAdminAction } from '@/hooks/useSupabase';
 import type { Transaction } from '@/types/database';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -117,6 +117,13 @@ export const AdminUserDetailPage: React.FC = () => {
       toast.error(error.message || 'Failed to issue refund');
     } else {
       toast.success(`Refunded €${amount.toFixed(2)}`);
+      logAdminAction('refund_credits', 'user', user.id, {
+        amount,
+        reason: refundReason.trim(),
+        original_transaction_id: refundOriginalTx?.id ?? null,
+        job_id: refundOriginalTx?.job_id ?? null,
+        user_email: user.email,
+      });
       closeRefundModal();
       refetch();
     }
@@ -155,6 +162,11 @@ export const AdminUserDetailPage: React.FC = () => {
       toast.error('Failed to adjust balance');
     } else {
       toast.success(`${amount > 0 ? 'Added' : 'Removed'} €${Math.abs(amount)}`);
+      logAdminAction('adjust_credits', 'user', user.id, {
+        amount,
+        description: creditDescription,
+        user_email: user.email,
+      });
       setCreditModal(false);
       setCreditAmount('');
       setCreditDescription('');
@@ -185,6 +197,10 @@ export const AdminUserDetailPage: React.FC = () => {
       }
 
       toast.success('User deleted successfully');
+      logAdminAction('delete_user', 'user', user.id, {
+        user_email: user.email,
+        user_name: user.contact_name,
+      });
       navigate('/admin/users');
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user');

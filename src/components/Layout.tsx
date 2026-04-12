@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
-  MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt,
+  MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt, Shield,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, Button } from '@/components/ui';
@@ -39,6 +39,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Emails', href: '/admin/emails', icon: <Mail size={20} /> },
   { label: 'News', href: '/admin/news', icon: <Megaphone size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
+  { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={20} /> },
 ];
 
 // Working Hours Widget

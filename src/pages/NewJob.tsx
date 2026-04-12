@@ -4,12 +4,12 @@ import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
 import {
   Upload, FileText, X, Check, ChevronRight, ChevronLeft, Info,
-  Cpu, Settings, Wrench, Car,
+  Cpu, Settings, Wrench, Car, BookmarkPlus, Bookmark, Trash2,
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
-import { useServices, createJob, uploadFile, notifyAdmins } from '@/hooks/useSupabase';
+import { useServices, createJob, uploadFile, notifyAdmins, useSavedVehicles } from '@/hooks/useSupabase';
 import { useVehicleApi } from '@/hooks/useVehicleApi';
 import { sendNotification } from '@/lib/notifications';
 import { clsx } from 'clsx';
@@ -95,8 +95,11 @@ export const NewJobPage: React.FC = () => {
   const fetchProfile = useAuthStore((s) => s.fetchProfile);
   const { categories, loading: servicesLoading } = useServices();
   const vehicle = useVehicleApi();
+  const { vehicles: savedVehicles, save: saveSavedVehicle, remove: removeSavedVehicle } = useSavedVehicles();
 
   const [step, setStep] = useState(1);
+  const [saveVehicleOnSubmit, setSaveVehicleOnSubmit] = useState(false);
+  const [savedVehicleNickname, setSavedVehicleNickname] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step 1
@@ -232,6 +235,26 @@ export const NewJobPage: React.FC = () => {
           'job',
           jobId
         );
+      }
+
+      // Save vehicle for next time if requested
+      if (saveVehicleOnSubmit) {
+        const makeName2 = vehicle.makes.find((m) => m.value === vehicle.selectedMake)?.label || '';
+        const modelName2 = vehicle.models.find((m) => m.value === vehicle.selectedModel)?.label || '';
+        const genName2 = vehicle.generations.find((g) => g.value === vehicle.selectedGeneration)?.label || '';
+        const engineName2 = vehicle.engines.find((e) => e.value === vehicle.selectedEngine)?.label || '';
+        const ecuName2 = vehicle.ecus.find((e) => e.value === vehicle.selectedEcu)?.label || vehicle.selectedEcu || '';
+        saveSavedVehicle({
+          nickname: savedVehicleNickname.trim() || `${makeName2} ${modelName2}`,
+          vehicle_brand: makeName2,
+          vehicle_model: modelName2,
+          vehicle_generation: genName2,
+          vehicle_year: genName2,
+          engine_type: engineName2,
+          ecu_type: ecuName2 || null,
+          gearbox_type: gearbox || null,
+          vin: vin || null,
+        });
       }
 
       await fetchProfile();
@@ -392,6 +415,68 @@ export const NewJobPage: React.FC = () => {
               <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                 <Car size={16} /> Vehicle Details
               </h3>
+
+              {/* Saved Vehicles picker */}
+              {savedVehicles.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 flex items-center gap-1">
+                    <Bookmark size={12} /> Load a saved vehicle
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {savedVehicles.map((sv) => (
+                      <div key={sv.id} className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Find the matching make/model/generation/engine/ecu in the vehicle API
+                            // and set them via state. Since the dropdown data is static JSON, we match by label.
+                            const makeMatch = vehicle.makes.find((m) => m.label === sv.vehicle_brand);
+                            if (makeMatch) vehicle.setSelectedMake(makeMatch.value);
+                            setVin(sv.vin || '');
+                            setGearbox(sv.gearbox_type || '');
+                            // Downstream selects (model, gen, engine, ecu) will populate after
+                            // the make state change triggers re-derived options. Use a timeout
+                            // to set them once the data is available.
+                            setTimeout(() => {
+                              const modelMatch = vehicle.models.find((m) => m.label === sv.vehicle_model);
+                              if (modelMatch) vehicle.setSelectedModel(modelMatch.value);
+                              setTimeout(() => {
+                                const genMatch = vehicle.generations.find((g) => g.label === sv.vehicle_generation);
+                                if (genMatch) vehicle.setSelectedGeneration(genMatch.value);
+                                setTimeout(() => {
+                                  const engMatch = vehicle.engines.find((e) => e.label === sv.engine_type);
+                                  if (engMatch) vehicle.setSelectedEngine(engMatch.value);
+                                  setTimeout(() => {
+                                    const ecuMatch = vehicle.ecus.find((e) => e.label === sv.ecu_type);
+                                    if (ecuMatch) vehicle.setSelectedEcu(ecuMatch.value);
+                                  }, 100);
+                                }, 100);
+                              }, 100);
+                            }, 100);
+                            toast.success(`Loaded "${sv.nickname || sv.vehicle_brand}"`);
+                          }}
+                          className="text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate max-w-[220px]"
+                          title={`${sv.vehicle_brand} ${sv.vehicle_model} — ${sv.engine_type}`}
+                        >
+                          {sv.nickname || `${sv.vehicle_brand} ${sv.vehicle_model}`}
+                        </button>
+                        <button
+                          type="button"
+                          title="Remove saved vehicle"
+                          className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
+                          onClick={() => {
+                            removeSavedVehicle(sv.id);
+                            toast.success('Saved vehicle removed');
+                          }}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <Select label="Brand *" placeholder={vehicle.loadingMakes ? 'Loading brands...' : 'Select Brand'}
                   options={vehicle.makes} value={vehicle.selectedMake}
@@ -414,6 +499,28 @@ export const NewJobPage: React.FC = () => {
                   disabled={!vehicle.selectedEngine || vehicle.loadingEcus} />
                 <Input label="VIN Number" placeholder="17 character VIN" maxLength={17} value={vin} onChange={(e) => setVin(e.target.value)} />
                 <Select label="Gearbox" placeholder="Select Gearbox" options={gearboxOptions} value={gearbox} onChange={(e) => setGearbox(e.target.value)} />
+              </div>
+
+              {/* Save vehicle for next time */}
+              <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveVehicleOnSubmit}
+                    onChange={(e) => setSaveVehicleOnSubmit(e.target.checked)}
+                    className="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
+                  />
+                  <BookmarkPlus size={14} className="text-zinc-500" />
+                  <span className="text-sm text-zinc-600 dark:text-zinc-300">Save this vehicle for future jobs</span>
+                </label>
+                {saveVehicleOnSubmit && (
+                  <Input
+                    placeholder="Nickname (e.g. 'Customer BMW 320d')"
+                    value={savedVehicleNickname}
+                    onChange={(e) => setSavedVehicleNickname(e.target.value)}
+                    className="mt-2"
+                  />
+                )}
               </div>
             </div>
 

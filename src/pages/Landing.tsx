@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import {
   Gauge, Zap, Shield, Clock, ArrowRight, Check,
   ChevronRight, Mail, Phone, Send, Menu, X,
-  Settings, Flame, Cpu, TrendingUp,
+  Settings, Flame, Cpu, TrendingUp, Star, Quote,
 } from 'lucide-react';
+import { usePublicRatings } from '@/hooks/useSupabase';
 
 // ─── Calculator iframe ───
 
@@ -57,6 +58,75 @@ const extraServices = [
   'Torque Monitoring Off', 'TVA Off', 'GPF / OPF Off', 'Decat / Cat Off',
 ];
 
+// ─── Reviews Section (live from DB) ───
+
+const StarRow: React.FC<{ value: number }> = ({ value }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((n) => (
+      <Star
+        key={n}
+        size={14}
+        className={n <= value ? 'fill-yellow-400 text-yellow-400' : 'text-neutral-700'}
+      />
+    ))}
+  </div>
+);
+
+const ReviewsSection: React.FC = () => {
+  const { ratings, loading } = usePublicRatings(12);
+
+  // If there are no public ratings yet, show a gentle placeholder instead of an empty section.
+  if (loading || ratings.length === 0) return null;
+
+  // Compute average
+  const avg = ratings.reduce((s, r) => s + r.rating, 0) / ratings.length;
+
+  return (
+    <section id="reviews" className="py-24 lg:py-32 bg-neutral-900/30" aria-label="Customer reviews">
+      <div className="max-w-6xl mx-auto px-5">
+        <div className="text-center mb-14">
+          <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Reviews</p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            What Our Clients Say
+          </h2>
+          <div className="flex items-center justify-center gap-3 text-neutral-400">
+            <StarRow value={Math.round(avg)} />
+            <span className="text-sm font-medium">{avg.toFixed(1)} / 5</span>
+            <span className="text-sm">({ratings.length} review{ratings.length !== 1 ? 's' : ''})</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {ratings.slice(0, 6).map((r) => (
+            <article key={r.id} className="bg-neutral-950 border border-white/5 rounded-2xl p-6 flex flex-col">
+              <Quote className="w-6 h-6 text-red-600/40 mb-3" />
+              {r.comment && (
+                <p className="text-sm text-neutral-300 leading-relaxed mb-4 flex-1 line-clamp-4">
+                  &ldquo;{r.comment}&rdquo;
+                </p>
+              )}
+              <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">{r.user?.contact_name || 'Client'}</p>
+                  {r.user?.country && (
+                    <p className="text-xs text-neutral-500">{r.user.country}</p>
+                  )}
+                  {r.job && (
+                    <p className="text-xs text-neutral-600 mt-0.5">
+                      {r.job.vehicle_brand} {r.job.vehicle_model}
+                    </p>
+                  )}
+                </div>
+                <StarRow value={r.rating} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // ─── Component ───
 
 export const LandingPage: React.FC = () => {
@@ -90,6 +160,7 @@ export const LandingPage: React.FC = () => {
             <a href="#services" className="hover:text-white transition-colors">Services</a>
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
             <a href="#calculator" className="hover:text-white transition-colors">Calculator</a>
+            <a href="#reviews" className="hover:text-white transition-colors">Reviews</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact</a>
           </nav>
 
@@ -112,6 +183,7 @@ export const LandingPage: React.FC = () => {
             <a href="#services" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Services</a>
             <a href="#how-it-works" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">How It Works</a>
             <a href="#calculator" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Calculator</a>
+            <a href="#reviews" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Reviews</a>
             <a href="#contact" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Contact</a>
             <div className="pt-4 border-t border-white/10 space-y-3">
               <Link to="/login" className="block text-center py-3 text-sm font-semibold border border-white/10 rounded-lg text-neutral-300">File Portal Login</Link>
@@ -348,6 +420,9 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* ═══ REVIEWS ═══ */}
+      <ReviewsSection />
 
       {/* ═══ CONTACT ═══ */}
       <section id="contact" className="py-24 lg:py-32 bg-neutral-900/30" aria-label="Contact us">

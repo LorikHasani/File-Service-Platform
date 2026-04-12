@@ -21,6 +21,10 @@ import type {
   TicketStatus,
   Announcement,
   Notification,
+  JobRating,
+  JobRatingWithUser,
+  AdminAuditEntryWithAdmin,
+  SavedVehicle,
 } from '@/types/database';
 
 // ============================================================================
@@ -300,13 +304,25 @@ export function useServices() {
 export async function uploadFile(
   jobId: string,
   file: File,
-  fileType: 'original' | 'modified'
-): Promise<{ error: Error | null }> {
+  fileType: 'original' | 'modified',
+  revisionNote?: string | null
+): Promise<{ error: Error | null; version?: number }> {
   try {
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
 
-    const filePath = `${jobId}/${fileType}/${Date.now()}_${file.name}`;
+    // Reserve the next version number for this (job, file_type) pair.
+    // Falls back to 1 if the RPC isn't available yet (migration 011 not run).
+    let version = 1;
+    const { data: nextVersion, error: versionError } = await supabase.rpc(
+      'next_file_version',
+      { p_job_id: jobId, p_file_type: fileType }
+    );
+    if (!versionError && typeof nextVersion === 'number') {
+      version = nextVersion;
+    }
+
+    const filePath = `${jobId}/${fileType}/v${version}_${Date.now()}_${file.name}`;
 
     const { error: uploadError } = await supabase.storage
       .from('ecu-files')
@@ -320,10 +336,12 @@ export async function uploadFile(
       storage_path: filePath,
       file_size: file.size,
       uploaded_by: user.id,
+      version,
+      revision_note: revisionNote ?? null,
     });
     if (dbError) throw dbError;
 
-    return { error: null };
+    return { error: null, version };
   } catch (err) {
     return { error: err as Error };
   }
@@ -1363,4 +1381,213 @@ export async function notifyAdmins(
     linkType: linkType || null,
     linkId: linkId || null,
   });
+}
+
+// ============================================================================
+// JOB RATINGS (feature: ratings/reviews after completion)
+// ============================================================================
+
+// Returns the current user's rating for a given job (or null if none).
+export function useJobRating(jobId: string | undefined) {
+  const [rating, setRating] = useState<JobRating | null>(null);
+  const [loading, setLoading] = useState(true);
+  const profileId = useAuthStore((s) => s.profile?.id ?? null);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetch = useCallback(async () => {
+    if (!jobId || !profileId) {
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from('job_ratings')
+      .select('*')
+      .eq('job_id', jobId)
+      .eq('user_id', profileId)
+      .maybeSingle();
+    setRating((data as JobRating) || null);
+    setLoading(false);
+  }, [jobId, profileId]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch();
+  }, [fetch, refreshKey]);
+
+  return { rating, loading, refetch: fetch };
+}
+
+export async function submitJobRating(params: {
+  jobId: string;
+  rating: number;
+  comment?: string;
+  isPublic?: boolean;
+}): Promise<{ error: Error | null }> {
+  const user = useAuthStore.getState().user;
+  if (!user) return { error: new Error('Not authenticated') };
+
+  const { error } = await supabase.from('job_ratings').insert({
+    job_id: params.jobId,
+    user_id: user.id,
+    rating: params.rating,
+    comment: params.comment || null,
+    is_public: params.isPublic ?? true,
+  });
+  return { error: error as Error | null };
+}
+
+// Publicly-visible ratings for the landing page carousel.
+// RLS policy "Anyone can view public ratings" permits anon SELECT.
+export function usePublicRatings(limit = 20) {
+  const [ratings, setRatings] = useState<JobRatingWithUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const { data, error } = await supabase
+        .from('job_ratings')
+        .select(
+          '*, user:profiles!user_id(id, contact_name, company_name, country), job:jobs!job_id(vehicle_brand, vehicle_model, engine_type)'
+        )
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (!cancelled && !error) {
+        setRatings((data as unknown as JobRatingWithUser[]) || []);
+      }
+      if (!cancelled) setLoading(false);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [limit]);
+
+  return { ratings, loading };
+}
+
+// ============================================================================
+// ADMIN AUDIT LOG
+// ============================================================================
+
+// Fire-and-forget helper. Errors are logged but never propagated — audit
+// failures should never block the primary admin action.
+export async function logAdminAction(
+  action: string,
+  targetType?: string | null,
+  targetId?: string | null,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const { error } = await supabase.rpc('log_admin_action', {
+      p_action: action,
+      p_target_type: targetType ?? null,
+      p_target_id: targetId ?? null,
+      p_metadata: (metadata ?? {}) as unknown as undefined,
+    });
+    if (error) console.error('logAdminAction failed:', error);
+  } catch (err) {
+    console.error('logAdminAction threw:', err);
+  }
+}
+
+export function useAdminAuditLog(limit = 200) {
+  const [entries, setEntries] = useState<AdminAuditEntryWithAdmin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+    const run = async () => {
+      const { data, error } = await supabase
+        .from('admin_audit_log')
+        .select('*, admin:profiles!admin_id(id, contact_name, email)')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (!cancelled) {
+        if (!error) {
+          setEntries((data as unknown as AdminAuditEntryWithAdmin[]) || []);
+        }
+        setLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, refreshKey, limit]);
+
+  return { entries, loading };
+}
+
+// ============================================================================
+// SAVED VEHICLES
+// ============================================================================
+
+export function useSavedVehicles() {
+  const [vehicles, setVehicles] = useState<SavedVehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const profileId = useAuthStore((s) => s.profile?.id ?? null);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetch = useCallback(async () => {
+    if (!profileId) {
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from('saved_vehicles')
+      .select('*')
+      .eq('user_id', profileId)
+      .order('created_at', { ascending: false });
+    setVehicles((data as SavedVehicle[]) || []);
+    setLoading(false);
+  }, [profileId]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch, refreshKey]);
+
+  const save = async (payload: {
+    nickname?: string | null;
+    vehicle_brand: string;
+    vehicle_model: string;
+    vehicle_generation?: string | null;
+    vehicle_year?: string | null;
+    engine_type: string;
+    ecu_type?: string | null;
+    gearbox_type?: string | null;
+    vin?: string | null;
+  }): Promise<{ error: Error | null }> => {
+    const user = useAuthStore.getState().user;
+    if (!user) return { error: new Error('Not authenticated') };
+    const { error } = await supabase.from('saved_vehicles').insert({
+      user_id: user.id,
+      nickname: payload.nickname ?? null,
+      vehicle_brand: payload.vehicle_brand,
+      vehicle_model: payload.vehicle_model,
+      vehicle_generation: payload.vehicle_generation ?? null,
+      vehicle_year: payload.vehicle_year ?? null,
+      engine_type: payload.engine_type,
+      ecu_type: payload.ecu_type ?? null,
+      gearbox_type: payload.gearbox_type ?? null,
+      vin: payload.vin ?? null,
+    });
+    if (!error) await fetch();
+    return { error: error as Error | null };
+  };
+
+  const remove = async (id: string): Promise<{ error: Error | null }> => {
+    const { error } = await supabase.from('saved_vehicles').delete().eq('id', id);
+    if (!error) await fetch();
+    return { error: error as Error | null };
+  };
+
+  return { vehicles, loading, save, remove, refetch: fetch };
 }
