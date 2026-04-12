@@ -4,7 +4,19 @@
       "Bash(npx vite build)",
       "Bash(npx tsc --noEmit)",
       "Bash(git add src/hooks/useSupabase.ts src/stores/authStore.ts)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run build)",
+      "Bash(git add src/App.tsx src/components/Layout.tsx src/hooks/useSupabase.ts src/types/database.ts api/send-email.ts src/components/AnnouncementBanner.tsx src/lib/emails.ts src/pages/Profile.tsx src/pages/TicketDetail.tsx src/pages/Tickets.tsx src/pages/admin/AdminEmails.tsx src/pages/admin/AdminNews.tsx src/pages/admin/AdminTicketDetail.tsx src/pages/admin/AdminTickets.tsx)",
+      "Bash(git merge claude/gracious-franklin)",
+      "Bash(git push origin main)",
+      "Bash(git add src/components/AnnouncementBanner.tsx src/pages/Register.tsx src/stores/authStore.ts)",
+      "Bash(git add .env.example api/send-email.ts api/send-notification.ts src/components/AnnouncementBanner.tsx src/components/Layout.tsx src/hooks/useSupabase.ts src/pages/Landing.tsx src/pages/admin/AdminNews.tsx src/stores/authStore.ts src/types/database.ts)",
+      "Bash(git checkout main)",
+      "Bash(git add src/pages/admin/AdminNews.tsx)",
+      "Bash(git add api/send-email.ts api/send-notification.ts)",
+      "Bash(git push origin claude/gracious-franklin:main)",
+      "Bash(git add api/send-email.ts src/lib/emails.ts src/pages/admin/AdminEmails.tsx)",
+      "Bash(git add api/stripe-webhook.ts api/send-notification.ts)"
     ]
   }
 }
