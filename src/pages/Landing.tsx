@@ -1,11 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
-  Gauge, Zap, Shield, Clock, ArrowRight, Check,
-  ChevronRight, Mail, Phone, Send, Menu, X,
-  Settings, Flame, Cpu, TrendingUp, Star, Quote,
-} from 'lucide-react';
-import { usePublicRatings } from '@/hooks/useSupabase';
+  Gauge,
+  Zap,
+  Shield,
+  Clock,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Mail,
+  Phone,
+  Send,
+  Menu,
+  X,
+  Settings,
+  Flame,
+  Cpu,
+  TrendingUp,
+} from "lucide-react";
 
 // ─── Calculator iframe ───
 
@@ -42,90 +54,62 @@ const calcIframe = `
 // ─── Data ───
 
 const services = [
-  { name: 'Stage 1 Remap', desc: 'Optimized ECU calibration for stock hardware. Safe power gains up to 30%.', icon: <Zap className="w-5 h-5" /> },
-  { name: 'Stage 2 Remap', desc: 'For vehicles with intake and exhaust upgrades. Up to 45% more power.', icon: <TrendingUp className="w-5 h-5" /> },
-  { name: 'Stage 3 Remap', desc: 'Full custom calibration for heavily modified engines.', icon: <Flame className="w-5 h-5" /> },
-  { name: 'DPF Off', desc: 'Diesel Particulate Filter removal. Eliminates regeneration cycles.', icon: <Settings className="w-5 h-5" /> },
-  { name: 'AdBlue / SCR Off', desc: 'SCR system delete. No more AdBlue refills or warning lights.', icon: <Shield className="w-5 h-5" /> },
-  { name: 'EGR Off', desc: 'Exhaust Gas Recirculation delete. Prevents carbon buildup.', icon: <Cpu className="w-5 h-5" /> },
-  { name: 'Pop & Bang', desc: 'Aggressive exhaust crackle and pops on overrun and deceleration.', icon: <Flame className="w-5 h-5" /> },
-  { name: 'Popcorn / Hardcut', desc: 'Rev limiter pops and burble map. Continuous crackle effect.', icon: <Zap className="w-5 h-5" /> },
+  {
+    name: "Stage 1 Remap",
+    desc: "Optimized ECU calibration for stock hardware. Safe power gains up to 30%.",
+    icon: <Zap className="w-5 h-5" />,
+  },
+  {
+    name: "Stage 2 Remap",
+    desc: "For vehicles with intake and exhaust upgrades. Up to 45% more power.",
+    icon: <TrendingUp className="w-5 h-5" />,
+  },
+  {
+    name: "Stage 3 Remap",
+    desc: "Full custom calibration for heavily modified engines.",
+    icon: <Flame className="w-5 h-5" />,
+  },
+  {
+    name: "DPF Off",
+    desc: "Diesel Particulate Filter removal. Eliminates regeneration cycles.",
+    icon: <Settings className="w-5 h-5" />,
+  },
+  {
+    name: "AdBlue / SCR Off",
+    desc: "SCR system delete. No more AdBlue refills or warning lights.",
+    icon: <Shield className="w-5 h-5" />,
+  },
+  {
+    name: "EGR Off",
+    desc: "Exhaust Gas Recirculation delete. Prevents carbon buildup.",
+    icon: <Cpu className="w-5 h-5" />,
+  },
+  {
+    name: "Pop & Bang",
+    desc: "Aggressive exhaust crackle and pops on overrun and deceleration.",
+    icon: <Flame className="w-5 h-5" />,
+  },
+  {
+    name: "Popcorn / Hardcut",
+    desc: "Rev limiter pops and burble map. Continuous crackle effect.",
+    icon: <Zap className="w-5 h-5" />,
+  },
 ];
 
 const extraServices = [
-  'Lambda / O2 Off', 'Swirl Flaps Off', 'Hot Start Fix', 'Speed Limiter Off',
-  'Start-Stop Disable', 'Launch Control', 'Intake Flaps Off', 'EVAP Off',
-  'Torque Monitoring Off', 'TVA Off', 'GPF / OPF Off', 'Decat / Cat Off',
+  "Lambda / O2 Off",
+  "Swirl Flaps Off",
+  "Hot Start Fix",
+  "Speed Limiter Off",
+  "Start-Stop Disable",
+  "Launch Control",
+  "Intake Flaps Off",
+  "EVAP Off",
+  "Torque Monitoring Off",
+  "TVA Off",
+  "GPF / OPF Off",
+  "Decat / Cat Off",
 ];
-
-// ─── Reviews Section (live from DB) ───
-
-const StarRow: React.FC<{ value: number }> = ({ value }) => (
-  <div className="flex items-center gap-0.5">
-    {[1, 2, 3, 4, 5].map((n) => (
-      <Star
-        key={n}
-        size={14}
-        className={n <= value ? 'fill-yellow-400 text-yellow-400' : 'text-neutral-700'}
-      />
-    ))}
-  </div>
-);
-
-const ReviewsSection: React.FC = () => {
-  const { ratings, loading } = usePublicRatings(12);
-
-  // If there are no public ratings yet, show a gentle placeholder instead of an empty section.
-  if (loading || ratings.length === 0) return null;
-
-  // Compute average
-  const avg = ratings.reduce((s, r) => s + r.rating, 0) / ratings.length;
-
-  return (
-    <section id="reviews" className="py-24 lg:py-32 bg-neutral-900/30" aria-label="Customer reviews">
-      <div className="max-w-6xl mx-auto px-5">
-        <div className="text-center mb-14">
-          <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Reviews</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
-            What Our Clients Say
-          </h2>
-          <div className="flex items-center justify-center gap-3 text-neutral-400">
-            <StarRow value={Math.round(avg)} />
-            <span className="text-sm font-medium">{avg.toFixed(1)} / 5</span>
-            <span className="text-sm">({ratings.length} review{ratings.length !== 1 ? 's' : ''})</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ratings.slice(0, 6).map((r) => (
-            <article key={r.id} className="bg-neutral-950 border border-white/5 rounded-2xl p-6 flex flex-col">
-              <Quote className="w-6 h-6 text-red-600/40 mb-3" />
-              {r.comment && (
-                <p className="text-sm text-neutral-300 leading-relaxed mb-4 flex-1 line-clamp-4">
-                  &ldquo;{r.comment}&rdquo;
-                </p>
-              )}
-              <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">{r.user?.contact_name || 'Client'}</p>
-                  {r.user?.country && (
-                    <p className="text-xs text-neutral-500">{r.user.country}</p>
-                  )}
-                  {r.job && (
-                    <p className="text-xs text-neutral-600 mt-0.5">
-                      {r.job.vehicle_brand} {r.job.vehicle_model}
-                    </p>
-                  )}
-                </div>
-                <StarRow value={r.rating} />
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
 
 // ─── Component ───
 
@@ -135,66 +119,132 @@ export const LandingPage: React.FC = () => {
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
   }, []);
 
   return (
     <div className="bg-neutral-950 text-white min-h-screen">
-
       {/* ═══ HEADER ═══ */}
       <header
         role="banner"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-neutral-950/90 backdrop-blur-xl border-b border-white/5'
-            : 'bg-transparent'
+            ? "bg-neutral-950/90 backdrop-blur-xl border-b border-white/5"
+            : "bg-transparent"
         }`}
       >
         <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-16">
-          <a href="#top" className="flex items-center gap-2" aria-label="ChipTuneFiles home">
+          <a
+            href="#top"
+            className="flex items-center gap-2"
+            aria-label="ChipTuneFiles home"
+          >
             <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
           </a>
 
-          <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-neutral-400" aria-label="Main navigation">
-            <a href="#services" className="hover:text-white transition-colors">Services</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-            <a href="#calculator" className="hover:text-white transition-colors">Calculator</a>
-            <a href="#reviews" className="hover:text-white transition-colors">Reviews</a>
-            <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+          <nav
+            className="hidden md:flex items-center gap-8 text-[13px] font-medium text-neutral-400"
+            aria-label="Main navigation"
+          >
+            <a href="#services" className="hover:text-white transition-colors">
+              Services
+            </a>
+            <a
+              href="#how-it-works"
+              className="hover:text-white transition-colors"
+            >
+              How It Works
+            </a>
+            <a
+              href="#calculator"
+              className="hover:text-white transition-colors"
+            >
+              Calculator
+            </a>
+            <a href="#contact" className="hover:text-white transition-colors">
+              Contact
+            </a>
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="text-[13px] font-semibold text-neutral-400 hover:text-white transition-colors px-4 py-2">
+            <Link
+              to="/login"
+              className="text-[13px] font-semibold text-neutral-400 hover:text-white transition-colors px-4 py-2"
+            >
               File Portal Login
             </Link>
-            <Link to="/register" className="text-[13px] font-semibold bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg transition-colors">
+            <Link
+              to="/register"
+              className="text-[13px] font-semibold bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg transition-colors"
+            >
               Register
             </Link>
           </div>
 
-          <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden p-2 text-neutral-400" aria-label="Toggle menu">
+          <button
+            onClick={() => setMobileNav(!mobileNav)}
+            className="md:hidden p-2 text-neutral-400"
+            aria-label="Toggle menu"
+          >
             {mobileNav ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
         {mobileNav && (
           <div className="md:hidden bg-neutral-950/98 backdrop-blur-xl border-t border-white/5 px-5 py-6 space-y-3">
-            <a href="#services" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Services</a>
-            <a href="#how-it-works" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">How It Works</a>
-            <a href="#calculator" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Calculator</a>
-            <a href="#reviews" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Reviews</a>
-            <a href="#contact" onClick={() => setMobileNav(false)} className="block py-2 text-neutral-300">Contact</a>
+            <a
+              href="#services"
+              onClick={() => setMobileNav(false)}
+              className="block py-2 text-neutral-300"
+            >
+              Services
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={() => setMobileNav(false)}
+              className="block py-2 text-neutral-300"
+            >
+              How It Works
+            </a>
+            <a
+              href="#calculator"
+              onClick={() => setMobileNav(false)}
+              className="block py-2 text-neutral-300"
+            >
+              Calculator
+            </a>
+            <a
+              href="#contact"
+              onClick={() => setMobileNav(false)}
+              className="block py-2 text-neutral-300"
+            >
+              Contact
+            </a>
             <div className="pt-4 border-t border-white/10 space-y-3">
-              <Link to="/login" className="block text-center py-3 text-sm font-semibold border border-white/10 rounded-lg text-neutral-300">File Portal Login</Link>
-              <Link to="/register" className="block text-center py-3 text-sm font-semibold bg-red-600 rounded-lg text-white">Register</Link>
+              <Link
+                to="/login"
+                className="block text-center py-3 text-sm font-semibold border border-white/10 rounded-lg text-neutral-300"
+              >
+                File Portal Login
+              </Link>
+              <Link
+                to="/register"
+                className="block text-center py-3 text-sm font-semibold bg-red-600 rounded-lg text-white"
+              >
+                Register
+              </Link>
             </div>
           </div>
         )}
       </header>
 
       {/* ═══ HERO ═══ */}
-      <section id="top" className="relative min-h-[100vh] flex items-center overflow-hidden" aria-label="Hero">
+      <section
+        id="top"
+        className="relative min-h-[100vh] flex items-center overflow-hidden"
+        aria-label="Hero"
+      >
         {/* Background image */}
         <div className="absolute inset-0">
           <img
@@ -218,8 +268,8 @@ export const LandingPage: React.FC = () => {
             </h1>
 
             <p className="text-neutral-400 text-lg leading-relaxed mb-10 max-w-md">
-              Premium tuning files for workshops and tuners.
-              Stage 1–3 remaps, DPF, EGR, AdBlue solutions — delivered fast.
+              Premium tuning files for workshops and tuners. Stage 1–3 remaps,
+              DPF, EGR, AdBlue solutions — delivered fast.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-14">
@@ -258,31 +308,50 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ═══ SERVICES ═══ */}
-      <section id="services" className="py-24 lg:py-32" aria-label="Our tuning services">
+      <section
+        id="services"
+        className="py-24 lg:py-32"
+        aria-label="Our tuning services"
+      >
         <div className="max-w-6xl mx-auto px-5">
-          <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Services</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">What We Offer</h2>
+          <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">
+            Services
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            What We Offer
+          </h2>
           <p className="text-neutral-400 max-w-lg mb-14">
-            From ECU remapping to emission solutions — everything your workshop needs.
+            From ECU remapping to emission solutions — everything your workshop
+            needs.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/5 rounded-2xl overflow-hidden">
             {services.map((s) => (
-              <article key={s.name} className="bg-neutral-950 p-6 hover:bg-neutral-900/50 transition-colors group">
+              <article
+                key={s.name}
+                className="bg-neutral-950 p-6 hover:bg-neutral-900/50 transition-colors group"
+              >
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-4 text-red-500 group-hover:bg-red-600/10 transition-colors">
                   {s.icon}
                 </div>
                 <h3 className="font-bold mb-1.5">{s.name}</h3>
-                <p className="text-sm text-neutral-500 leading-relaxed">{s.desc}</p>
+                <p className="text-sm text-neutral-500 leading-relaxed">
+                  {s.desc}
+                </p>
               </article>
             ))}
           </div>
 
           {/* Extra services */}
           <div className="mt-10 flex flex-wrap gap-2">
-            <span className="text-sm text-neutral-500 mr-1 py-1">Also available:</span>
+            <span className="text-sm text-neutral-500 mr-1 py-1">
+              Also available:
+            </span>
             {extraServices.map((s) => (
-              <span key={s} className="text-xs font-medium text-neutral-400 bg-white/5 px-3 py-1 rounded-full">
+              <span
+                key={s}
+                className="text-xs font-medium text-neutral-400 bg-white/5 px-3 py-1 rounded-full"
+              >
                 {s}
               </span>
             ))}
@@ -291,7 +360,10 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ═══ CAR IMAGE DIVIDER ═══ */}
-      <section className="relative h-[50vh] lg:h-[60vh] overflow-hidden" aria-hidden="true">
+      <section
+        className="relative h-[50vh] lg:h-[60vh] overflow-hidden"
+        aria-hidden="true"
+      >
         <img
           src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=1920&q=80"
           alt="Powerful sports car engine bay showcasing performance tuning"
@@ -312,10 +384,18 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ═══ HOW IT WORKS ═══ */}
-      <section id="how-it-works" className="py-24 lg:py-32" aria-label="How it works">
+      <section
+        id="how-it-works"
+        className="py-24 lg:py-32"
+        aria-label="How it works"
+      >
         <div className="max-w-6xl mx-auto px-5">
-          <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Process</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">How It Works</h2>
+          <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">
+            Process
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            How It Works
+          </h2>
           <p className="text-neutral-400 max-w-lg mb-14">
             Three steps from upload to tuned file. Simple, fast, professional.
           </p>
@@ -323,27 +403,31 @@ export const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {[
               {
-                num: '01',
-                title: 'Register & Upload',
-                desc: 'Create your account, fill in vehicle details, select the services you need, and upload your original ECU file.',
+                num: "01",
+                title: "Register & Upload",
+                desc: "Create your account, fill in vehicle details, select the services you need, and upload your original ECU file.",
               },
               {
-                num: '02',
-                title: 'We Tune Your File',
-                desc: 'Our experienced engineers calibrate your file with precision. Most files are ready in under 15 minutes.',
+                num: "02",
+                title: "We Tune Your File",
+                desc: "Our experienced engineers calibrate your file with precision. Most files are ready in under 15 minutes.",
               },
               {
-                num: '03',
-                title: 'Download & Flash',
-                desc: 'Get an instant email notification. Download your tuned file from the portal and flash it to the vehicle.',
+                num: "03",
+                title: "Download & Flash",
+                desc: "Get an instant email notification. Download your tuned file from the portal and flash it to the vehicle.",
               },
             ].map((step, i) => (
               <article key={step.num} className="relative">
-                <div className="text-[80px] font-black text-white/[0.03] leading-none select-none">{step.num}</div>
+                <div className="text-[80px] font-black text-white/[0.03] leading-none select-none">
+                  {step.num}
+                </div>
                 <div className="mt-[-30px] relative">
                   <div className="w-8 h-px bg-red-600 mb-5" />
                   <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-                  <p className="text-sm text-neutral-500 leading-relaxed">{step.desc}</p>
+                  <p className="text-sm text-neutral-500 leading-relaxed">
+                    {step.desc}
+                  </p>
                 </div>
               </article>
             ))}
@@ -352,11 +436,19 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ═══ CALCULATOR ═══ */}
-      <section id="calculator" className="py-24 lg:py-32 bg-neutral-900/30" aria-label="Performance calculator">
+      <section
+        id="calculator"
+        className="py-24 lg:py-32 bg-neutral-900/30"
+        aria-label="Performance calculator"
+      >
         <div className="max-w-5xl mx-auto px-5">
           <div className="text-center mb-12">
-            <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Free Tool</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Performance Calculator</h2>
+            <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">
+              Free Tool
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+              Performance Calculator
+            </h2>
             <p className="text-neutral-400 max-w-lg mx-auto">
               Select your vehicle and see the potential power and torque gains.
             </p>
@@ -366,7 +458,7 @@ export const LandingPage: React.FC = () => {
             <iframe
               srcDoc={calcIframe}
               className="w-full border-0"
-              style={{ height: '600px' }}
+              style={{ height: "600px" }}
               title="ECU Performance Calculator — Calculate power gains for your vehicle"
               sandbox="allow-scripts allow-same-origin"
               loading="lazy"
@@ -392,23 +484,26 @@ export const LandingPage: React.FC = () => {
 
             {/* Text */}
             <div>
-              <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Why Us</p>
+              <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">
+                Why Us
+              </p>
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-6">
                 Trusted by Professionals Worldwide
               </h2>
               <p className="text-neutral-400 leading-relaxed mb-8">
-                Every file is handcrafted by experienced engineers — no automated solutions.
-                We deliver tested, safe, and reliable tuning files.
+                Every file is handcrafted by experienced engineers — no
+                automated solutions. We deliver tested, safe, and reliable
+                tuning files.
               </p>
 
               <div className="space-y-4">
                 {[
-                  'Experienced engineers with 10+ years in ECU calibration',
-                  'Files tested on dyno before delivery',
-                  'Average turnaround time under 15 minutes',
-                  'Support via WhatsApp, email, and portal (Mon–Sat 9 AM – 10 PM)',
-                  'Simple pricing in euros — pay only for what you need',
-                  'Secure file transfers with encrypted storage',
+                  "Experienced engineers with 10+ years in ECU calibration",
+                  "Files tested on dyno before delivery",
+                  "Average turnaround time under 15 minutes",
+                  "Support via WhatsApp, email, and portal (Mon–Sat 9 AM – 10 PM)",
+                  "Simple pricing in euros — pay only for what you need",
+                  "Secure file transfers with encrypted storage",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
@@ -421,19 +516,25 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══ REVIEWS ═══ */}
-      <ReviewsSection />
-
       {/* ═══ CONTACT ═══ */}
-      <section id="contact" className="py-24 lg:py-32 bg-neutral-900/30" aria-label="Contact us">
+      <section
+        id="contact"
+        className="py-24 lg:py-32 bg-neutral-900/30"
+        aria-label="Contact us"
+      >
         <div className="max-w-6xl mx-auto px-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Info */}
             <div>
-              <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">Contact</p>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Get in Touch</h2>
+              <p className="text-red-500 text-sm font-semibold tracking-widest uppercase mb-3">
+                Contact
+              </p>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+                Get in Touch
+              </h2>
               <p className="text-neutral-400 leading-relaxed mb-10 max-w-md">
-                Have questions about our services? Need a custom solution? We're here to help.
+                Have questions about our services? Need a custom solution? We're
+                here to help.
               </p>
 
               <div className="space-y-6">
@@ -443,7 +544,10 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-500 mb-0.5">Email</p>
-                    <a href="mailto:kikzaperformance@gmail.com" className="text-white hover:text-red-400 transition-colors font-medium">
+                    <a
+                      href="mailto:kikzaperformance@gmail.com"
+                      className="text-white hover:text-red-400 transition-colors font-medium"
+                    >
                       kikzaperformance@gmail.com
                     </a>
                   </div>
@@ -455,7 +559,10 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-neutral-500 mb-0.5">WhatsApp</p>
-                    <a href="https://wa.me/38344955389" className="text-white hover:text-red-400 transition-colors font-medium">
+                    <a
+                      href="https://wa.me/38344955389"
+                      className="text-white hover:text-red-400 transition-colors font-medium"
+                    >
                       +383 44 955 389
                     </a>
                   </div>
@@ -466,20 +573,27 @@ export const LandingPage: React.FC = () => {
                     <Clock className="w-4 h-4 text-red-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-500 mb-2">Working Hours</p>
+                    <p className="text-sm text-neutral-500 mb-2">
+                      Working Hours
+                    </p>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-8">
-                        <span className="text-sm text-neutral-400">Monday - Saturday</span>
-                        <span className="text-sm text-white font-medium">9:00 AM - 10:00 PM</span>
+                        <span className="text-sm text-neutral-400">
+                          Monday - Saturday
+                        </span>
+                        <span className="text-sm text-white font-medium">
+                          9:00 AM - 10:00 PM
+                        </span>
                       </div>
                       <div className="flex items-center justify-between gap-8">
                         <span className="text-sm text-neutral-400">Sunday</span>
-                        <span className="text-sm text-red-400 font-medium">Closed</span>
+                        <span className="text-sm text-red-400 font-medium">
+                          Closed
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -491,15 +605,20 @@ export const LandingPage: React.FC = () => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;
                   const data = new FormData(form);
-                  const name = data.get('name');
-                  const email = data.get('email');
-                  const message = data.get('message');
+                  const name = data.get("name");
+                  const email = data.get("email");
+                  const message = data.get("message");
                   // Open mailto with prefilled data
                   window.location.href = `mailto:kikzaperformance@gmail.com?subject=Inquiry from ${name}&body=${message}%0A%0AFrom: ${name} (${email})`;
                 }}
               >
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-neutral-400 mb-1.5">Name</label>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-neutral-400 mb-1.5"
+                  >
+                    Name
+                  </label>
                   <input
                     type="text"
                     id="name"
@@ -510,7 +629,12 @@ export const LandingPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-neutral-400 mb-1.5">Email</label>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-neutral-400 mb-1.5"
+                  >
+                    Email
+                  </label>
                   <input
                     type="email"
                     id="email"
@@ -521,7 +645,12 @@ export const LandingPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-neutral-400 mb-1.5">Message</label>
+                  <label
+                    htmlFor="message"
+                    className="block text-sm font-medium text-neutral-400 mb-1.5"
+                  >
+                    Message
+                  </label>
                   <textarea
                     id="message"
                     name="message"
@@ -551,8 +680,8 @@ export const LandingPage: React.FC = () => {
             Ready to Start Tuning?
           </h2>
           <p className="text-neutral-400 max-w-md mx-auto mb-8">
-            Join thousands of workshops and tuners who trust ChipTuneFiles.
-            No subscription — pay only for what you need.
+            Join thousands of workshops and tuners who trust ChipTuneFiles. No
+            subscription — pay only for what you need.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -580,7 +709,8 @@ export const LandingPage: React.FC = () => {
             <div>
               <img src="/logo.png" alt="ChipTuneFiles" className="h-8 mb-4" />
               <p className="text-sm text-neutral-500 leading-relaxed mb-4">
-                Professional ECU file service for workshops and tuners worldwide.
+                Professional ECU file service for workshops and tuners
+                worldwide.
               </p>
               <Link
                 to="/login"
@@ -593,15 +723,52 @@ export const LandingPage: React.FC = () => {
 
             {/* Quick Links */}
             <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Quick Links</h4>
+              <h4 className="text-sm font-semibold text-white mb-4">
+                Quick Links
+              </h4>
               <nav className="space-y-2.5" aria-label="Footer navigation">
-                <a href="#services" className="block text-sm text-neutral-500 hover:text-white transition-colors">Services</a>
-                <a href="#how-it-works" className="block text-sm text-neutral-500 hover:text-white transition-colors">How It Works</a>
-                <a href="#calculator" className="block text-sm text-neutral-500 hover:text-white transition-colors">Calculator</a>
-                <a href="#contact" className="block text-sm text-neutral-500 hover:text-white transition-colors">Contact</a>
-                <Link to="/terms" className="block text-sm text-neutral-500 hover:text-white transition-colors">Terms of Service</Link>
-                <Link to="/privacy" className="block text-sm text-neutral-500 hover:text-white transition-colors">Privacy Policy</Link>
-                <Link to="/refund-policy" className="block text-sm text-neutral-500 hover:text-white transition-colors">Refund Policy</Link>
+                <a
+                  href="#services"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  Services
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  How It Works
+                </a>
+                <a
+                  href="#calculator"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  Calculator
+                </a>
+                <a
+                  href="#contact"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  Contact
+                </a>
+                <Link
+                  to="/terms"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  Terms of Service
+                </Link>
+                <Link
+                  to="/privacy"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  to="/refund-policy"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  Refund Policy
+                </Link>
               </nav>
             </div>
 
@@ -609,11 +776,17 @@ export const LandingPage: React.FC = () => {
             <div>
               <h4 className="text-sm font-semibold text-white mb-4">Contact</h4>
               <div className="space-y-3">
-                <a href="https://wa.me/38344955389" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors">
+                <a
+                  href="https://wa.me/38344955389"
+                  className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors"
+                >
                   <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
                   +383 44 955 389 (WhatsApp)
                 </a>
-                <a href="mailto:kikzaperformance@gmail.com" className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors">
+                <a
+                  href="mailto:kikzaperformance@gmail.com"
+                  className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors"
+                >
                   <Mail className="w-4 h-4 text-red-500 flex-shrink-0" />
                   kikzaperformance@gmail.com
                 </a>
@@ -622,35 +795,51 @@ export const LandingPage: React.FC = () => {
 
             {/* Working Hours */}
             <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Working Hours</h4>
+              <h4 className="text-sm font-semibold text-white mb-4">
+                Working Hours
+              </h4>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Monday</span>
-                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                  <span className="text-sm text-neutral-300">
+                    9:00 AM - 10:00 PM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Tuesday</span>
-                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                  <span className="text-sm text-neutral-300">
+                    9:00 AM - 10:00 PM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Wednesday</span>
-                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                  <span className="text-sm text-neutral-300">
+                    9:00 AM - 10:00 PM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Thursday</span>
-                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                  <span className="text-sm text-neutral-300">
+                    9:00 AM - 10:00 PM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Friday</span>
-                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                  <span className="text-sm text-neutral-300">
+                    9:00 AM - 10:00 PM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Saturday</span>
-                  <span className="text-sm text-neutral-300">9:00 AM - 10:00 PM</span>
+                  <span className="text-sm text-neutral-300">
+                    9:00 AM - 10:00 PM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-500">Sunday</span>
-                  <span className="text-sm text-red-400 font-medium">Closed</span>
+                  <span className="text-sm text-red-400 font-medium">
+                    Closed
+                  </span>
                 </div>
               </div>
             </div>
@@ -659,10 +848,12 @@ export const LandingPage: React.FC = () => {
           {/* Bottom bar */}
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-neutral-600">
-              © {new Date().getFullYear()} chiptunefiles.com — All rights reserved.
+              © {new Date().getFullYear()} chiptunefiles.com — All rights
+              reserved.
             </p>
             <p className="text-xs text-neutral-600">
-              Automated emails from this platform are not monitored. Please do not reply to them.
+              Automated emails from this platform are not monitored. Please do
+              not reply to them.
             </p>
           </div>
         </div>
