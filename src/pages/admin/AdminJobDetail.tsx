@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench, Phone, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench, Phone, ArrowUpRight, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
-import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, createNotification, logAdminAction } from '@/hooks/useSupabase';
+import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, createNotification, logAdminAction, useJobRatingAdmin } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { sendNotification } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
@@ -42,6 +42,7 @@ export const AdminJobDetailPage: React.FC = () => {
   const profile = useAuthStore((s) => s.profile);
   const { job, loading } = useJob(id);
   const { messages, sendMessage } = useJobMessages(id);
+  const { rating: clientRating } = useJobRatingAdmin(id);
   
   const [newMessage, setNewMessage] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
@@ -642,6 +643,42 @@ export const AdminJobDetailPage: React.FC = () => {
               <p className="text-xs text-zinc-500 mt-2">Upload modified file to mark as complete</p>
             )}
           </Card>
+
+          {/* Client Rating */}
+          {job.status === 'completed' && (
+            <Card>
+              <div className="flex items-center gap-2 mb-3">
+                <Star size={20} className="text-yellow-500" />
+                <h2 className="text-lg font-semibold">Client Rating</h2>
+              </div>
+              {clientRating ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star
+                          key={n}
+                          size={18}
+                          className={n <= clientRating.rating ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-300 dark:text-zinc-600'}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold">{clientRating.rating}/5</span>
+                  </div>
+                  {clientRating.comment && (
+                    <p className="text-sm bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg text-zinc-600 dark:text-zinc-300">
+                      &ldquo;{clientRating.comment}&rdquo;
+                    </p>
+                  )}
+                  <p className="text-xs text-zinc-500 mt-2">
+                    {new Date(clientRating.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500">Client hasn't rated this job yet.</p>
+              )}
+            </Card>
+          )}
 
           {/* Timeline */}
           <Card>

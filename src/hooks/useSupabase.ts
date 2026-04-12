@@ -1417,6 +1417,38 @@ export function useJobRating(jobId: string | undefined) {
   return { rating, loading, refetch: fetch };
 }
 
+// Admin version: fetches ANY rating for a job (not filtered by current user).
+// RLS policy "Admins can view all ratings" grants access.
+export function useJobRatingAdmin(jobId: string | undefined) {
+  const [rating, setRating] = useState<JobRating | null>(null);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!jobId || !isAdmin) {
+      setLoading(false);
+      return;
+    }
+    const run = async () => {
+      const { data } = await supabase
+        .from('job_ratings')
+        .select('*')
+        .eq('job_id', jobId)
+        .maybeSingle();
+      if (!cancelled) {
+        setRating((data as JobRating) || null);
+        setLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [jobId, isAdmin, refreshKey]);
+
+  return { rating, loading };
+}
+
 export async function submitJobRating(params: {
   jobId: string;
   rating: number;
