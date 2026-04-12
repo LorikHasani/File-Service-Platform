@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench, Phone, ArrowUpRight, Star } from 'lucide-react';
+import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench, Phone, ArrowUpRight, Star, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
-import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, createNotification, logAdminAction, useJobRatingAdmin } from '@/hooks/useSupabase';
+import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, deleteJob, createNotification, logAdminAction, useJobRatingAdmin } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
 import { sendNotification } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
@@ -39,6 +39,7 @@ const statusOptions = [
 
 export const AdminJobDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const profile = useAuthStore((s) => s.profile);
   const { job, loading } = useJob(id);
   const { messages, sendMessage } = useJobMessages(id);
@@ -50,6 +51,8 @@ export const AdminJobDetailPage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [revisionNote, setRevisionNote] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: async (files) => {
@@ -146,6 +149,20 @@ export const AdminJobDetailPage: React.FC = () => {
       setNewMessage('');
     }
     setSending(false);
+  };
+
+  const handleDeleteJob = async () => {
+    if (!id) return;
+    setDeleting(true);
+    const { error } = await deleteJob(id);
+    if (error) {
+      toast.error('Failed to delete job');
+      setDeleting(false);
+    } else {
+      logAdminAction('delete_job', 'job', id, { reference_number: job?.reference_number });
+      toast.success('Job deleted');
+      navigate('/admin/jobs');
+    }
   };
 
   const handleDownload = async (path: string, name: string) => {
@@ -642,6 +659,45 @@ export const AdminJobDetailPage: React.FC = () => {
             {!latestModified && job.status !== 'completed' && (
               <p className="text-xs text-zinc-500 mt-2">Upload modified file to mark as complete</p>
             )}
+
+            <div className="border-t border-zinc-200 dark:border-zinc-800 mt-4 pt-4">
+              {!showDeleteConfirm ? (
+                <Button
+                  className="w-full"
+                  variant="ghost"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 size={16} className="text-red-500" />
+                  <span className="text-red-500">Delete Job</span>
+                </Button>
+              ) : (
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">
+                    Are you sure you want to delete this job?
+                  </p>
+                  <p className="text-xs text-red-500 dark:text-red-400 mb-3">
+                    This will permanently delete the job, all files, messages, and related data. This action cannot be undone.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleting}
+                    >
+                      Cancel
+                    </Button>
+                    <button
+                      className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                      onClick={handleDeleteJob}
+                      disabled={deleting}
+                    >
+                      {deleting ? 'Deleting...' : 'Yes, Delete'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
 
           {/* Client Rating */}

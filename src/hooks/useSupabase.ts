@@ -236,6 +236,37 @@ export async function requestRevision(
   }
 }
 
+export async function deleteJob(
+  jobId: string
+): Promise<{ error: Error | null }> {
+  try {
+    // Delete related rows first (files from storage + DB, messages, services, etc.)
+    const { data: files } = await supabase
+      .from('files')
+      .select('storage_path')
+      .eq('job_id', jobId);
+
+    if (files && files.length > 0) {
+      await supabase.storage
+        .from('job-files')
+        .remove(files.map((f) => f.storage_path));
+    }
+
+    // Delete dependent rows then the job itself
+    await supabase.from('files').delete().eq('job_id', jobId);
+    await supabase.from('job_messages').delete().eq('job_id', jobId);
+    await supabase.from('job_services').delete().eq('job_id', jobId);
+    await supabase.from('job_ratings').delete().eq('job_id', jobId);
+    await supabase.from('notifications').delete().eq('reference_id', jobId);
+
+    const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
 // ============================================================================
 // SERVICES HOOKS
 // ============================================================================
