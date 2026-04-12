@@ -43,11 +43,14 @@ interface VehicleTree {
 export function useVehicleApi() {
   const [data, setData] = useState<VehicleTree | null>(null);
 
-  const [selectedMake, setSelectedMake] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [selectedGeneration, setSelectedGeneration] = useState('');
-  const [selectedEngine, setSelectedEngine] = useState('');
-  const [selectedEcu, setSelectedEcu] = useState('');
+  const [selectedMake, _setSelectedMake] = useState('');
+  const [selectedModel, _setSelectedModel] = useState('');
+  const [selectedGeneration, _setSelectedGeneration] = useState('');
+  const [selectedEngine, _setSelectedEngine] = useState('');
+  const [selectedEcu, _setSelectedEcu] = useState('');
+
+  // When true, skip the reset-downstream effects (used by bulk load)
+  const bulkLoading = useRef(false);
 
   const [loadingMakes, setLoadingMakes] = useState(true);
 
@@ -60,11 +63,30 @@ export function useVehicleApi() {
       .finally(() => setLoadingMakes(false));
   }, []);
 
-  // Reset downstream selections when upstream changes
-  useEffect(() => { setSelectedModel(''); }, [selectedMake]);
-  useEffect(() => { setSelectedGeneration(''); }, [selectedModel]);
-  useEffect(() => { setSelectedEngine(''); }, [selectedGeneration]);
-  useEffect(() => { setSelectedEcu(''); }, [selectedEngine]);
+  // Reset downstream selections when upstream changes (skip during bulk load)
+  useEffect(() => { if (!bulkLoading.current) _setSelectedModel(''); }, [selectedMake]);
+  useEffect(() => { if (!bulkLoading.current) _setSelectedGeneration(''); }, [selectedModel]);
+  useEffect(() => { if (!bulkLoading.current) _setSelectedEngine(''); }, [selectedGeneration]);
+  useEffect(() => { if (!bulkLoading.current) _setSelectedEcu(''); }, [selectedEngine]);
+
+  // Wrapper setters that reset downstream when called individually
+  const setSelectedMake = (v: string) => _setSelectedMake(v);
+  const setSelectedModel = (v: string) => _setSelectedModel(v);
+  const setSelectedGeneration = (v: string) => _setSelectedGeneration(v);
+  const setSelectedEngine = (v: string) => _setSelectedEngine(v);
+  const setSelectedEcu = (v: string) => _setSelectedEcu(v);
+
+  // Set all vehicle selections at once without cascading resets
+  const loadAll = (make: string, model: string, generation: string, engine: string, ecu: string) => {
+    bulkLoading.current = true;
+    _setSelectedMake(make);
+    _setSelectedModel(model);
+    _setSelectedGeneration(generation);
+    _setSelectedEngine(engine);
+    _setSelectedEcu(ecu);
+    // Allow effects to run normally again after this render cycle
+    requestAnimationFrame(() => { bulkLoading.current = false; });
+  };
 
   // Derive options from static data
   const makes: Option[] = data
@@ -95,6 +117,7 @@ export function useVehicleApi() {
     selectedMake, selectedModel, selectedGeneration, selectedEngine, selectedEcu,
     setSelectedMake, setSelectedModel, setSelectedGeneration, setSelectedEngine, setSelectedEcu,
     makes, models, generations, engines, ecus,
+    loadAll,
     loadingMakes,
     loadingModels: false,
     loadingGenerations: false,

@@ -824,6 +824,12 @@ export interface Database {
         };
         Returns: boolean;
       };
+      admin_delete_job: {
+        Args: {
+          p_job_id: string;
+        };
+        Returns: boolean;
+      };
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;

@@ -240,7 +240,7 @@ export async function deleteJob(
   jobId: string
 ): Promise<{ error: Error | null }> {
   try {
-    // Delete related rows first (files from storage + DB, messages, services, etc.)
+    // Remove files from storage before the DB rows are gone
     const { data: files } = await supabase
       .from('files')
       .select('storage_path')
@@ -252,14 +252,8 @@ export async function deleteJob(
         .remove(files.map((f) => f.storage_path));
     }
 
-    // Delete dependent rows then the job itself
-    await supabase.from('files').delete().eq('job_id', jobId);
-    await supabase.from('job_messages').delete().eq('job_id', jobId);
-    await supabase.from('job_services').delete().eq('job_id', jobId);
-    await supabase.from('job_ratings').delete().eq('job_id', jobId);
-    await supabase.from('notifications').delete().eq('reference_id', jobId);
-
-    const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+    // Use SECURITY DEFINER RPC to bypass RLS and handle FK constraints
+    const { error } = await supabase.rpc('admin_delete_job', { p_job_id: jobId });
     if (error) throw error;
     return { error: null };
   } catch (err) {

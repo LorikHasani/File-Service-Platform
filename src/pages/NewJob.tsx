@@ -428,14 +428,13 @@ export const NewJobPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            // Set all vehicle selections directly — value === label in the vehicle API,
-                            // so we can bypass lookups. React batches these and derives the dropdown
-                            // arrays correctly in one render.
-                            vehicle.setSelectedMake(sv.vehicle_brand);
-                            vehicle.setSelectedModel(sv.vehicle_model);
-                            vehicle.setSelectedGeneration(sv.vehicle_generation || '');
-                            vehicle.setSelectedEngine(sv.engine_type);
-                            vehicle.setSelectedEcu(sv.ecu_type || '');
+                            vehicle.loadAll(
+                              sv.vehicle_brand,
+                              sv.vehicle_model,
+                              sv.vehicle_generation || '',
+                              sv.engine_type,
+                              sv.ecu_type || ''
+                            );
                             setVin(sv.vin || '');
                             setGearbox(sv.gearbox_type || '');
                             toast.success(`Loaded "${sv.nickname || sv.vehicle_brand}"`);
