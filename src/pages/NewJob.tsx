@@ -428,31 +428,16 @@ export const NewJobPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            // Find the matching make/model/generation/engine/ecu in the vehicle API
-                            // and set them via state. Since the dropdown data is static JSON, we match by label.
-                            const makeMatch = vehicle.makes.find((m) => m.label === sv.vehicle_brand);
-                            if (makeMatch) vehicle.setSelectedMake(makeMatch.value);
+                            // Set all vehicle selections directly — value === label in the vehicle API,
+                            // so we can bypass lookups. React batches these and derives the dropdown
+                            // arrays correctly in one render.
+                            vehicle.setSelectedMake(sv.vehicle_brand);
+                            vehicle.setSelectedModel(sv.vehicle_model);
+                            vehicle.setSelectedGeneration(sv.vehicle_generation || '');
+                            vehicle.setSelectedEngine(sv.engine_type);
+                            vehicle.setSelectedEcu(sv.ecu_type || '');
                             setVin(sv.vin || '');
                             setGearbox(sv.gearbox_type || '');
-                            // Downstream selects (model, gen, engine, ecu) will populate after
-                            // the make state change triggers re-derived options. Use a timeout
-                            // to set them once the data is available.
-                            setTimeout(() => {
-                              const modelMatch = vehicle.models.find((m) => m.label === sv.vehicle_model);
-                              if (modelMatch) vehicle.setSelectedModel(modelMatch.value);
-                              setTimeout(() => {
-                                const genMatch = vehicle.generations.find((g) => g.label === sv.vehicle_generation);
-                                if (genMatch) vehicle.setSelectedGeneration(genMatch.value);
-                                setTimeout(() => {
-                                  const engMatch = vehicle.engines.find((e) => e.label === sv.engine_type);
-                                  if (engMatch) vehicle.setSelectedEngine(engMatch.value);
-                                  setTimeout(() => {
-                                    const ecuMatch = vehicle.ecus.find((e) => e.label === sv.ecu_type);
-                                    if (ecuMatch) vehicle.setSelectedEcu(ecuMatch.value);
-                                  }, 100);
-                                }, 100);
-                              }, 100);
-                            }, 100);
                             toast.success(`Loaded "${sv.nickname || sv.vehicle_brand}"`);
                           }}
                           className="text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate max-w-[220px]"
