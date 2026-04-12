@@ -21,7 +21,7 @@ BEGIN
   UPDATE transactions SET job_id = NULL WHERE job_id = p_job_id;
 
   -- Delete dependent rows (most cascade, but be explicit for safety)
-  DELETE FROM notifications WHERE reference_id = p_job_id::text;
+  DELETE FROM notifications WHERE link_id = p_job_id;
   DELETE FROM job_ratings WHERE job_id = p_job_id;
   DELETE FROM job_messages WHERE job_id = p_job_id;
   DELETE FROM files WHERE job_id = p_job_id;
