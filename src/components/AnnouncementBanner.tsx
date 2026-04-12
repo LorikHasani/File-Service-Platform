@@ -30,19 +30,36 @@ const typeIcons: Record<string, React.ReactNode> = {
   success: <CheckCircle size={20} />,
 };
 
+const getSeenIds = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem('announcements_seen') || '[]');
+  } catch {
+    return [];
+  }
+};
+
+const markSeen = (ids: string[]) => {
+  const prev = getSeenIds();
+  const merged = Array.from(new Set([...prev, ...ids]));
+  localStorage.setItem('announcements_seen', JSON.stringify(merged));
+};
+
 export const AnnouncementBanner: React.FC = () => {
   const { announcements, loading } = useAnnouncements(true);
-  const [closed, setClosed] = useState(() => sessionStorage.getItem('announcement_closed') === '1');
+  const [closed, setClosed] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Filter out announcements the user has already seen
+  const unseen = announcements.filter((a) => !getSeenIds().includes(a.id));
+
   const handleClose = () => {
-    sessionStorage.setItem('announcement_closed', '1');
+    markSeen(unseen.map((a) => a.id));
     setClosed(true);
   };
 
-  if (loading || announcements.length === 0 || closed) return null;
+  if (loading || unseen.length === 0 || closed) return null;
 
-  const current = announcements[currentIndex] || announcements[0];
+  const current = unseen[currentIndex] || unseen[0];
   if (!current) return null;
 
   const style = typeStyles[current.type] || typeStyles.info;
@@ -55,8 +72,8 @@ export const AnnouncementBanner: React.FC = () => {
           <div className="flex items-center gap-2">
             <Megaphone size={20} className="text-red-600" />
             <h2 className="text-lg font-bold">
-              {announcements.length > 1
-                ? `News (${currentIndex + 1}/${announcements.length})`
+              {unseen.length > 1
+                ? `News (${currentIndex + 1}/${unseen.length})`
                 : 'News'}
             </h2>
           </div>
@@ -94,10 +111,10 @@ export const AnnouncementBanner: React.FC = () => {
 
         {/* Footer - sticky */}
         <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 flex-shrink-0">
-          {announcements.length > 1 ? (
+          {unseen.length > 1 ? (
             <>
               <div className="flex gap-1.5">
-                {announcements.map((_, i) => (
+                {unseen.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentIndex(i)}
@@ -118,7 +135,7 @@ export const AnnouncementBanner: React.FC = () => {
                     Previous
                   </Button>
                 )}
-                {currentIndex < announcements.length - 1 ? (
+                {currentIndex < unseen.length - 1 ? (
                   <Button
                     size="sm"
                     onClick={() => setCurrentIndex(currentIndex + 1)}
