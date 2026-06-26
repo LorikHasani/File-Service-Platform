@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
-import { Search, Mail, Send, CheckSquare, Square, Users } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Search, Mail, Send, CheckSquare, Square, Users, ImagePlus, X } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Spinner, Avatar, Badge } from '@/components/ui';
 import { useAllUsers } from '@/hooks/useSupabase';
 import { sendAdminEmail } from '@/lib/emails';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+
+interface PendingImage {
+  file: File;
+  preview: string;
+}
 
 export const AdminEmailsPage: React.FC = () => {
   const { users, loading } = useAllUsers();
@@ -14,6 +20,8 @@ export const AdminEmailsPage: React.FC = () => {
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [emailColor, setEmailColor] = useState<'blue' | 'red'>('blue');
+  const [images, setImages] = useState<PendingImage[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const clients = users.filter((u) => u.role === 'client');
   const filteredClients = clients.filter((user) =>
@@ -38,6 +46,57 @@ export const AdminEmailsPage: React.FC = () => {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (files.length === 0) return;
+
+    const valid: PendingImage[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image`);
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is over 5MB`);
+        continue;
+      }
+      valid.push({ file, preview: URL.createObjectURL(file) });
+    }
+    setImages((prev) => [...prev, ...valid]);
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      const target = prev[index];
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // Upload all pending images to storage and return their public (signed) URLs.
+  const uploadImages = async (): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const { file } of images) {
+      const ext = file.name.split('.').pop();
+      const path = `email-images/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('ecu-files')
+        .upload(path, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const { data: signedData, error: signError } = await supabase.storage
+        .from('ecu-files')
+        .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year
+      if (signError || !signedData?.signedUrl) {
+        throw signError || new Error('Failed to get image URL');
+      }
+      urls.push(signedData.signedUrl);
+    }
+    return urls;
+  };
+
   const handleSend = async () => {
     if (selectedEmails.size === 0) {
       toast.error('Select at least one recipient');
@@ -50,11 +109,17 @@ export const AdminEmailsPage: React.FC = () => {
 
     setSending(true);
     try {
+      let imageUrls: string[] = [];
+      if (images.length > 0) {
+        imageUrls = await uploadImages();
+      }
+
       const result = await sendAdminEmail(
         Array.from(selectedEmails),
         subject.trim(),
         body.trim(),
-        emailColor
+        emailColor,
+        imageUrls
       );
       toast.success(`Email sent to ${result.sent} client(s)`);
       if (result.failed && result.failed > 0) {
@@ -63,6 +128,8 @@ export const AdminEmailsPage: React.FC = () => {
       setSubject('');
       setBody('');
       setSelectedEmails(new Set());
+      images.forEach((img) => URL.revokeObjectURL(img.preview));
+      setImages([]);
     } catch (err: any) {
       toast.error(err.message || 'Failed to send email');
     } finally {
@@ -205,6 +272,53 @@ export const AdminEmailsPage: React.FC = () => {
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Write your message here..."
                   rows={10}
+                />
+              </div>
+
+              {/* Images */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Images <span className="text-zinc-400 font-normal">(optional)</span>
+                </label>
+                {images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={img.preview}
+                          alt=""
+                          className="w-full h-24 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-md hover:bg-red-700 shadow"
+                          title="Remove"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-3 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg flex items-center justify-center gap-2 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors text-zinc-500 text-sm"
+                >
+                  <ImagePlus size={18} />
+                  <span>{images.length > 0 ? 'Add more images' : 'Add images'}</span>
+                </button>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Shown in the email below your message · PNG, JPG up to 5MB each
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageSelect}
+                  className="hidden"
                 />
               </div>
 

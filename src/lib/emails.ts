@@ -4,7 +4,8 @@ export async function sendAdminEmail(
   to: string[],
   subject: string,
   body: string,
-  color: 'blue' | 'red' = 'blue'
+  color: 'blue' | 'red' = 'blue',
+  images: string[] = []
 ): Promise<{ success: boolean; sent: number; failed?: number; error?: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
@@ -17,7 +18,7 @@ export async function sendAdminEmail(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ to, subject, body, color }),
+    body: JSON.stringify({ to, subject, body, color, images }),
   });
 
   const data = await response.json();

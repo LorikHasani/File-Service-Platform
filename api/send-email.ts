@@ -17,9 +17,21 @@ const COLORS = {
   red: '#dc2626',
 };
 
-function composeEmailHtml(subject: string, body: string, color: 'blue' | 'red' = 'blue') {
+function composeEmailHtml(
+  subject: string,
+  body: string,
+  color: 'blue' | 'red' = 'blue',
+  images: string[] = []
+) {
   const htmlBody = body.replace(/\n/g, '<br/>');
   const accent = COLORS[color] || COLORS.blue;
+
+  const imagesHtml = images
+    .map(
+      (url) =>
+        `<div style="margin:0 0 20px;"><img src="${url}" alt="" style="display:block;width:100%;max-width:520px;height:auto;border-radius:8px;border:0;" /></div>`
+    )
+    .join('');
 
   return `
 <!DOCTYPE html>
@@ -35,6 +47,7 @@ function composeEmailHtml(subject: string, body: string, color: 'blue' | 'red' =
           <div style="margin:0 0 30px;color:#333;font-size:15px;line-height:1.7;">
             ${htmlBody}
           </div>
+          ${imagesHtml}
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="left" style="padding:0 0 8px;">
               <a href="${SITE_URL}/login"
@@ -123,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { to, subject, body, color } = req.body;
+    const { to, subject, body, color, images } = req.body;
 
     if (!to || !Array.isArray(to) || to.length === 0) {
       return res.status(400).json({ error: 'Missing or invalid recipients (to)' });
@@ -132,7 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing subject or body' });
     }
 
-    const html = composeEmailHtml(subject, body, color === 'red' ? 'red' : 'blue');
+    // Optional inline images — accept only an array of string URLs.
+    const imageUrls: string[] = Array.isArray(images)
+      ? images.filter((u): u is string => typeof u === 'string' && u.length > 0)
+      : [];
+
+    const html = composeEmailHtml(subject, body, color === 'red' ? 'red' : 'blue', imageUrls);
 
     // Resend batch API supports up to 100 per call — split into chunks of 100
     const BATCH_LIMIT = 100;
