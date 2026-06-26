@@ -37,6 +37,7 @@ import { AdminTicketsPage } from '@/pages/admin/AdminTickets';
 import { AdminTicketDetailPage } from '@/pages/admin/AdminTicketDetail';
 import { AdminEmailsPage } from '@/pages/admin/AdminEmails';
 import { AdminNewsPage } from '@/pages/admin/AdminNews';
+import { AdminBannersPage } from '@/pages/admin/AdminBanners';
 import { AdminPackagesPage } from '@/pages/admin/AdminPackages';
 import { AdminTransactionsPage } from '@/pages/admin/AdminTransactions';
 import { AdminAuditLogPage } from '@/pages/admin/AdminAuditLog';
@@ -190,6 +191,7 @@ const App: React.FC = () => {
           <Route path="/admin/tickets/:id" element={<AdminTicketDetailPage />} />
           <Route path="/admin/emails" element={<AdminEmailsPage />} />
           <Route path="/admin/news" element={<AdminNewsPage />} />
+          <Route path="/admin/banners" element={<AdminBannersPage />} />
           <Route path="/admin/packages" element={<AdminPackagesPage />} />
           <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
           <Route path="/admin/audit-log" element={<AdminAuditLogPage />} />

@@ -769,6 +769,46 @@ export interface Database {
           },
         ];
       };
+      promo_banners: {
+        Row: {
+          id: string;
+          title: string | null;
+          image_url: string;
+          link_url: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title?: string | null;
+          image_url: string;
+          link_url?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string | null;
+          image_url?: string;
+          link_url?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promo_banners_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -874,6 +914,7 @@ export type Notification = Database['public']['Tables']['notifications']['Row'];
 export type Ticket = Database['public']['Tables']['tickets']['Row'];
 export type TicketMessage = Database['public']['Tables']['ticket_messages']['Row'];
 export type Announcement = Database['public']['Tables']['announcements']['Row'];
+export type PromoBanner = Database['public']['Tables']['promo_banners']['Row'];
 export type JobRating = Database['public']['Tables']['job_ratings']['Row'];
 export type AdminAuditEntry = Database['public']['Tables']['admin_audit_log']['Row'];
 export type SavedVehicle = Database['public']['Tables']['saved_vehicles']['Row'];

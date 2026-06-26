@@ -20,6 +20,7 @@ import type {
   TicketMessageWithSender,
   TicketStatus,
   Announcement,
+  PromoBanner,
   Notification,
   JobRating,
   JobRatingWithUser,
@@ -1166,6 +1167,91 @@ export async function updateAnnouncement(
 export async function deleteAnnouncement(id: string): Promise<{ error: Error | null }> {
   try {
     const { error } = await supabase.from('announcements').delete().eq('id', id);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+// ============================================================================
+// PROMO BANNERS HOOKS
+// ============================================================================
+
+export function usePromoBanners(activeOnly = true) {
+  const [banners, setBanners] = useState<PromoBanner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetchBanners = useCallback(async () => {
+    try {
+      let query = supabase
+        .from('promo_banners')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (activeOnly) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data } = await query;
+      setBanners(data || []);
+      hasLoaded.current = true;
+    } catch (err) {
+      console.error('Error fetching promo banners:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeOnly, refreshKey]);
+
+  useEffect(() => {
+    if (!hasLoaded.current) setLoading(true);
+    fetchBanners();
+  }, [fetchBanners]);
+
+  return { banners, loading, refetch: fetchBanners };
+}
+
+export async function createPromoBanner(params: {
+  imageUrl: string;
+  title?: string | null;
+  linkUrl?: string | null;
+}): Promise<{ error: Error | null }> {
+  try {
+    const user = useAuthStore.getState().user;
+    const { error } = await supabase.from('promo_banners').insert({
+      image_url: params.imageUrl,
+      title: params.title || null,
+      link_url: params.linkUrl || null,
+      created_by: user?.id || null,
+    });
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+export async function updatePromoBanner(
+  id: string,
+  updates: { title?: string | null; image_url?: string; link_url?: string | null; is_active?: boolean }
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase
+      .from('promo_banners')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+export async function deletePromoBanner(id: string): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.from('promo_banners').delete().eq('id', id);
     if (error) throw error;
     return { error: null };
   } catch (err) {

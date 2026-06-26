@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileUp, Clock, CheckCircle, CreditCard, ArrowRight, Activity, Zap, Cpu, Gauge } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, statusLabels } from '@/components/ui';
+import { PromoBanner } from '@/components/PromoBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useJobs } from '@/hooks/useSupabase';
 
@@ -26,6 +27,8 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <Layout title="Dashboard">
+      <PromoBanner />
+
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
           Welcome back, {profile?.contact_name?.split(' ')[0]}!
