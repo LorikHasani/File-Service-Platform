@@ -43,11 +43,11 @@ function composeEmailHtml(
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          ${imagesHtml}
           <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">${subject}</h1>
           <div style="margin:0 0 30px;color:#333;font-size:15px;line-height:1.7;">
             ${htmlBody}
           </div>
-          ${imagesHtml}
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="left" style="padding:0 0 8px;">
               <a href="${SITE_URL}/login"

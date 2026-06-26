@@ -310,7 +310,7 @@ export const AdminEmailsPage: React.FC = () => {
                   <span>{images.length > 0 ? 'Add more images' : 'Add images'}</span>
                 </button>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Shown in the email below your message · PNG, JPG up to 5MB each
+                  Shown at the top of the email · PNG, JPG up to 5MB each
                 </p>
                 <input
                   ref={fileInputRef}
