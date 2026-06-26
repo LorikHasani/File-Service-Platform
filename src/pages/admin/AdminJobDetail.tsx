@@ -90,7 +90,6 @@ export const AdminJobDetailPage: React.FC = () => {
       }
       setUploading(false);
     },
-    accept: { 'application/octet-stream': ['.bin', '.ori', '.mod', '.ecu', '.tun'] },
     maxSize: 50 * 1024 * 1024,
     multiple: false,
   });
