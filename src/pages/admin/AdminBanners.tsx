@@ -213,7 +213,7 @@ export const AdminBannersPage: React.FC = () => {
         <div className="space-y-4">
           {banners.map((b) => (
             <Card key={b.id} padding="none" className={!b.is_active ? 'opacity-60 overflow-hidden' : 'overflow-hidden'}>
-              <img src={b.image_url} alt={b.title || ''} className="w-full aspect-[16/5] object-cover" />
+              <img src={b.image_url} alt={b.title || ''} className="w-full h-auto block" />
               <div className="flex items-start justify-between gap-4 p-4">
                 <div className="min-w-0">
                   <h3 className="font-semibold truncate">{b.title || 'Untitled banner'}</h3>
@@ -287,7 +287,7 @@ export const AdminBannersPage: React.FC = () => {
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="w-full aspect-[16/5] object-cover rounded-lg border border-zinc-200 dark:border-zinc-700"
+                      className="w-full h-auto block rounded-lg border border-zinc-200 dark:border-zinc-700"
                     />
                     <button
                       onClick={removeImage}

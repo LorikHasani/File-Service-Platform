@@ -11,7 +11,7 @@ const BannerImage: React.FC<{ banner: PromoBannerType }> = ({ banner }) => {
     <img
       src={banner.image_url}
       alt={banner.title || 'Promotion'}
-      className="w-full aspect-[16/5] object-cover"
+      className="w-full h-auto block"
     />
   );
 
