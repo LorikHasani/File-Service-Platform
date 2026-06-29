@@ -70,6 +70,23 @@ export const AdminUserDetailPage: React.FC = () => {
   const [refundOriginalTx, setRefundOriginalTx] = useState<Transaction | null>(null);
   const [refunding, setRefunding] = useState(false);
 
+  // Master / slave classification
+  const [savingToolType, setSavingToolType] = useState(false);
+
+  const handleSetToolType = async (toolType: 'master' | 'slave') => {
+    if (!user || user.tool_type === toolType) return;
+    setSavingToolType(true);
+    const { error } = await supabase.from('profiles').update({ tool_type: toolType }).eq('id', user.id);
+    if (error) {
+      toast.error('Failed to update client type');
+    } else {
+      await logAdminAction('update_tool_type', 'profile', user.id, { tool_type: toolType });
+      toast.success(`Marked as ${toolType}`);
+      refetch();
+    }
+    setSavingToolType(false);
+  };
+
   const openRefundModal = (originalTx?: Transaction) => {
     if (originalTx) {
       setRefundOriginalTx(originalTx);
@@ -282,7 +299,27 @@ export const AdminUserDetailPage: React.FC = () => {
               <p className="text-zinc-500">{user.email}</p>
             </div>
           </div>
-          <Badge variant={user.role === 'client' ? 'pending' : 'completed'}>{user.role}</Badge>
+          <div className="flex items-center gap-3">
+            {user.role === 'client' && (
+              <div className="inline-flex rounded-lg border border-zinc-300 dark:border-zinc-700 overflow-hidden">
+                {(['master', 'slave'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => handleSetToolType(t)}
+                    disabled={savingToolType}
+                    className={`px-3 py-1.5 text-sm font-medium capitalize transition-colors disabled:opacity-50 ${
+                      user.tool_type === t
+                        ? 'bg-red-600 text-white'
+                        : 'bg-transparent text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Badge variant={user.role === 'client' ? 'pending' : 'completed'}>{user.role}</Badge>
+          </div>
         </div>
       </div>
 

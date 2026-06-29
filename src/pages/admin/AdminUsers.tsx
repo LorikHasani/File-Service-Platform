@@ -11,6 +11,7 @@ export const AdminUsersPage: React.FC = () => {
   const navigate = useNavigate();
   const { users, loading, addCredits } = useAllUsers();
   const [search, setSearch] = useState('');
+  const [toolFilter, setToolFilter] = useState<'all' | 'master' | 'slave'>('all');
   const [creditModal, setCreditModal] = useState<{ userId: string; name: string } | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
   const [creditDescription, setCreditDescription] = useState('');
@@ -21,7 +22,8 @@ export const AdminUsersPage: React.FC = () => {
       user.email.toLowerCase().includes(search.toLowerCase()) ||
       user.contact_name.toLowerCase().includes(search.toLowerCase()) ||
       user.company_name?.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
+    const matchesTool = toolFilter === 'all' || user.tool_type === toolFilter;
+    return matchesSearch && matchesTool;
   });
 
   const {
@@ -95,14 +97,29 @@ export const AdminUsersPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Search + filters */}
+      <div className="mb-6 space-y-3">
         <Input
           placeholder="Search by name, email, company..."
           leftIcon={<Search size={18} />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <div className="flex gap-2">
+          {(['all', 'master', 'slave'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => { setToolFilter(t); setPage(1); }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
+                toolFilter === t
+                  ? 'bg-red-600 text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {t === 'all' ? 'All Types' : t}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Users Table */}
@@ -135,9 +152,22 @@ export const AdminUsersPage: React.FC = () => {
                     <p className="text-sm">{user.company_name || '-'}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={user.role === 'client' ? 'pending' : 'completed'}>
-                      {user.role}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={user.role === 'client' ? 'pending' : 'completed'}>
+                        {user.role}
+                      </Badge>
+                      {user.role === 'client' && (
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                            user.tool_type === 'slave'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                              : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+                          }`}
+                        >
+                          {user.tool_type}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold">€{user.credit_balance?.toFixed(2)}</span>

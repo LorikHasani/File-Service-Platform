@@ -28,6 +28,7 @@ interface Service {
   name: string;
   description: string | null;
   base_price: number;
+  slave_price: number | null;
   estimated_hours: number;
   sort_order: number;
   is_active: boolean;
@@ -256,7 +257,7 @@ export const AdminServicesPage: React.FC = () => {
                         <div className="col-span-3">Service</div>
                         <div className="col-span-3">Description</div>
                         <div className="col-span-1">Code</div>
-                        <div className="col-span-1 text-right">Price</div>
+                        <div className="col-span-1 text-right">Price M / S</div>
                         <div className="col-span-1 text-right">Hours</div>
                         <div className="col-span-1 text-center">Active</div>
                         <div className="col-span-2 text-right">Actions</div>
@@ -278,6 +279,9 @@ export const AdminServicesPage: React.FC = () => {
                           </div>
                           <div className="col-span-1 text-right font-semibold text-green-600">
                             €{svc.base_price}
+                            <span className="block text-xs font-normal text-zinc-400">
+                              S €{svc.slave_price ?? svc.base_price}
+                            </span>
                           </div>
                           <div className="col-span-1 text-right text-sm text-zinc-500">
                             {svc.estimated_hours}h
@@ -435,6 +439,7 @@ const ServiceModal: React.FC<{
   const [code, setCode] = useState(service?.code || '');
   const [description, setDescription] = useState(service?.description || '');
   const [basePrice, setBasePrice] = useState(service?.base_price ?? 100);
+  const [slavePrice, setSlavePrice] = useState(service?.slave_price ?? service?.base_price ?? 100);
   const [estimatedHours, setEstimatedHours] = useState(service?.estimated_hours ?? 1);
   const [categoryId, setCategoryId] = useState(service?.category_id || preselectedCatId || '');
   const [sortOrder, setSortOrder] = useState(service?.sort_order ?? 0);
@@ -453,6 +458,7 @@ const ServiceModal: React.FC<{
     if (!code.trim()) { toast.error('Code is required'); return; }
     if (!categoryId) { toast.error('Category is required'); return; }
     if (basePrice < 0) { toast.error('Price must be >= 0'); return; }
+    if (slavePrice < 0) { toast.error('Slave price must be >= 0'); return; }
 
     setSaving(true);
 
@@ -461,6 +467,7 @@ const ServiceModal: React.FC<{
       code: code.trim(),
       description: description.trim() || null,
       base_price: basePrice,
+      slave_price: slavePrice,
       estimated_hours: estimatedHours,
       category_id: categoryId,
       sort_order: sortOrder,
@@ -514,11 +521,19 @@ const ServiceModal: React.FC<{
         </div>
 
         <Input
-          label="Price (€) *"
+          label="Master Price (€) *"
           type="number"
           value={basePrice}
           onChange={(e) => setBasePrice(Number(e.target.value))}
           placeholder="e.g. 150"
+        />
+
+        <Input
+          label="Slave Price (€) *"
+          type="number"
+          value={slavePrice}
+          onChange={(e) => setSlavePrice(Number(e.target.value))}
+          placeholder="e.g. 200"
         />
 
         <Input

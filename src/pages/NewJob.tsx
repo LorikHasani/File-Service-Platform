@@ -10,6 +10,7 @@ import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useServices, createJob, uploadFile, notifyAdmins, useSavedVehicles } from '@/hooks/useSupabase';
+import { priceFor } from '@/lib/pricing';
 import { useVehicleApi } from '@/hooks/useVehicleApi';
 import { sendNotification } from '@/lib/notifications';
 import { clsx } from 'clsx';
@@ -154,18 +155,20 @@ export const NewJobPage: React.FC = () => {
   const allStageServices = stageCategories.flatMap((c) => c.services);
   const allOptionServices = optionCategories.flatMap((c) => c.services);
 
+  const clientToolType = profile?.tool_type;
+
   const totalPrice = useMemo(() => {
     let total = 0;
     if (selectedStage) {
       const s = allStageServices.find((x) => x.code === selectedStage);
-      if (s) total += s.base_price;
+      if (s) total += priceFor(s, clientToolType);
     }
     for (const code of selectedOptions) {
       const s = allOptionServices.find((x) => x.code === code);
-      if (s) total += s.base_price;
+      if (s) total += priceFor(s, clientToolType);
     }
     return total;
-  }, [selectedStage, selectedOptions, allStageServices, allOptionServices]);
+  }, [selectedStage, selectedOptions, allStageServices, allOptionServices, clientToolType]);
 
   const creditBalance = profile?.credit_balance ?? 0;
   const hasEnoughBalance = creditBalance >= totalPrice;
@@ -604,7 +607,7 @@ export const NewJobPage: React.FC = () => {
                             <Cpu size={24} className={sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-400 dark:text-zinc-500'} />
                             <span className="font-semibold text-sm text-zinc-900 dark:text-white">{svc.name}</span>
                             <span className={clsx('text-sm font-bold', sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-500')}>
-                              €{svc.base_price}
+                              €{priceFor(svc, clientToolType)}
                             </span>
                           </button>
                         );
@@ -636,7 +639,7 @@ export const NewJobPage: React.FC = () => {
                             <Settings size={20} className={sel ? 'text-green-500 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500'} />
                             <span className="text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300">{svc.name}</span>
                             <span className={clsx('text-xs font-bold', sel ? 'text-green-600 dark:text-green-400' : 'text-blue-500 dark:text-blue-400')}>
-                              +€{svc.base_price}
+                              +€{priceFor(svc, clientToolType)}
                             </span>
                             {svc.description && (
                               <div className="absolute top-2 right-2">

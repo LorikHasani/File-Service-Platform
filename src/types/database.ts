@@ -7,6 +7,7 @@ export type Json =
   | Json[];
 
 export type UserRole = 'client' | 'admin' | 'superadmin';
+export type ToolType = 'master' | 'slave';
 export type JobStatus = 'pending' | 'in_progress' | 'waiting_for_info' | 'completed' | 'revision_requested' | 'rejected';
 export type FileType = 'original' | 'modified';
 export type TransactionType = 'credit_purchase' | 'job_payment' | 'refund' | 'admin_adjustment';
@@ -21,6 +22,7 @@ export interface Database {
           id: string;
           email: string;
           role: UserRole;
+          tool_type: ToolType;
           company_name: string | null;
           contact_name: string;
           phone: string | null;
@@ -35,6 +37,7 @@ export interface Database {
           id: string;
           email: string;
           role?: UserRole;
+          tool_type?: ToolType;
           company_name?: string | null;
           contact_name: string;
           phone?: string | null;
@@ -49,6 +52,7 @@ export interface Database {
           id?: string;
           email?: string;
           role?: UserRole;
+          tool_type?: ToolType;
           company_name?: string | null;
           contact_name?: string;
           phone?: string | null;
@@ -231,6 +235,7 @@ export interface Database {
           name: string;
           description: string | null;
           base_price: number;
+          slave_price: number | null;
           estimated_hours: number;
           sort_order: number;
           is_active: boolean;
@@ -244,6 +249,7 @@ export interface Database {
           name: string;
           description?: string | null;
           base_price: number;
+          slave_price?: number | null;
           estimated_hours?: number;
           sort_order?: number;
           is_active?: boolean;
@@ -256,6 +262,7 @@ export interface Database {
           name?: string;
           description?: string | null;
           base_price?: number;
+          slave_price?: number | null;
           estimated_hours?: number;
           sort_order?: number;
           is_active?: boolean;

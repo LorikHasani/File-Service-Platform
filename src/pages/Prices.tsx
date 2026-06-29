@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, Spinner } from '@/components/ui';
 import { useServices } from '@/hooks/useSupabase';
+import { useAuthStore } from '@/stores/authStore';
+import { priceFor } from '@/lib/pricing';
 import { Settings, Cpu, Info, X, Cog } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -31,6 +33,7 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
 
 export const PricesPage: React.FC = () => {
   const { categories, loading } = useServices();
+  const toolType = useAuthStore((s) => s.profile?.tool_type);
 
   // Stage categories: either single-select OR name contains "Tuning"/"Stage"
   // This ensures ECU Performance Tuning + TCU Stages both show as large cards
@@ -95,7 +98,7 @@ export const PricesPage: React.FC = () => {
                         }
                         <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">{svc.name}</h3>
                         <span className={clsx('text-lg font-bold', isTcu ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400')}>
-                          €{svc.base_price}
+                          €{priceFor(svc, toolType)}
                         </span>
                       </div>
                     ))}
@@ -124,7 +127,7 @@ export const PricesPage: React.FC = () => {
                   {svc.description && <InfoTooltip text={svc.description} />}
                   <Settings size={22} className="text-zinc-400 dark:text-zinc-500" />
                   <span className="text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300">{svc.name}</span>
-                  <span className="text-sm font-bold text-green-600 dark:text-green-400">+€{svc.base_price}</span>
+                  <span className="text-sm font-bold text-green-600 dark:text-green-400">+€{priceFor(svc, toolType)}</span>
                 </div>
               ))}
             </div>
