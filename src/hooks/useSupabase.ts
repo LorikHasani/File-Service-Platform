@@ -26,6 +26,7 @@ import type {
   JobRatingWithUser,
   AdminAuditEntryWithAdmin,
   SavedVehicle,
+  BusinessHours,
 } from '@/types/database';
 
 // ============================================================================
@@ -1252,6 +1253,55 @@ export async function updatePromoBanner(
 export async function deletePromoBanner(id: string): Promise<{ error: Error | null }> {
   try {
     const { error } = await supabase.from('promo_banners').delete().eq('id', id);
+    if (error) throw error;
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+// ============================================================================
+// BUSINESS HOURS HOOKS
+// ============================================================================
+
+export function useBusinessHours() {
+  const [hours, setHours] = useState<BusinessHours[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  const fetchHours = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('business_hours')
+        .select('*')
+        .order('day_of_week', { ascending: true });
+      setHours(data || []);
+      hasLoaded.current = true;
+    } catch (err) {
+      console.error('Error fetching business hours:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshKey]);
+
+  useEffect(() => {
+    if (!hasLoaded.current) setLoading(true);
+    fetchHours();
+  }, [fetchHours]);
+
+  return { hours, loading, refetch: fetchHours };
+}
+
+export async function updateBusinessHours(
+  dayOfWeek: number,
+  updates: { is_closed?: boolean; open_minutes?: number; close_minutes?: number }
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase
+      .from('business_hours')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('day_of_week', dayOfWeek);
     if (error) throw error;
     return { error: null };
   } catch (err) {

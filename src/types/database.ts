@@ -809,6 +809,30 @@ export interface Database {
           },
         ];
       };
+      business_hours: {
+        Row: {
+          day_of_week: number;
+          is_closed: boolean;
+          open_minutes: number;
+          close_minutes: number;
+          updated_at: string;
+        };
+        Insert: {
+          day_of_week: number;
+          is_closed?: boolean;
+          open_minutes?: number;
+          close_minutes?: number;
+          updated_at?: string;
+        };
+        Update: {
+          day_of_week?: number;
+          is_closed?: boolean;
+          open_minutes?: number;
+          close_minutes?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -918,6 +942,7 @@ export type PromoBanner = Database['public']['Tables']['promo_banners']['Row'];
 export type JobRating = Database['public']['Tables']['job_ratings']['Row'];
 export type AdminAuditEntry = Database['public']['Tables']['admin_audit_log']['Row'];
 export type SavedVehicle = Database['public']['Tables']['saved_vehicles']['Row'];
+export type BusinessHours = Database['public']['Tables']['business_hours']['Row'];
 
 // Admin audit entry joined with the admin's profile
 export interface AdminAuditEntryWithAdmin extends AdminAuditEntry {

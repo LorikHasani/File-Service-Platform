@@ -7,6 +7,7 @@ import {
   MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt, Shield, Image,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useBusinessHours } from '@/hooks/useSupabase';
 import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
@@ -39,35 +40,41 @@ const adminNavItems: NavItem[] = [
   { label: 'Emails', href: '/admin/emails', icon: <Mail size={20} /> },
   { label: 'News', href: '/admin/news', icon: <Megaphone size={20} /> },
   { label: 'Banners', href: '/admin/banners', icon: <Image size={20} /> },
+  { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
   { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={20} /> },
 ];
 
-// Working Hours Widget
-const SCHEDULE = [
-  { day: 'Mon', hours: '9:00 AM - 10:00 PM' },
-  { day: 'Tue', hours: '9:00 AM - 10:00 PM' },
-  { day: 'Wed', hours: '9:00 AM - 10:00 PM' },
-  { day: 'Thu', hours: '9:00 AM - 10:00 PM' },
-  { day: 'Fri', hours: '9:00 AM - 10:00 PM' },
-  { day: 'Sat', hours: '9:00 AM - 10:00 PM' },
-  { day: 'Sun', hours: 'Closed' },
-];
+// Working Hours Widget — schedule is admin-editable (see /admin/schedule)
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Order the widget rows Mon → Sun (day_of_week values 1..6 then 0).
+const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-function isPortalOpen(): boolean {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun
-  if (day === 0) return false;
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const minutes = h * 60 + m;
-  return minutes >= 540 && minutes < 1320; // 9:00–22:00
+// Format minutes-from-midnight as e.g. "9:00 AM".
+export function formatMinutes(minutes: number): string {
+  const h24 = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
 const WorkingHoursWidget: React.FC = () => {
+  const { hours, loading } = useBusinessHours();
   const today = new Date().getDay(); // 0=Sun, 1=Mon...
-  const scheduleIndex = today === 0 ? 6 : today - 1;
-  const open = isPortalOpen();
+
+  // Map day_of_week -> row for quick lookup.
+  const byDay = new Map(hours.map((h) => [h.day_of_week, h]));
+
+  const todayRow = byDay.get(today);
+  let open = false;
+  if (todayRow && !todayRow.is_closed) {
+    const now = new Date();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    open = minutes >= todayRow.open_minutes && minutes < todayRow.close_minutes;
+  }
+
+  if (loading || hours.length === 0) return null;
 
   return (
     <div className="px-4 py-3 border-t border-zinc-800 flex-shrink-0">
@@ -82,18 +89,25 @@ const WorkingHoursWidget: React.FC = () => {
         </span>
       </div>
       <div className="space-y-0.5">
-        {SCHEDULE.map((s, i) => (
-          <div
-            key={s.day}
-            className={clsx(
-              'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
-              i === scheduleIndex ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-500'
-            )}
-          >
-            <span>{s.day}</span>
-            <span className={s.hours === 'Closed' ? 'text-red-400' : ''}>{s.hours}</span>
-          </div>
-        ))}
+        {DISPLAY_ORDER.map((dow) => {
+          const row = byDay.get(dow);
+          if (!row) return null;
+          const label = row.is_closed
+            ? 'Closed'
+            : `${formatMinutes(row.open_minutes)} - ${formatMinutes(row.close_minutes)}`;
+          return (
+            <div
+              key={dow}
+              className={clsx(
+                'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
+                dow === today ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-500'
+              )}
+            >
+              <span>{DAY_LABELS[dow]}</span>
+              <span className={row.is_closed ? 'text-red-400' : ''}>{label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
