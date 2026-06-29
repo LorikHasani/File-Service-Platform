@@ -76,7 +76,10 @@ export const AdminUserDetailPage: React.FC = () => {
   const handleSetToolType = async (toolType: 'master' | 'slave') => {
     if (!user || user.tool_type === toolType) return;
     setSavingToolType(true);
-    const { error } = await supabase.from('profiles').update({ tool_type: toolType }).eq('id', user.id);
+    const { error } = await supabase.rpc('admin_set_tool_type', {
+      p_user_id: user.id,
+      p_tool_type: toolType,
+    });
     if (error) {
       toast.error('Failed to update client type');
     } else {

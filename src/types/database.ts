@@ -888,6 +888,13 @@ export interface Database {
         };
         Returns: string;
       };
+      admin_set_tool_type: {
+        Args: {
+          p_user_id: string;
+          p_tool_type: string;
+        };
+        Returns: undefined;
+      };
       request_job_revision: {
         Args: {
           p_job_id: string;
