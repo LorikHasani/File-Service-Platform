@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight, Clock } from 'lucide-react';
+import { Search, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Spinner, Pagination, usePagination } from '@/components/ui';
-import { useAllJobs, updateJobStatus } from '@/hooks/useSupabase';
+import { useAllJobs, updateJobStatus, useUnreadMessageCounts } from '@/hooks/useSupabase';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import type { JobStatus } from '@/types/database';
@@ -29,6 +29,7 @@ const statusOptions = [
 
 export const AdminJobsPage: React.FC = () => {
   const { jobs, loading } = useAllJobs();
+  const unreadCounts = useUnreadMessageCounts();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
   const [updatingJob, setUpdatingJob] = useState<string | null>(null);
@@ -144,9 +145,20 @@ export const AdminJobsPage: React.FC = () => {
               {pageJobs.map((job) => (
                 <tr key={job.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                   <td className="px-4 py-3">
-                    <Link to={`/admin/jobs/${job.id}`} className="font-mono text-sm font-semibold text-red-600 hover:underline">
-                      {job.reference_number}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link to={`/admin/jobs/${job.id}`} className="font-mono text-sm font-semibold text-red-600 hover:underline">
+                        {job.reference_number}
+                      </Link>
+                      {(unreadCounts[job.id] ?? 0) > 0 && (
+                        <span
+                          title={`${unreadCounts[job.id]} unread message${unreadCounts[job.id] === 1 ? '' : 's'} from client`}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold flex-shrink-0"
+                        >
+                          <MessageSquare size={10} />
+                          {unreadCounts[job.id]}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div>

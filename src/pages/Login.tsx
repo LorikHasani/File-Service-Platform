@@ -112,6 +112,12 @@ export const LoginPage: React.FC = () => {
           </button>
         </div>
 
+        <div className="flex justify-end -mt-2">
+          <Link to="/forgot-password" className="text-sm text-red-600 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+
         {/* CAPTCHA */}
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 bg-zinc-50 dark:bg-zinc-800/50">
           <div className="flex items-center gap-2 mb-3">

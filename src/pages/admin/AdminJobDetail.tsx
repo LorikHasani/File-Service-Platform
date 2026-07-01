@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { ArrowLeft, Download, Upload, MessageSquare, Send, FileText, Clock, User, Car, Check, Wrench, Phone, ArrowUpRight, Star, Trash2 } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout';
 import { Card, Button, Badge, Spinner, Textarea, Select, statusLabels } from '@/components/ui';
 import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, deleteJob, createNotification, logAdminAction, useJobRatingAdmin } from '@/hooks/useSupabase';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/lib/supabase';
 import { sendNotification } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
@@ -53,6 +54,21 @@ export const AdminJobDetailPage: React.FC = () => {
   const [revisionNote, setRevisionNote] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Viewing the job marks its messages as read, clearing the unread badge on
+  // the jobs list. Re-runs when new messages arrive via the 10s poll so
+  // messages received while the page is open are marked too.
+  useEffect(() => {
+    if (!id || messages.length === 0) return;
+    supabase
+      .from('job_messages')
+      .update({ is_read: true })
+      .eq('job_id', id)
+      .eq('is_read', false)
+      .then(({ error }) => {
+        if (error) console.error('Failed to mark messages as read:', error);
+      });
+  }, [id, messages.length]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: async (files) => {

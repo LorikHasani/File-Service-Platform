@@ -7,6 +7,8 @@ import { Spinner } from '@/components/ui';
 // Client Pages
 import { LoginPage } from '@/pages/Login';
 import { RegisterPage } from '@/pages/Register';
+import { ForgotPasswordPage } from '@/pages/ForgotPassword';
+import { ResetPasswordPage } from '@/pages/ResetPassword';
 import { DashboardPage } from '@/pages/Dashboard';
 import { NewJobPage } from '@/pages/NewJob';
 import { JobsListPage } from '@/pages/JobsList';
@@ -161,7 +163,13 @@ const App: React.FC = () => {
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
+
+        {/* Reset password — must stay outside PublicRoute: the email link
+            signs the user in, and PublicRoute would redirect them away
+            before they could set the new password. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Client Routes */}
         <Route element={<ProtectedRoute />}>

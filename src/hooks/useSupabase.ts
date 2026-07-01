@@ -446,6 +446,42 @@ export function useJobMessages(jobId: string | undefined) {
   return { messages, loading, sendMessage };
 }
 
+// Admin: count of unread client messages per job — powers the unread badge
+// on the admin jobs list. A message counts as unread when is_read = false and
+// it was sent by the job's client (admin's own messages don't count).
+export function useUnreadMessageCounts() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAdmin) return;
+
+    const run = async () => {
+      const { data, error } = await supabase
+        .from('job_messages')
+        .select('job_id, sender_id, job:jobs!job_id(client_id)')
+        .eq('is_read', false);
+
+      if (error || cancelled) return;
+
+      const next: Record<string, number> = {};
+      for (const m of (data as unknown as Array<{ job_id: string; sender_id: string; job: { client_id: string } | null }>) || []) {
+        if (m.job && m.sender_id === m.job.client_id) {
+          next[m.job_id] = (next[m.job_id] || 0) + 1;
+        }
+      }
+      setCounts(next);
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [isAdmin, refreshKey]);
+
+  return counts;
+}
+
 // ============================================================================
 // TRANSACTIONS
 // ============================================================================

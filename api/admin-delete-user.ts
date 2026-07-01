@@ -61,6 +61,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Only client accounts can be deleted. Admin profiles are referenced all
+    // over the place (assigned_admin_id, transactions.processed_by, files
+    // they uploaded to clients' jobs) and deleting one would orphan or break
+    // that data — demote the account instead if it must go.
+    if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
+      return res.status(400).json({ error: 'Admin accounts cannot be deleted' });
+    }
+
     // Get all job IDs for this user
     const { data: userJobs } = await supabase
       .from('jobs')
@@ -86,19 +94,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await supabase.from('job_messages').delete().in('job_id', jobIds);
       await supabase.from('files').delete().in('job_id', jobIds);
       await supabase.from('job_services').delete().in('job_id', jobIds);
+      await supabase.from('job_ratings').delete().in('job_id', jobIds);
+    }
+
+    // Support tickets (messages first — they reference the ticket)
+    const { data: userTickets } = await supabase
+      .from('tickets')
+      .select('id')
+      .eq('client_id', userId);
+
+    const ticketIds = (userTickets || []).map((t) => t.id);
+    if (ticketIds.length > 0) {
+      await supabase.from('ticket_messages').delete().in('ticket_id', ticketIds);
+      await supabase.from('tickets').delete().eq('client_id', userId);
     }
 
     // Delete user-level data
     await supabase.from('transactions').delete().eq('user_id', userId);
     await supabase.from('notifications').delete().eq('user_id', userId);
+    await supabase.from('job_ratings').delete().eq('user_id', userId);
+    await supabase.from('saved_vehicles').delete().eq('user_id', userId);
 
     // Delete jobs
     if (jobIds.length > 0) {
-      await supabase.from('jobs').delete().eq('client_id', userId);
+      const { error: jobsError } = await supabase.from('jobs').delete().eq('client_id', userId);
+      if (jobsError) {
+        console.error('Error deleting jobs:', jobsError);
+        return res.status(500).json({ error: 'Failed to delete user jobs' });
+      }
     }
 
-    // Delete profile
-    await supabase.from('profiles').delete().eq('id', userId);
+    // Delete profile — if this fails (e.g. an unexpected FK still points at
+    // it), report the failure instead of pretending the user is gone.
+    const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId);
+    if (profileError) {
+      console.error('Error deleting profile:', profileError);
+      return res.status(500).json({ error: 'Failed to delete user profile' });
+    }
 
     // Delete auth user
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId);
