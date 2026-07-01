@@ -62,7 +62,7 @@ const StarRow: React.FC<{ value: number; size?: number }> = ({ value, size = 16 
 export const JobDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const profile = useAuthStore((s) => s.profile);
-  const { job, loading } = useJob(id);
+  const { job, loading, refetch } = useJob(id);
   const { messages, sendMessage } = useJobMessages(id);
   const { rating: existingRating, refetch: refetchRating } = useJobRating(id);
   const [newMessage, setNewMessage] = useState('');
@@ -129,6 +129,8 @@ export const JobDetailPage: React.FC = () => {
       }
       setShowRevisionForm(false);
       setRevisionReason('');
+      // Reflect the new revision_requested status without a reload
+      await refetch();
     }
   };
 

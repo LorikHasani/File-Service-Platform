@@ -41,7 +41,7 @@ export const AdminJobDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const profile = useAuthStore((s) => s.profile);
-  const { job, loading } = useJob(id);
+  const { job, loading, refetch } = useJob(id);
   const { messages, sendMessage } = useJobMessages(id);
   const { rating: clientRating } = useJobRatingAdmin(id);
   
@@ -87,6 +87,8 @@ export const AdminJobDetailPage: React.FC = () => {
           { version, original_name: files[0]!.name, revision_note: note || null }
         );
         setRevisionNote('');
+        // Show the new file in the list without a manual page reload
+        await refetch();
       }
       setUploading(false);
     },
@@ -124,6 +126,8 @@ export const AdminJobDetailPage: React.FC = () => {
           id!
         );
       }
+      // Reflect the new status (badge, select, timeline) without a reload
+      await refetch();
     }
     setUpdatingStatus(false);
   };

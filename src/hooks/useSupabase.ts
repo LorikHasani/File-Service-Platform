@@ -105,55 +105,53 @@ export function useJob(jobId: string | undefined) {
   const hasLoaded = useRef(false);
   const refreshKey = useAuthStore((s) => s.refreshKey);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const fetchJob = useCallback(async () => {
     if (!jobId) {
       setLoading(false);
       return;
     }
 
+    try {
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+
+      if (jobError) throw jobError;
+
+      const [{ data: services }, { data: files }, { data: client }] = await Promise.all([
+        supabase.from('job_services').select('*').eq('job_id', jobId),
+        supabase.from('files').select('*').eq('job_id', jobId),
+        supabase.from('profiles').select('*').eq('id', jobData.client_id).single(),
+      ]);
+
+      setJob({
+        ...jobData,
+        services: services || [],
+        files: files || [],
+        client: client || undefined,
+      });
+      hasLoaded.current = true;
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId]);
+
+  useEffect(() => {
+    if (!jobId) {
+      setLoading(false);
+      return;
+    }
     if (!hasLoaded.current) {
       setLoading(true);
     }
+    fetchJob();
+  }, [jobId, refreshKey, fetchJob]);
 
-    const run = async () => {
-      try {
-        const { data: jobData, error: jobError } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('id', jobId)
-          .single();
-
-        if (jobError) throw jobError;
-
-        const [{ data: services }, { data: files }, { data: client }] = await Promise.all([
-          supabase.from('job_services').select('*').eq('job_id', jobId),
-          supabase.from('files').select('*').eq('job_id', jobId),
-          supabase.from('profiles').select('*').eq('id', jobData.client_id).single(),
-        ]);
-
-        if (!cancelled) {
-          setJob({
-            ...jobData,
-            services: services || [],
-            files: files || [],
-            client: client || undefined,
-          });
-          hasLoaded.current = true;
-        }
-      } catch (err) {
-        if (!cancelled) setError(err as Error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    run();
-    return () => { cancelled = true; };
-  }, [jobId, refreshKey]);
-
-  return { job, loading, error };
+  return { job, loading, error, refetch: fetchJob };
 }
 
 // Create job with services
