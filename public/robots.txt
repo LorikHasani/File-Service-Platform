@@ -4,7 +4,13 @@ Disallow: /dashboard
 Disallow: /jobs
 Disallow: /admin
 Disallow: /credits
+Disallow: /invoices
+Disallow: /prices
+Disallow: /profile
+Disallow: /tickets
+Disallow: /calculator
 Disallow: /settings
+Disallow: /reset-password
 Disallow: /api/
 
 Sitemap: https://chiptunefiles.com/sitemap.xml

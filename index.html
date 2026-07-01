@@ -16,15 +16,15 @@
     <meta property="og:url" content="https://chiptunefiles.com/" />
     <meta property="og:title" content="ChipTuneFiles — Professional ECU Tuning File Service" />
     <meta property="og:description" content="Professional ECU remapping files for workshops and tuners. Stage 1-3, DPF, EGR, AdBlue solutions. Fast delivery under 15 minutes." />
-    <meta property="og:image" content="https://chiptunefiles.com/og-image.jpg" />
+    <meta property="og:image" content="https://chiptunefiles.com/logo.png" />
     <meta property="og:site_name" content="ChipTuneFiles" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="ChipTuneFiles — Professional ECU Tuning File Service" />
     <meta name="twitter:description" content="Professional ECU remapping files for workshops and tuners. Stage 1-3, DPF, EGR, AdBlue solutions." />
-    <meta name="twitter:image" content="https://chiptunefiles.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://chiptunefiles.com/logo.png" />
 
     <!-- Robots -->
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -41,30 +41,116 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
     <!-- Structured Data / JSON-LD -->
+    <!-- NOTE: no aggregateRating here on purpose — Google requires ratings in
+         structured data to be visible on the page, and fabricated review
+         counts risk a manual spam action that tanks rankings. Add it back
+         only when real ratings are displayed on the landing page. -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "ProfessionalService",
+      "@id": "https://chiptunefiles.com/#business",
       "name": "ChipTuneFiles",
       "url": "https://chiptunefiles.com",
-      "description": "Professional ECU tuning file service for workshops and tuners worldwide. Stage 1-3 remapping, DPF, EGR, AdBlue solutions.",
+      "logo": "https://chiptunefiles.com/logo.png",
+      "image": "https://chiptunefiles.com/logo.png",
+      "description": "Professional ECU tuning file service for workshops and tuners worldwide. Stage 1-3 remapping, DPF, EGR, AdBlue solutions delivered in 15-60 minutes.",
       "priceRange": "€€",
+      "telephone": "+38344955389",
+      "email": "kikzaperformance@gmail.com",
       "address": {
         "@type": "PostalAddress",
         "addressCountry": "DE"
       },
       "areaServed": "Worldwide",
-      "serviceType": ["ECU Tuning", "Chip Tuning", "ECU Remapping", "DPF Delete", "EGR Delete"],
+      "serviceType": ["ECU Tuning", "Chip Tuning", "ECU Remapping", "Stage 1 Tuning", "Stage 2 Tuning", "DPF Delete", "EGR Delete", "AdBlue Delete", "Pop and Bang", "TCU Tuning"],
       "availableChannel": {
         "@type": "ServiceChannel",
         "serviceUrl": "https://chiptunefiles.com/register",
         "availableLanguage": "English"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "2500"
       }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://chiptunefiles.com/#website",
+      "url": "https://chiptunefiles.com",
+      "name": "ChipTuneFiles",
+      "publisher": { "@id": "https://chiptunefiles.com/#business" }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is a Stage 1 remap?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A Stage 1 remap is an optimized ECU calibration for a completely stock vehicle. It safely raises boost pressure, fueling and ignition timing within factory hardware limits, typically gaining 15-30% more power and torque with no mechanical changes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the difference between Stage 1 and Stage 2 tuning?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Stage 1 is calibrated for a stock car. Stage 2 requires supporting hardware upgrades such as a decat or downpipe exhaust, upgraded intake or intercooler, and delivers up to 45% more power. Stage 3 is a full custom calibration for heavily modified engines."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How fast will I receive my tuning file?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most files are delivered within 15-60 minutes during working hours (Mon-Sat, 9:00-22:00 CET). Complex custom calibrations can take longer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which flashing tools do you support?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We support all major master and slave tools including KESS, KTAG, Autotuner, CMD Flash, Flex, Trasdata, Dimsport New Genius, Magic Motorsport, BitBox, PCMFlash, MPPS and Galletto."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can you remove DPF, EGR or AdBlue?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — we provide DPF off, EGR off, AdBlue/SCR off, lambda off, swirl flap and many other emission-system solutions. These files are intended strictly for off-road, motorsport and export use."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you also tune automatic gearboxes (TCU)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, we tune TCU files for DSG, ZF and other automatic transmissions: faster shifts, raised torque limiters, launch control and more."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does pricing work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ChipTuneFiles uses a simple credit system: buy credits once and pay per file. There is no subscription and credits never expire. Master and slave tool users get their own price list."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What if the file does not work on my car?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Every job includes free revisions — describe the issue and we adjust the calibration until it runs right. If we cannot deliver a working solution, the job is refunded to your credit balance."
+          }
+        }
+      ]
     }
     </script>
   </head>

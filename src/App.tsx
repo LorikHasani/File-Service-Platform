@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui';
@@ -127,6 +127,74 @@ const PublicRoute: React.FC = () => {
   return <Outlet />;
 };
 
+// ---------------------------------------------------------------------------
+// Per-route SEO for the public pages. A Vite SPA serves one index.html, so
+// without this every route shows the same <title> in Google. Private app
+// routes fall through to a generic title (they're noindexed via robots.txt).
+// ---------------------------------------------------------------------------
+const SITE_URL = 'https://chiptunefiles.com';
+
+const SEO_BY_PATH: Record<string, { title: string; description: string }> = {
+  '/': {
+    title: 'ChipTuneFiles — Professional ECU Tuning File Service | Stage 1-3, DPF, EGR Off',
+    description:
+      'Professional ECU remapping files for workshops and tuners. Stage 1, Stage 2 & Stage 3 chip tuning, DPF off, EGR off, AdBlue off, Pop & Bang. Files delivered in 15-60 minutes.',
+  },
+  '/login': {
+    title: 'Login — ChipTuneFiles File Portal',
+    description: 'Sign in to the ChipTuneFiles portal to upload ECU files, track tuning jobs and download your remapped files.',
+  },
+  '/register': {
+    title: 'Create Free Account — ChipTuneFiles ECU File Service',
+    description: 'Register free at ChipTuneFiles and order professional ECU tuning files: Stage 1-3 remaps, DPF/EGR/AdBlue solutions and more. No subscription.',
+  },
+  '/forgot-password': {
+    title: 'Reset Password — ChipTuneFiles',
+    description: 'Reset your ChipTuneFiles account password.',
+  },
+  '/terms': {
+    title: 'Terms of Service — ChipTuneFiles',
+    description: 'Terms of service for the ChipTuneFiles ECU tuning file platform.',
+  },
+  '/privacy': {
+    title: 'Privacy Policy — ChipTuneFiles',
+    description: 'How ChipTuneFiles handles your data and protects your privacy.',
+  },
+  '/refund-policy': {
+    title: 'Refund Policy — ChipTuneFiles',
+    description: 'Refund and revision policy for ECU tuning files bought at ChipTuneFiles.',
+  },
+};
+
+const RouteSEO: React.FC = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const meta = SEO_BY_PATH[pathname];
+    document.title = meta?.title || 'ChipTuneFiles — File Portal';
+
+    if (meta) {
+      document
+        .querySelector('meta[name="description"]')
+        ?.setAttribute('content', meta.description);
+      document
+        .querySelector('link[rel="canonical"]')
+        ?.setAttribute('href', pathname === '/' ? `${SITE_URL}/` : `${SITE_URL}${pathname}`);
+      document
+        .querySelector('meta[property="og:title"]')
+        ?.setAttribute('content', meta.title);
+      document
+        .querySelector('meta[property="og:description"]')
+        ?.setAttribute('content', meta.description);
+      document
+        .querySelector('meta[property="og:url"]')
+        ?.setAttribute('content', pathname === '/' ? `${SITE_URL}/` : `${SITE_URL}${pathname}`);
+    }
+  }, [pathname]);
+
+  return null;
+};
+
 // Placeholder for pages not yet built
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
   <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -152,6 +220,7 @@ const App: React.FC = () => {
 
   return (
     <BrowserRouter>
+      <RouteSEO />
       <Routes>
         {/* Landing Page — always accessible */}
         <Route path="/" element={<LandingPage />} />

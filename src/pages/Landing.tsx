@@ -111,6 +111,43 @@ const extraServices = [
   "Decat / Cat Off",
 ];
 
+// Keep in sync with the FAQPage JSON-LD in index.html — Google only honors
+// FAQ structured data when the same questions are visible on the page.
+const faqs = [
+  {
+    q: "What is a Stage 1 remap?",
+    a: "A Stage 1 remap is an optimized ECU calibration for a completely stock vehicle. It safely raises boost pressure, fueling and ignition timing within factory hardware limits, typically gaining 15–30% more power and torque with no mechanical changes.",
+  },
+  {
+    q: "What is the difference between Stage 1 and Stage 2 tuning?",
+    a: "Stage 1 is calibrated for a stock car. Stage 2 requires supporting hardware upgrades such as a decat or downpipe exhaust, upgraded intake or intercooler, and delivers up to 45% more power. Stage 3 is a full custom calibration for heavily modified engines.",
+  },
+  {
+    q: "How fast will I receive my tuning file?",
+    a: "Most files are delivered within 15–60 minutes during working hours (Mon–Sat, 9:00–22:00 CET). Complex custom calibrations can take longer.",
+  },
+  {
+    q: "Which flashing tools do you support?",
+    a: "We support all major master and slave tools including KESS, KTAG, Autotuner, CMD Flash, Flex, Trasdata, Dimsport New Genius, Magic Motorsport, BitBox, PCMFlash, MPPS and Galletto.",
+  },
+  {
+    q: "Can you remove DPF, EGR or AdBlue?",
+    a: "Yes — we provide DPF off, EGR off, AdBlue/SCR off, lambda off, swirl flap and many other emission-system solutions. These files are intended strictly for off-road, motorsport and export use.",
+  },
+  {
+    q: "Do you also tune automatic gearboxes (TCU)?",
+    a: "Yes, we tune TCU files for DSG, ZF and other automatic transmissions: faster shifts, raised torque limiters, launch control and more.",
+  },
+  {
+    q: "How does pricing work?",
+    a: "ChipTuneFiles uses a simple credit system: buy credits once and pay per file. There is no subscription and credits never expire. Master and slave tool users get their own price list.",
+  },
+  {
+    q: "What if the file doesn't work on my car?",
+    a: "Every job includes free revisions — describe the issue and we adjust the calibration until it runs right. If we can't deliver a working solution, the job is refunded to your credit balance.",
+  },
+];
+
 // ─── Component ───
 
 export const LandingPage: React.FC = () => {
@@ -673,6 +710,36 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* ═══ FAQ ═══ */}
+      <section id="faq" className="py-24 lg:py-32 border-t border-white/5" aria-label="Frequently asked questions">
+        <div className="max-w-3xl mx-auto px-5">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-neutral-400 max-w-md mx-auto">
+              Everything you need to know about our ECU tuning file service.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {faqs.map((faq) => (
+              <details
+                key={faq.q}
+                className="group bg-white/[0.03] border border-white/10 rounded-lg overflow-hidden"
+              >
+                <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none font-semibold text-white hover:bg-white/[0.04] transition-colors [&::-webkit-details-marker]:hidden">
+                  <h3 className="text-sm sm:text-base font-semibold">{faq.q}</h3>
+                  <ChevronRight className="w-4 h-4 text-red-500 flex-shrink-0 transition-transform group-open:rotate-90" />
+                </summary>
+                <p className="px-5 pb-5 text-sm text-neutral-400 leading-relaxed">
+                  {faq.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══ FINAL CTA ═══ */}
       <section className="py-24 lg:py-32" aria-label="Get started">
         <div className="max-w-3xl mx-auto px-5 text-center">
@@ -744,6 +811,12 @@ export const LandingPage: React.FC = () => {
                   className="block text-sm text-neutral-500 hover:text-white transition-colors"
                 >
                   Calculator
+                </a>
+                <a
+                  href="#faq"
+                  className="block text-sm text-neutral-500 hover:text-white transition-colors"
+                >
+                  FAQ
                 </a>
                 <a
                   href="#contact"
