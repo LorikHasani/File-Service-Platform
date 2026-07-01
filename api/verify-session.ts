@@ -9,8 +9,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const ALLOWED_ORIGIN = process.env.SITE_URL || 'https://chiptunefiles.com';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -31,8 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { sessionId } = req.body;
-    if (!sessionId) {
-      return res.status(400).json({ error: 'Missing sessionId' });
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.startsWith('cs_')) {
+      return res.status(400).json({ error: 'Missing or invalid sessionId' });
     }
 
     // Retrieve the checkout session from Stripe
@@ -55,74 +57,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'No credits in session metadata' });
     }
 
-    // Check if this session was already processed (prevent double-crediting)
-    const { data: existing } = await supabase
-      .from('transactions')
-      .select('id')
-      .like('description', `%${session.id}%`)
-      .limit(1);
+    // Atomic + idempotent: add_stripe_credits() locks the profile row and the
+    // unique stripe_session_id index guarantees a session is credited exactly
+    // once, no matter how this endpoint races with the Stripe webhook.
+    const { data: result, error: rpcError } = await supabase.rpc('add_stripe_credits', {
+      p_user_id: userId,
+      p_credits: credits,
+      p_package_name: packageName,
+      p_session_id: session.id,
+    });
 
-    if (existing && existing.length > 0) {
-      // Already processed — just return the current balance
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('credit_balance')
-        .eq('id', userId)
-        .single();
+    if (rpcError) {
+      console.error('[verify-session] add_stripe_credits failed:', rpcError.message);
+      return res.status(500).json({ error: 'Failed to add credits' });
+    }
 
+    const row = Array.isArray(result) ? result[0] : result;
+    if (!row) {
+      return res.status(500).json({ error: 'Failed to add credits' });
+    }
+
+    if (row.status === 'already_processed') {
       return res.status(200).json({
         status: 'already_processed',
-        credit_balance: profile?.credit_balance ?? 0,
+        credit_balance: Number(row.new_balance),
       });
     }
 
-    // Add credits — same logic as webhook
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('credit_balance')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile) {
-      return res.status(500).json({ error: 'User profile not found' });
-    }
-
-    const balanceBefore = Number(profile.credit_balance);
-    const balanceAfter = balanceBefore + credits;
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        credit_balance: balanceAfter,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    if (updateError) {
-      return res.status(500).json({ error: 'Failed to update balance' });
-    }
-
-    // Record the transaction
-    await supabase
-      .from('transactions')
-      .insert({
-        user_id: userId,
-        type: 'credit_purchase',
-        amount: credits,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        description: `Purchased ${packageName} (${credits} credits) — Stripe ${session.id}`,
-      });
-
-    console.log(`[verify-session] Added ${credits} credits to user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}`);
+    console.log(`[verify-session] Added ${credits} credits to user ${userId}. Balance: ${row.new_balance}`);
 
     return res.status(200).json({
       status: 'credits_added',
       credits_added: credits,
-      credit_balance: balanceAfter,
+      credit_balance: Number(row.new_balance),
     });
   } catch (err: any) {
     console.error('Verify session error:', err.message || err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

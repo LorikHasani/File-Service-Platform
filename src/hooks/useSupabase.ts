@@ -250,7 +250,7 @@ export async function deleteJob(
 
     if (files && files.length > 0) {
       await supabase.storage
-        .from('job-files')
+        .from('ecu-files')
         .remove(files.map((f) => f.storage_path));
     }
 

@@ -17,19 +17,33 @@ const COLORS = {
   red: '#dc2626',
 };
 
+const ALLOWED_ORIGIN = SITE_URL;
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function composeEmailHtml(
   subject: string,
   body: string,
   color: 'blue' | 'red' = 'blue',
   images: string[] = []
 ) {
-  const htmlBody = body.replace(/\n/g, '<br/>');
+  // Subject and body are plain text from the admin UI — escape them so they
+  // can't inject markup into the email HTML.
+  const htmlBody = escapeHtml(body).replace(/\n/g, '<br/>');
+  const safeSubject = escapeHtml(subject);
   const accent = COLORS[color] || COLORS.blue;
 
   const imagesHtml = images
     .map(
       (url) =>
-        `<div style="margin:0 0 20px;"><img src="${url}" alt="" style="display:block;width:100%;max-width:520px;height:auto;border-radius:8px;border:0;" /></div>`
+        `<div style="margin:0 0 20px;"><img src="${escapeHtml(url)}" alt="" style="display:block;width:100%;max-width:520px;height:auto;border-radius:8px;border:0;" /></div>`
     )
     .join('');
 
@@ -44,7 +58,7 @@ function composeEmailHtml(
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           ${imagesHtml}
-          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">${subject}</h1>
+          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">${safeSubject}</h1>
           <div style="margin:0 0 30px;color:#333;font-size:15px;line-height:1.7;">
             ${htmlBody}
           </div>
@@ -105,7 +119,7 @@ async function sendBatch(recipients: string[], subject: string, html: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -141,13 +155,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!to || !Array.isArray(to) || to.length === 0) {
       return res.status(400).json({ error: 'Missing or invalid recipients (to)' });
     }
-    if (!subject || !body) {
+    if (to.length > 5000) {
+      return res.status(400).json({ error: 'Too many recipients' });
+    }
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!to.every((r) => typeof r === 'string' && EMAIL_RE.test(r))) {
+      return res.status(400).json({ error: 'Recipient list contains an invalid email address' });
+    }
+    if (typeof subject !== 'string' || typeof body !== 'string' || !subject || !body) {
       return res.status(400).json({ error: 'Missing subject or body' });
     }
 
-    // Optional inline images — accept only an array of string URLs.
+    // Optional inline images — accept only https URLs.
     const imageUrls: string[] = Array.isArray(images)
-      ? images.filter((u): u is string => typeof u === 'string' && u.length > 0)
+      ? images.filter((u): u is string => typeof u === 'string' && u.startsWith('https://'))
       : [];
 
     const html = composeEmailHtml(subject, body, color === 'red' ? 'red' : 'blue', imageUrls);

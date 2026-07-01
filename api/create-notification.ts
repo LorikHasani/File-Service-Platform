@@ -6,8 +6,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const ALLOWED_ORIGIN = process.env.SITE_URL || 'https://chiptunefiles.com';
+
+const MAX_TITLE_LENGTH = 200;
+const MAX_MESSAGE_LENGTH = 2000;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -29,13 +34,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { action, userId, title, message, linkType, linkId } = req.body;
 
-    if (!action || !title || !message) {
+    if (!action || typeof title !== 'string' || typeof message !== 'string' || !title || !message) {
       return res.status(400).json({ error: 'Missing required fields: action, title, message' });
+    }
+    if (title.length > MAX_TITLE_LENGTH || message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: 'Title or message too long' });
+    }
+    if ((linkType && typeof linkType !== 'string') || (linkId && typeof linkId !== 'string')) {
+      return res.status(400).json({ error: 'Invalid linkType or linkId' });
     }
 
     if (action === 'notify_user') {
-      // Notify a specific user
-      if (!userId) {
+      // Sending a notification to an arbitrary user is an admin capability —
+      // otherwise any client could push spoofed in-app messages to anyone.
+      const { data: callerProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (!callerProfile || (callerProfile.role !== 'admin' && callerProfile.role !== 'superadmin')) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      if (!userId || typeof userId !== 'string') {
         return res.status(400).json({ error: 'Missing userId for notify_user' });
       }
 
@@ -53,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
     } else if (action === 'notify_admins') {
-      // Notify all admins
+      // Any authenticated client may ping the admins (new job, new ticket, …).
       const { data: admins, error: adminError } = await supabase
         .from('profiles')
         .select('id')
@@ -87,6 +109,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true });
   } catch (err: any) {
     console.error('Notification API error:', err.message || err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

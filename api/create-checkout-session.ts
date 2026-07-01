@@ -14,8 +14,10 @@ const CUSTOM_PRICE_PER_CREDIT = 1.0;
 const MIN_CUSTOM_CREDITS = 10;
 const MAX_CUSTOM_CREDITS = 10000;
 
+const SITE_URL = process.env.SITE_URL || 'https://chiptunefiles.com';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', SITE_URL);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -125,8 +127,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.origin}/credits?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/credits?cancelled=true`,
+      // Redirect to the configured site, not the caller-controlled Origin
+      // header, so a crafted request can't bounce the user to another domain.
+      success_url: `${SITE_URL}/credits?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${SITE_URL}/credits?cancelled=true`,
       metadata: {
         supabase_user_id: user.id,
         credits: String(totalCredits),
@@ -137,6 +141,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
     console.error('Checkout session error:', err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

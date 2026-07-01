@@ -25,54 +25,39 @@ async function getRawBody(req: VercelRequest): Promise<Buffer> {
   });
 }
 
+// Atomic + idempotent: add_stripe_credits() locks the profile row and the
+// unique stripe_session_id index guarantees a session is credited exactly
+// once, no matter how this webhook races with /api/verify-session.
+// Returns the new balance, or null if the session was already processed.
 async function addCreditsToUser(
   userId: string,
   credits: number,
   packageName: string,
   sessionId: string
-) {
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('credit_balance')
-    .eq('id', userId)
-    .single();
+): Promise<number | null> {
+  const { data: result, error } = await supabase.rpc('add_stripe_credits', {
+    p_user_id: userId,
+    p_credits: credits,
+    p_package_name: packageName,
+    p_session_id: sessionId,
+  });
 
-  if (profileError || !profile) {
-    throw new Error(`User not found: ${userId}`);
+  if (error) {
+    throw new Error(`add_stripe_credits failed: ${error.message}`);
   }
 
-  const balanceBefore = Number(profile.credit_balance);
-  const balanceAfter = balanceBefore + credits;
-
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      credit_balance: balanceAfter,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
-
-  if (updateError) {
-    throw new Error(`Failed to update balance: ${updateError.message}`);
+  const row = Array.isArray(result) ? result[0] : result;
+  if (!row) {
+    throw new Error('add_stripe_credits returned no result');
   }
 
-  const { error: txError } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: userId,
-      type: 'credit_purchase',
-      amount: credits,
-      balance_before: balanceBefore,
-      balance_after: balanceAfter,
-      description: `Purchased ${packageName} (${credits} credits) — Stripe ${sessionId}`,
-    });
-
-  if (txError) {
-    console.error('Transaction record failed (credits already added):', txError);
+  if (row.status === 'already_processed') {
+    console.log(`Session ${sessionId} already processed — skipping`);
+    return null;
   }
 
-  console.log(`Added ${credits} credits to user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}`);
-  return balanceAfter;
+  console.log(`Added ${credits} credits to user ${userId}. Balance: ${row.new_balance}`);
+  return Number(row.new_balance);
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
@@ -233,11 +218,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const balanceAfter = await addCreditsToUser(userId, credits, packageName, session.id);
 
-      // Send email notifications (fire-and-forget — don't block webhook response)
-      const amountPaid = (session.amount_total || 0) / 100;
-      sendCreditPurchaseEmails(userId, credits, packageName, amountPaid, balanceAfter).catch((err) => {
-        console.error('Failed to send credit purchase emails:', err.message || err);
-      });
+      // Send email notifications only when this call actually granted the
+      // credits (fire-and-forget — don't block webhook response)
+      if (balanceAfter !== null) {
+        const amountPaid = (session.amount_total || 0) / 100;
+        sendCreditPurchaseEmails(userId, credits, packageName, amountPaid, balanceAfter).catch((err) => {
+          console.error('Failed to send credit purchase emails:', err.message || err);
+        });
+      }
     }
 
     return res.status(200).json({ received: true });
