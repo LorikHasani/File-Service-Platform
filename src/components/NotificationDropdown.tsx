@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, MessageSquare, FileText, FolderOpen, X, Trash2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useSupabase';
 import { formatDistanceToNow } from 'date-fns';
@@ -30,6 +30,7 @@ export const NotificationDropdown: React.FC<{ isAdmin: boolean }> = ({ isAdmin }
   } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Close on click outside
   useEffect(() => {
@@ -101,9 +102,17 @@ export const NotificationDropdown: React.FC<{ isAdmin: boolean }> = ({ isAdmin }
                   deleteNotification(notif.id);
                 };
 
-                const handleRowClick = () => {
-                  if (!notif.is_read) markAsRead(notif.id);
-                  if (link) setOpen(false);
+                const handleRowClick = async (e: React.MouseEvent) => {
+                  // Navigating remounts the layout and refetches notifications,
+                  // so the is_read write must commit BEFORE we navigate —
+                  // otherwise the refetch races it and the row snaps back to
+                  // unread. Block the Link's default nav, await, then navigate.
+                  if (link) e.preventDefault();
+                  if (!notif.is_read) await markAsRead(notif.id);
+                  if (link) {
+                    setOpen(false);
+                    navigate(link);
+                  }
                 };
 
                 const inner = (

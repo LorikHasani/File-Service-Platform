@@ -1415,10 +1415,14 @@ export function useNotifications() {
   }, [profileId, fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
-    await supabase
+    const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('id', notificationId);
+    if (error) {
+      console.error('Failed to mark notification as read:', error);
+      return;
+    }
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
     );
@@ -1427,11 +1431,15 @@ export function useNotifications() {
 
   const markAllAsRead = async () => {
     if (!profileId) return;
-    await supabase
+    const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', profileId)
       .eq('is_read', false);
+    if (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      return;
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
   };
