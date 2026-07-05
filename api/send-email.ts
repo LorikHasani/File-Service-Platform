@@ -77,7 +77,7 @@ function composeEmailHtml(
             <tr>
               <td style="vertical-align:middle;">
                 <p style="margin:0 0 4px;font-size:13px;color:#333;">
-                  <strong style="color:${accent};">${BRAND_NAME}</strong> | Germany &amp; Kosovo
+                  <strong style="color:${accent};">${BRAND_NAME}</strong>
                 </p>
                 <p style="margin:0;font-size:12px;color:#666;">
                   Tel: <a href="https://wa.me/38344955389" style="color:#333;text-decoration:none;">+38344955389</a> |
