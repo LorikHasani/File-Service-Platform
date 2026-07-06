@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessHours } from '@/hooks/useSupabase';
+import { getOpenStatus } from '@/lib/businessHours';
 import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
@@ -66,13 +67,7 @@ const WorkingHoursWidget: React.FC = () => {
   // Map day_of_week -> row for quick lookup.
   const byDay = new Map(hours.map((h) => [h.day_of_week, h]));
 
-  const todayRow = byDay.get(today);
-  let open = false;
-  if (todayRow && !todayRow.is_closed) {
-    const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
-    open = minutes >= todayRow.open_minutes && minutes < todayRow.close_minutes;
-  }
+  const { open } = getOpenStatus(hours);
 
   if (loading || hours.length === 0) return null;
 

@@ -4,12 +4,13 @@ import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
 import {
   Upload, FileText, X, Check, ChevronRight, ChevronLeft, Info,
-  Cpu, Settings, Wrench, Car, BookmarkPlus, Bookmark, Trash2,
+  Cpu, Settings, Wrench, Car, BookmarkPlus, Bookmark, Trash2, AlertTriangle,
 } from 'lucide-react';
-import { Layout } from '@/components/Layout';
+import { Layout, formatMinutes } from '@/components/Layout';
 import { Card, Button, Input, Textarea, Select, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
-import { useServices, createJob, uploadFile, notifyAdmins, useSavedVehicles } from '@/hooks/useSupabase';
+import { useServices, createJob, uploadFile, notifyAdmins, useSavedVehicles, useBusinessHours } from '@/hooks/useSupabase';
+import { getOpenStatus } from '@/lib/businessHours';
 import { priceFor } from '@/lib/pricing';
 import { useVehicleApi } from '@/hooks/useVehicleApi';
 import { sendNotification } from '@/lib/notifications';
@@ -49,6 +50,40 @@ const gearboxOptions = [
   { value: 'cvt', label: 'CVT' },
   { value: 'robotic', label: 'Robotic/AMT' },
 ];
+
+// ─── Offline notice ──────────────────────────────────────────────────────────
+// Shown while the portal is outside the admin-configured working hours
+// (/admin/schedule). Purely informational — uploading stays enabled, the
+// file just waits in the queue until the office reopens.
+
+const OFFLINE_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const ServiceOfflineNotice: React.FC = () => {
+  const { hours, loading } = useBusinessHours();
+  if (loading || hours.length === 0) return null;
+
+  const { open, nextOpening } = getOpenStatus(hours);
+  if (open) return null;
+
+  let reopens = '';
+  if (nextOpening) {
+    const dayLabel =
+      nextOpening.daysAhead === 0 ? 'today'
+      : nextOpening.daysAhead === 1 ? 'tomorrow'
+      : `on ${OFFLINE_DAY_NAMES[nextOpening.dayOfWeek]}`;
+    reopens = ` We reopen ${dayLabel} at ${formatMinutes(nextOpening.minutes)}.`;
+  }
+
+  return (
+    <div className="mb-6 rounded-xl bg-red-500 text-white p-4 flex items-start gap-3 shadow-sm">
+      <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />
+      <p className="text-sm font-medium leading-relaxed">
+        Our file service is currently offline — you can still upload your file,
+        but it will remain in the queue until our office reopens.{reopens}
+      </p>
+    </div>
+  );
+};
 
 // ─── Stepper ─────────────────────────────────────────────────────────────────
 
@@ -277,6 +312,7 @@ export const NewJobPage: React.FC = () => {
   return (
     <Layout title="Upload File">
       <div className="max-w-4xl mx-auto">
+        <ServiceOfflineNotice />
         <StepIndicator current={step} />
 
         {/* ═══════════════════ STEP 1: Upload File ═══════════════════ */}
