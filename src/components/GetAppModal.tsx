@@ -4,10 +4,12 @@ import { X, Smartphone, Share, Bell, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore';
 import {
+  disablePushNotifications,
   enablePushNotifications,
   getPushStatus,
   isIos,
   isStandalone,
+  sendTestPush,
   type PushStatus,
 } from '@/lib/push';
 
@@ -19,23 +21,24 @@ interface GetAppModalProps {
 export const GetAppModal: React.FC<GetAppModalProps> = ({ open, onClose }) => {
   const user = useAuthStore((s) => s.user);
   const [pushStatus, setPushStatus] = useState<PushStatus>('unsupported');
-  const [enabling, setEnabling] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const portalUrl = window.location.origin;
   const portalHost = portalUrl.replace(/^https?:\/\//, '');
   const iosNeedsInstall = isIos() && !isStandalone();
 
   useEffect(() => {
-    if (open) getPushStatus().then(setPushStatus);
-  }, [open]);
+    if (open) getPushStatus(user?.id).then(setPushStatus);
+  }, [open, user?.id]);
 
   if (!open) return null;
 
   const handleEnable = async () => {
     if (!user) return;
-    setEnabling(true);
+    setBusy(true);
     const result = await enablePushNotifications(user.id);
-    setEnabling(false);
+    setBusy(false);
 
     if (result === 'enabled') {
       setPushStatus('enabled');
@@ -47,6 +50,33 @@ export const GetAppModal: React.FC<GetAppModalProps> = ({ open, onClose }) => {
       toast.error('This browser does not support push notifications.');
     } else {
       toast.error('Could not enable notifications. Please try again.');
+    }
+  };
+
+  const handleDisable = async () => {
+    setBusy(true);
+    const ok = await disablePushNotifications();
+    setBusy(false);
+
+    if (ok) {
+      setPushStatus('disabled');
+      toast.success('Notifications disabled on this device.');
+    } else {
+      toast.error('Could not disable notifications. Please try again.');
+    }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    const result = await sendTestPush();
+    setTesting(false);
+
+    if (result === 'sent') {
+      toast.success('Test sent — you should receive it in a few seconds!');
+    } else if (result === 'no_subscription') {
+      toast.error('No registered device found. Disable and re-enable notifications, then try again.');
+    } else {
+      toast.error('Could not send the test notification.');
     }
   };
 
@@ -125,8 +155,26 @@ export const GetAppModal: React.FC<GetAppModalProps> = ({ open, onClose }) => {
             </p>
 
             {pushStatus === 'enabled' ? (
-              <div className="w-full py-3 rounded-xl bg-green-600/20 text-green-400 font-semibold text-sm flex items-center justify-center gap-2">
-                <Check size={16} /> Notifications enabled on this device
+              <div className="space-y-2">
+                <button
+                  onClick={handleDisable}
+                  disabled={busy}
+                  title="Tap to disable notifications on this device"
+                  className="w-full py-3 rounded-xl bg-green-600/20 hover:bg-red-600/20 text-green-400 hover:text-red-400 disabled:opacity-60 font-semibold text-sm flex items-center justify-center gap-2 transition-colors group"
+                >
+                  <Check size={16} className="group-hover:hidden" />
+                  <X size={16} className="hidden group-hover:block" />
+                  <span className="group-hover:hidden">Notifications enabled — tap to disable</span>
+                  <span className="hidden group-hover:block">Disable notifications on this device</span>
+                </button>
+                <button
+                  onClick={handleTest}
+                  disabled={testing || busy}
+                  className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-60 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Bell size={16} />
+                  {testing ? 'Sending…' : 'Send Test Notification'}
+                </button>
               </div>
             ) : pushStatus === 'denied' ? (
               <div className="w-full py-3 px-4 rounded-xl bg-zinc-800 text-zinc-400 text-sm text-center">
@@ -140,10 +188,10 @@ export const GetAppModal: React.FC<GetAppModalProps> = ({ open, onClose }) => {
             ) : (
               <button
                 onClick={handleEnable}
-                disabled={enabling || !user}
+                disabled={busy || !user}
                 className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 font-semibold text-sm transition-colors"
               >
-                {enabling ? 'Enabling…' : 'Enable Notifications'}
+                {busy ? 'Enabling…' : 'Enable Notifications'}
               </button>
             )}
           </div>

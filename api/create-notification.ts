@@ -33,9 +33,10 @@ function pushUrl(linkType: string | null, linkId: string | null, forAdmin: boole
 async function sendPushToUsers(
   userIds: string[],
   payload: { title: string; body: string; url: string }
-): Promise<void> {
-  if (!VAPID_PRIVATE_KEY || userIds.length === 0) return;
+): Promise<number> {
+  if (!VAPID_PRIVATE_KEY || userIds.length === 0) return 0;
 
+  let sent = 0;
   try {
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
@@ -44,7 +45,7 @@ async function sendPushToUsers(
       .select('endpoint, p256dh, auth')
       .in('user_id', userIds);
 
-    if (!subs || subs.length === 0) return;
+    if (!subs || subs.length === 0) return 0;
 
     const body = JSON.stringify(payload);
     await Promise.all(
@@ -54,6 +55,7 @@ async function sendPushToUsers(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
             body
           );
+          sent++;
         } catch (err: any) {
           // 404/410 = subscription expired or unsubscribed — clean it up.
           if (err?.statusCode === 404 || err?.statusCode === 410) {
@@ -68,6 +70,7 @@ async function sendPushToUsers(
     // Push must never break the in-app notification flow.
     console.error('Push dispatch error:', err?.message || err);
   }
+  return sent;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -175,6 +178,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         );
       }
+
+    } else if (action === 'test_push') {
+      // Push a test message to the CALLER's own devices only — no in-app
+      // notification row is created. Any authenticated user may do this.
+      const sent = await sendPushToUsers([user.id], {
+        title,
+        body: message,
+        url: '/dashboard',
+      });
+      return res.status(200).json({ success: true, sent });
 
     } else {
       return res.status(400).json({ error: `Unknown action: ${action}` });

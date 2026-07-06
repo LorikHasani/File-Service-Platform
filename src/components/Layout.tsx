@@ -201,6 +201,7 @@ export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ 
   const profile = useAuthStore((s) => s.profile);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
+  const [getAppOpen, setGetAppOpen] = useState(false);
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark');
@@ -226,6 +227,14 @@ export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ 
             </Link>
           )}
 
+          <button
+            onClick={() => setGetAppOpen(true)}
+            title="Get the App"
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"
+          >
+            <Smartphone size={20} />
+          </button>
+
           <button onClick={toggleDarkMode} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -233,6 +242,8 @@ export const Header: React.FC<{ onMenuClick: () => void; title?: string }> = ({ 
           <NotificationDropdown isAdmin={isAdmin} />
         </div>
       </div>
+
+      <GetAppModal open={getAppOpen} onClose={() => setGetAppOpen(false)} />
     </header>
   );
 };
