@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import webpush from 'web-push';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
@@ -10,6 +11,64 @@ const ALLOWED_ORIGIN = process.env.SITE_URL || 'https://chiptunefiles.com';
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_MESSAGE_LENGTH = 2000;
+
+// ─── Web push ───
+// Public key is mirrored in src/lib/push.ts; the private key exists only in
+// the Vercel environment. When VAPID_PRIVATE_KEY is unset, push is silently
+// skipped and notifications remain in-app + email only.
+const VAPID_PUBLIC_KEY =
+  process.env.VAPID_PUBLIC_KEY ||
+  'BNAlvOYedrfxmjCMP8eKO7f3cCkC_4zs9atkI8Lg7WFFxaXLfc4_ahI9cEjBS0JxtESSIfiF7JDhBid8KssIsBg';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:kikzaperformance@gmail.com';
+
+// Mirrors getNotificationLink in src/components/NotificationDropdown.tsx.
+function pushUrl(linkType: string | null, linkId: string | null, forAdmin: boolean): string {
+  if (!linkType || !linkId) return forAdmin ? '/admin' : '/dashboard';
+  if (linkType === 'job') return forAdmin ? `/admin/jobs/${linkId}` : `/jobs/${linkId}`;
+  if (linkType === 'ticket') return forAdmin ? `/admin/tickets/${linkId}` : `/tickets/${linkId}`;
+  return forAdmin ? '/admin' : '/dashboard';
+}
+
+async function sendPushToUsers(
+  userIds: string[],
+  payload: { title: string; body: string; url: string }
+): Promise<void> {
+  if (!VAPID_PRIVATE_KEY || userIds.length === 0) return;
+
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+    const { data: subs } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth')
+      .in('user_id', userIds);
+
+    if (!subs || subs.length === 0) return;
+
+    const body = JSON.stringify(payload);
+    await Promise.all(
+      subs.map(async (sub: { endpoint: string; p256dh: string; auth: string }) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            body
+          );
+        } catch (err: any) {
+          // 404/410 = subscription expired or unsubscribed — clean it up.
+          if (err?.statusCode === 404 || err?.statusCode === 410) {
+            await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+          } else {
+            console.error('Push send failed:', err?.statusCode || err?.message || err);
+          }
+        }
+      })
+    );
+  } catch (err: any) {
+    // Push must never break the in-app notification flow.
+    console.error('Push dispatch error:', err?.message || err);
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
@@ -74,6 +133,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Failed to create notification' });
       }
 
+      await sendPushToUsers([userId], {
+        title,
+        body: message,
+        url: pushUrl(linkType || null, linkId || null, false),
+      });
+
     } else if (action === 'notify_admins') {
       // Any authenticated client may ping the admins (new job, new ticket, …).
       const { data: admins, error: adminError } = await supabase
@@ -100,6 +165,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.error('Insert admin notifications error:', error);
           return res.status(500).json({ error: 'Failed to create admin notifications' });
         }
+
+        await sendPushToUsers(
+          admins.map((a) => a.id),
+          {
+            title,
+            body: message,
+            url: pushUrl(linkType || null, linkId || null, true),
+          }
+        );
       }
 
     } else {

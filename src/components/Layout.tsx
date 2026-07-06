@@ -5,6 +5,7 @@ import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
   MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt, Shield, Image,
+  Smartphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessHours } from '@/hooks/useSupabase';
@@ -12,6 +13,7 @@ import { getOpenStatus } from '@/lib/businessHours';
 import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
+import { GetAppModal } from '@/components/GetAppModal';
 
 interface NavItem {
   label: string;
@@ -115,6 +117,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
   const navItems = isAdmin ? adminNavItems : clientNavItems;
+  const [getAppOpen, setGetAppOpen] = useState(false);
 
   const handleLogout = async () => {
     await signOut();
@@ -155,6 +158,17 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
           ))}
         </nav>
 
+        {/* Get the App */}
+        <div className="px-4 pb-1 flex-shrink-0">
+          <button
+            onClick={() => setGetAppOpen(true)}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+          >
+            <Smartphone size={20} />
+            <span>Get the App</span>
+          </button>
+        </div>
+
         {/* Working Hours */}
         {!isAdmin && <WorkingHoursWidget />}
 
@@ -175,6 +189,9 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
           </button>
         </div>
       </aside>
+
+      {/* Rendered outside <aside> — its transform would trap position:fixed */}
+      <GetAppModal open={getAppOpen} onClose={() => setGetAppOpen(false)} />
     </>
   );
 };

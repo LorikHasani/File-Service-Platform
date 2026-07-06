@@ -15,6 +15,7 @@
     "date-fns": "^3.2.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.303.0",
+    "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
@@ -22,12 +23,14 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.21.1",
     "stripe": "^14.14.0",
+    "web-push": "^3.6.7",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",
+    "@types/web-push": "^3.6.4",
     "@vercel/node": "^3.0.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
