@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const signIn = useAuthStore((s) => s.signIn);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +36,19 @@ export const LoginPage: React.FC = () => {
     setCaptcha(generateCaptcha());
     setCaptchaInput('');
     setCaptchaVerified(false);
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get('reason') === 'idle') {
+      toast('You were signed out due to inactivity. Please sign in again.', {
+        id: 'idle-signout',
+        icon: '⏳',
+        duration: 6000,
+      });
+      searchParams.delete('reason');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
