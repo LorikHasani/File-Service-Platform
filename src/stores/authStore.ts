@@ -50,6 +50,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: { session: stored } } = await supabase.auth.getSession();
 
       if (stored?.user) {
+        // -------------------------------------------------------------
+        // COLD-START IDLE CHECK
+        // -------------------------------------------------------------
+        // The idle timer below only lives as long as the page does.
+        // On mobile the OS kills the tab/PWA overnight, so reopening
+        // the portal is a fresh load that would silently restore the
+        // session no matter how long the user was away. The persisted
+        // cross-tab activity timestamp survives the page, so check it
+        // BEFORE refreshing the session.
+        // -------------------------------------------------------------
+        let persistedActivity = 0;
+        try {
+          persistedActivity = Number(localStorage.getItem(ACTIVITY_KEY)) || 0;
+        } catch {
+          // localStorage unavailable — can't know idle time, skip check.
+        }
+        if (IDLE_TIMEOUT_MS > 0 && persistedActivity > 0 && Date.now() - persistedActivity >= IDLE_TIMEOUT_MS) {
+          await get().signOut({ reason: 'idle' });
+          return;
+        }
+
         const { data: refreshData } = await supabase.auth.refreshSession();
         const activeSession = refreshData?.session || stored;
 
@@ -208,6 +229,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+
+      // Fresh baseline so the cold-start idle check never judges a new
+      // session by a stale timestamp from a previous one.
+      try {
+        localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+      } catch {
+        // localStorage unavailable — activity events will handle it.
+      }
 
       set({ user: data.user, session: data.session });
       await get().fetchProfile();
