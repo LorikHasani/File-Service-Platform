@@ -18,6 +18,7 @@ import {
   Cpu,
   TrendingUp,
 } from "lucide-react";
+import { KikzaCredit } from "@/components/KikzaCredit";
 
 // ─── Calculator iframe ───
 
@@ -928,6 +929,7 @@ export const LandingPage: React.FC = () => {
               Automated emails from this platform are not monitored. Please do
               not reply to them.
             </p>
+            <KikzaCredit variant="onDark" />
           </div>
         </div>
       </footer>

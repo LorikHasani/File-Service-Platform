@@ -14,6 +14,7 @@ import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
 import { GetAppModal } from '@/components/GetAppModal';
+import { KikzaCredit } from '@/components/KikzaCredit';
 
 interface NavItem {
   label: string;
@@ -281,6 +282,9 @@ export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-md">{children}</div>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <KikzaCredit variant="auto" />
         </div>
       </div>
       <div className="hidden lg:flex lg:w-1/2 bg-zinc-950 text-white items-center justify-center p-12 relative overflow-hidden">
