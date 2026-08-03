@@ -1409,7 +1409,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return send(200, {
         name: `${BRAND_NAME} Partner API`,
         version: '1',
-        docs: `${SITE_URL}/api-docs`,
+        docs: `${SITE_URL}/api-access`,
         auth: 'Authorization: Bearer ctf_live_…',
         endpoints: [
           'GET  /api/v1/ping',
