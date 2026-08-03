@@ -23,31 +23,31 @@ interface NavItem {
 }
 
 const clientNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
-  { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={20} /> },
-  { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={20} /> },
-  { label: 'Prices', href: '/prices', icon: <DollarSign size={20} /> },
-  { label: 'Balance', href: '/credits', icon: <CreditCard size={20} /> },
-  { label: 'Invoices', href: '/invoices', icon: <Receipt size={20} /> },
-  { label: 'Profile', href: '/profile', icon: <User size={20} /> },
-  { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={20} /> },
+  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
+  { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={18} /> },
+  { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={18} /> },
+  { label: 'Prices', href: '/prices', icon: <DollarSign size={18} /> },
+  { label: 'Balance', href: '/credits', icon: <CreditCard size={18} /> },
+  { label: 'Invoices', href: '/invoices', icon: <Receipt size={18} /> },
+  { label: 'Profile', href: '/profile', icon: <User size={18} /> },
+  { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={18} /> },
 ];
 
 const adminNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={20} /> },
-  { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={20} /> },
-  { label: 'Services', href: '/admin/services', icon: <Tag size={20} /> },
-  { label: 'Packages', href: '/admin/packages', icon: <Package size={20} /> },
-  { label: 'Transactions', href: '/admin/transactions', icon: <Receipt size={20} /> },
-  { label: 'Users', href: '/admin/users', icon: <Users size={20} /> },
-  { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={20} /> },
-  { label: 'Emails', href: '/admin/emails', icon: <Mail size={20} /> },
-  { label: 'News', href: '/admin/news', icon: <Megaphone size={20} /> },
-  { label: 'Banners', href: '/admin/banners', icon: <Image size={20} /> },
-  { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={20} /> },
-  { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
-  { label: 'Partner API', href: '/admin/api-keys', icon: <KeyRound size={20} /> },
-  { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={20} /> },
+  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} /> },
+  { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={18} /> },
+  { label: 'Services', href: '/admin/services', icon: <Tag size={18} /> },
+  { label: 'Packages', href: '/admin/packages', icon: <Package size={18} /> },
+  { label: 'Transactions', href: '/admin/transactions', icon: <Receipt size={18} /> },
+  { label: 'Users', href: '/admin/users', icon: <Users size={18} /> },
+  { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={18} /> },
+  { label: 'Emails', href: '/admin/emails', icon: <Mail size={18} /> },
+  { label: 'News', href: '/admin/news', icon: <Megaphone size={18} /> },
+  { label: 'Banners', href: '/admin/banners', icon: <Image size={18} /> },
+  { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={18} /> },
+  { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={18} /> },
+  { label: 'Partner API', href: '/admin/api-keys', icon: <KeyRound size={18} /> },
+  { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={18} /> },
 ];
 
 // Working Hours Widget — schedule is admin-editable (see /admin/schedule)
@@ -178,7 +178,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const navItems = isAdmin
     ? adminNavItems
     : isApiPartner
-      ? [...clientNavItems, { label: 'API Access', href: '/api-access', icon: <KeyRound size={20} /> }]
+      ? [...clientNavItems, { label: 'API Access', href: '/api-access', icon: <KeyRound size={18} /> }]
       : clientNavItems;
 
   const handleLogout = async () => {
@@ -194,23 +194,23 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
         'transform transition-transform duration-300 ease-in-out lg:translate-x-0',
         isOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800 flex-shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-800 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
+            <img src="/logo.png" alt="ChipTuneFiles" className="h-7" />
           </Link>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-zinc-800 rounded">
             <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto min-h-0">
+        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto min-h-0">
           {navItems.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
               onClick={onClose}
               className={({ isActive }) => clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
                 isActive ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
               )}
             >
@@ -221,12 +221,12 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
         </nav>
 
         {/* Get the App */}
-        <div className="px-4 pb-1 flex-shrink-0">
+        <div className="px-3 pb-1 flex-shrink-0">
           <button
             onClick={() => setGetAppOpen(true)}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+            className="flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
           >
-            <Smartphone size={20} />
+            <Smartphone size={18} />
             <span>Get the App</span>
           </button>
         </div>
@@ -234,19 +234,19 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
         {/* Working Hours */}
         {!isAdmin && <WorkingHoursWidget />}
 
-        <div className="p-4 border-t border-zinc-800 flex-shrink-0">
-          <div className="flex items-center gap-3 px-3 py-2">
+        <div className="p-3 border-t border-zinc-800 flex-shrink-0">
+          <div className="flex items-center gap-2.5 px-2.5 py-1.5">
             <Avatar name={profile?.contact_name || 'User'} size="sm" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{profile?.contact_name}</p>
-              <p className="text-xs text-zinc-400 truncate">{profile?.email}</p>
+              <p className="text-[13px] font-medium truncate">{profile?.contact_name}</p>
+              <p className="text-[11px] text-zinc-400 truncate">{profile?.email}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 mt-2 rounded-lg text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+            className="flex items-center gap-2.5 w-full px-2.5 py-1.5 mt-1 rounded-lg text-[13px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
             <span>Sign Out</span>
           </button>
         </div>
