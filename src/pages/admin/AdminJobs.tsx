@@ -4,6 +4,7 @@ import { Search, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Spinner, Pagination, usePagination } from '@/components/ui';
 import { useAllJobs, updateJobStatus, useUnreadMessageCounts } from '@/hooks/useSupabase';
+import { dispatchWebhooks } from '@/lib/webhooks';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import type { JobStatus } from '@/types/database';
@@ -62,6 +63,9 @@ export const AdminJobsPage: React.FC = () => {
       toast.error('Failed to update status');
     } else {
       toast.success('Status updated');
+      // Same as the job detail page: push the job.status_changed callback to
+      // the partner's portal now rather than leaving it queued.
+      dispatchWebhooks();
     }
     setUpdatingJob(null);
   };
