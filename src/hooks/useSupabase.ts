@@ -1327,6 +1327,42 @@ export function useBusinessHours() {
   return { hours, loading, refetch: fetchHours };
 }
 
+// ============================================================================
+// PARTNER API
+// ============================================================================
+
+// Whether this client has an API key, i.e. whether they are a partner portal.
+// Drives the "API Access" nav entry — ordinary clients never see it. RLS keeps
+// this scoped to the caller's own keys, and the hash column isn't granted to
+// browser sessions at all, hence the explicit column list.
+export function useIsApiPartner() {
+  const [isPartner, setIsPartner] = useState(false);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  useEffect(() => {
+    if (!userId) {
+      setIsPartner(false);
+      return;
+    }
+    let cancelled = false;
+
+    supabase
+      .from('api_keys')
+      .select('id')
+      .eq('client_id', userId)
+      .limit(1)
+      .then(({ data, error }) => {
+        // The table only exists once migration 022 has been run; treat any
+        // failure as "not a partner" rather than breaking the sidebar.
+        if (!cancelled) setIsPartner(!error && !!data?.length);
+      });
+
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  return isPartner;
+}
+
 export async function updateBusinessHours(
   dayOfWeek: number,
   updates: { is_closed?: boolean; open_minutes?: number; close_minutes?: number }

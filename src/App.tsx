@@ -24,6 +24,7 @@ import { RefundPolicyPage } from '@/pages/legal/RefundPolicy';
 
 // Client Pages (continued)
 import { ProfilePage } from '@/pages/Profile';
+import { ApiAccessPage } from '@/pages/ApiAccess';
 import { TicketsPage } from '@/pages/Tickets';
 import { TicketDetailPage } from '@/pages/TicketDetail';
 
@@ -44,6 +45,7 @@ import { AdminSchedulePage } from '@/pages/admin/AdminSchedule';
 import { AdminPackagesPage } from '@/pages/admin/AdminPackages';
 import { AdminTransactionsPage } from '@/pages/admin/AdminTransactions';
 import { AdminAuditLogPage } from '@/pages/admin/AdminAuditLog';
+import { AdminApiKeysPage } from '@/pages/admin/AdminApiKeys';
 
 // Protected Route
 // CRITICAL: Use boolean selectors (!!user, not user) so this component
@@ -252,6 +254,7 @@ const App: React.FC = () => {
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/prices" element={<PricesPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/api-access" element={<ApiAccessPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
         </Route>
@@ -274,6 +277,7 @@ const App: React.FC = () => {
           <Route path="/admin/packages" element={<AdminPackagesPage />} />
           <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
           <Route path="/admin/audit-log" element={<AdminAuditLogPage />} />
+          <Route path="/admin/api-keys" element={<AdminApiKeysPage />} />
         </Route>
 
         {/* Catch-all */}

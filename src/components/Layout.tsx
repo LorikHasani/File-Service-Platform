@@ -5,10 +5,10 @@ import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
   MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt, Shield, Image,
-  Smartphone,
+  Smartphone, KeyRound,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useBusinessHours } from '@/hooks/useSupabase';
+import { useBusinessHours, useIsApiPartner } from '@/hooks/useSupabase';
 import { getOpenStatus } from '@/lib/businessHours';
 import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
@@ -46,6 +46,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Banners', href: '/admin/banners', icon: <Image size={20} /> },
   { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={20} /> },
   { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={20} /> },
+  { label: 'Partner API', href: '/admin/api-keys', icon: <KeyRound size={20} /> },
   { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={20} /> },
 ];
 
@@ -117,8 +118,16 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
-  const navItems = isAdmin ? adminNavItems : clientNavItems;
+  const isApiPartner = useIsApiPartner();
   const [getAppOpen, setGetAppOpen] = useState(false);
+
+  // "API Access" appears only for clients who actually have a key, so the
+  // sidebar stays uncluttered for everyone else.
+  const navItems = isAdmin
+    ? adminNavItems
+    : isApiPartner
+      ? [...clientNavItems, { label: 'API Access', href: '/api-access', icon: <KeyRound size={20} /> }]
+      : clientNavItems;
 
   const handleLogout = async () => {
     await signOut();

@@ -99,6 +99,11 @@ export interface Database {
           tool_type: string | null;
           model_year: string | null;
           car_notes: string | null;
+          // Partner API (migration 022)
+          source: string;
+          api_key_id: string | null;
+          external_ref: string | null;
+          end_customer_ref: string | null;
         };
         Insert: {
           id?: string;
@@ -868,6 +873,64 @@ export interface Database {
           user_agent?: string | null;
           created_at?: string;
         };
+        Relationships: [];
+      };
+      // ─── Partner API (migrations 022 / 023) ───
+      // Note the columns deliberately missing from these rows: api_keys.key_hash
+      // and api_webhooks.secret are not granted to browser sessions, so leaving
+      // them out of the type keeps a `select` that would fail at runtime from
+      // ever being written.
+      api_keys: {
+        Row: {
+          id: string;
+          client_id: string;
+          name: string;
+          key_prefix: string;
+          is_active: boolean;
+          rate_limit_per_min: number;
+          last_used_at: string | null;
+          request_count: number;
+          created_by: string | null;
+          created_at: string;
+          revoked_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      api_webhooks: {
+        Row: {
+          id: string;
+          client_id: string;
+          url: string;
+          events: string[];
+          is_active: boolean;
+          consecutive_failures: number;
+          last_success_at: string | null;
+          last_error: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      api_webhook_deliveries: {
+        Row: {
+          id: number;
+          webhook_id: string;
+          client_id: string | null;
+          event: string;
+          job_id: string | null;
+          status: string;
+          attempts: number;
+          next_attempt_at: string;
+          response_status: number | null;
+          last_error: string | null;
+          created_at: string;
+          delivered_at: string | null;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
     };

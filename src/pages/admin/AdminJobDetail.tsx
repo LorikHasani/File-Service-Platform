@@ -9,6 +9,7 @@ import { useJob, useJobMessages, downloadFile, uploadFile, updateJobStatus, dele
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/lib/supabase';
 import { sendNotification } from '@/lib/notifications';
+import { dispatchWebhooks } from '@/lib/webhooks';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
 import type { JobStatus } from '@/types/database';
@@ -103,6 +104,8 @@ export const AdminJobDetailPage: React.FC = () => {
           { version, original_name: files[0]!.name, revision_note: note || null }
         );
         setRevisionNote('');
+        // Push the job.file_ready callback to the partner's portal now
+        dispatchWebhooks();
         // Show the new file in the list without a manual page reload
         await refetch();
       }
@@ -142,6 +145,8 @@ export const AdminJobDetailPage: React.FC = () => {
           id!
         );
       }
+      // Push the job.status_changed callback to the partner's portal now
+      dispatchWebhooks();
       // Reflect the new status (badge, select, timeline) without a reload
       await refetch();
     }
@@ -166,6 +171,8 @@ export const AdminJobDetailPage: React.FC = () => {
         );
       }
       setNewMessage('');
+      // Push the job.message callback to the partner's portal now
+      dispatchWebhooks();
     }
     setSending(false);
   };
@@ -235,9 +242,19 @@ export const AdminJobDetailPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{job.reference_number}</h1>
               <Badge variant={job.status}>{statusLabels[job.status]}</Badge>
+              {job.source === 'api' && (
+                <span
+                  title="Submitted by a partner portal through the API"
+                  className="px-2 py-0.5 rounded bg-blue-600 text-white text-[11px] font-bold"
+                >
+                  API
+                </span>
+              )}
             </div>
             <p className="text-zinc-500 mt-1">
               Created {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+              {job.external_ref && ` · partner ref ${job.external_ref}`}
+              {job.end_customer_ref && ` · end customer ${job.end_customer_ref}`}
             </p>
           </div>
         </div>
