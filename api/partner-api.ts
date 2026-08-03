@@ -478,7 +478,44 @@ async function stagedFileExists(path: string): Promise<boolean> {
   return !!data?.length;
 }
 
+// Answer a repeated external_ref with the original job, before anything else
+// is inspected. This has to come first: on a retry the staged upload has
+// already been moved into the job folder, so validating the file would fail
+// with upload_not_found and a partner re-sending a timed-out request would see
+// a 400 instead of the job they already have. create_api_job() repeats this
+// check inside the transaction, which is what makes it race-safe.
+async function existingJobForRef(auth: PartnerAuth, externalRef: string | null) {
+  if (!externalRef) return null;
+
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('client_id', auth.clientId)
+    .eq('external_ref', externalRef)
+    .maybeSingle();
+
+  if (!job) return null;
+
+  const { data: jobServices } = await supabase
+    .from('job_services')
+    .select('service_name, price')
+    .eq('job_id', job.id);
+
+  return {
+    status: 200,
+    body: {
+      duplicate: true,
+      message: 'A job with this external_ref already exists; returning the original.',
+      job: serializeJob(job, jobServices || []),
+      credit_balance: auth.creditBalance,
+    },
+  };
+}
+
 async function createJob(auth: PartnerAuth, body: any) {
+  const duplicate = await existingJobForRef(auth, str(body.external_ref, 100));
+  if (duplicate) return duplicate;
+
   const vehicle = body.vehicle || {};
   const brand = str(vehicle.brand, 100);
   const model = str(vehicle.model, 100);
