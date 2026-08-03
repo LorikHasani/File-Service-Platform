@@ -8,7 +8,7 @@
 --
 -- Auth is a bearer API key (ctf_live_…) issued per partner. Only the SHA-256
 -- hash is stored, so a leaked database never yields usable keys. All API work
--- runs through the Vercel function api/v1/[...route].ts with the service-role
+-- runs through the Vercel function api/partner-api.ts with the service-role
 -- key, which is why create_api_job() below is granted to service_role only.
 -- ============================================================================
 

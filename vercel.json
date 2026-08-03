@@ -8,6 +8,8 @@
     }
   },
   "rewrites": [
+    { "source": "/api/v1", "destination": "/api/partner-api" },
+    { "source": "/api/v1/(.*)", "destination": "/api/partner-api?route=$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/" }
   ]

@@ -6,8 +6,10 @@
 // normal admin queue and are paid from the partner's credit balance using the
 // same master/slave pricing as the web upload flow.
 //
-// One catch-all function keeps the whole surface inside a single Vercel
-// serverless function. Routes (all under /api/v1):
+// The whole surface lives in this one serverless function. Public paths are
+// /api/v1/*, mapped here by a rewrite in vercel.json which passes the rest of
+// the path as ?route= (see the handler for why it isn't a nested catch-all
+// file). Routes:
 //
 //   GET    /                             API index
 //   GET    /ping                         key check
@@ -1265,7 +1267,24 @@ async function listWebhooksForAdmin() {
 // ─── Dispatcher ─────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments = ([] as string[]).concat((req.query.route as string[] | string) || []);
+  // The public paths are /api/v1/*, mapped here by a rewrite in vercel.json
+  // that hands the rest of the path over as ?route=. (A nested catch-all file,
+  // api/v1/[...route].ts, never became a routable function under this project's
+  // SPA rewrite — every /api/v1/* request fell through to index.html.)
+  // `route` therefore arrives as one slash-joined string; an array is accepted
+  // too so the handler still works if it is ever mounted as a real catch-all.
+  const routeParam = req.query.route;
+  const rawPath = Array.isArray(routeParam) ? routeParam.join('/') : routeParam || '';
+  const segments = rawPath
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    });
   const isAdminRoute = segments[0] === 'keys' || segments[0] === 'admin';
   const isBrowserRoute = isAdminRoute || segments[0] === 'portal';
 
