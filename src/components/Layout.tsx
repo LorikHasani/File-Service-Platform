@@ -64,50 +64,102 @@ export function formatMinutes(minutes: number): string {
   return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
+// The full week takes seven rows, which is a lot of sidebar for something you
+// rarely need in full. It collapses to a single line carrying what actually
+// matters — open or closed, and until/from when — and remembers the choice.
+const HOURS_EXPANDED_KEY = 'workingHoursExpanded';
+
 const WorkingHoursWidget: React.FC = () => {
   const { hours, loading } = useBusinessHours();
   const today = new Date().getDay(); // 0=Sun, 1=Mon...
+  const [expanded, setExpanded] = useState(
+    () => localStorage.getItem(HOURS_EXPANDED_KEY) === '1'
+  );
+
+  const toggle = () => {
+    setExpanded((was) => {
+      localStorage.setItem(HOURS_EXPANDED_KEY, was ? '0' : '1');
+      return !was;
+    });
+  };
 
   // Map day_of_week -> row for quick lookup.
   const byDay = new Map(hours.map((h) => [h.day_of_week, h]));
 
-  const { open } = getOpenStatus(hours);
+  const { open, nextOpening } = getOpenStatus(hours);
 
   if (loading || hours.length === 0) return null;
 
+  const todayRow = byDay.get(today);
+
+  let summary: string;
+  if (open) {
+    summary = todayRow && !todayRow.is_closed
+      ? `Open until ${formatMinutes(todayRow.close_minutes)}`
+      : 'Open';
+  } else if (nextOpening) {
+    const when =
+      nextOpening.daysAhead === 0 ? ''
+      : nextOpening.daysAhead === 1 ? 'tomorrow '
+      : `${DAY_LABELS[nextOpening.dayOfWeek]} `;
+    summary = `Closed · opens ${when}${formatMinutes(nextOpening.minutes)}`;
+  } else {
+    summary = 'Closed';
+  }
+
   return (
-    <div className="px-4 py-3 border-t border-zinc-800 flex-shrink-0">
-      <div className="flex items-center gap-2 mb-2">
-        <Clock size={14} className="text-zinc-500" />
-        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Working Hours</span>
-      </div>
-      <div className="flex items-center gap-2 mb-2">
-        <span className={`w-2 h-2 rounded-full ${open ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span className={`text-xs font-medium ${open ? 'text-green-400' : 'text-red-400'}`}>
-          {open ? 'Portal Open' : 'Portal Closed'}
+    <div className="px-4 py-2.5 border-t border-zinc-800 flex-shrink-0">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={expanded}
+        title={expanded ? 'Hide the full week' : 'Show the full week'}
+        className="w-full flex items-center gap-2 rounded px-1 py-1 -mx-1 hover:bg-zinc-800/60 transition-colors"
+      >
+        <span className={clsx('w-2 h-2 rounded-full flex-shrink-0', open ? 'bg-green-500' : 'bg-red-500')} />
+        <span className={clsx('text-[11px] font-medium truncate', open ? 'text-green-400' : 'text-red-400')}>
+          {summary}
         </span>
-      </div>
-      <div className="space-y-0.5">
-        {DISPLAY_ORDER.map((dow) => {
-          const row = byDay.get(dow);
-          if (!row) return null;
-          const label = row.is_closed
-            ? 'Closed'
-            : `${formatMinutes(row.open_minutes)} - ${formatMinutes(row.close_minutes)}`;
-          return (
-            <div
-              key={dow}
-              className={clsx(
-                'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
-                dow === today ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-500'
-              )}
-            >
-              <span>{DAY_LABELS[dow]}</span>
-              <span className={row.is_closed ? 'text-red-400' : ''}>{label}</span>
-            </div>
-          );
-        })}
-      </div>
+        <ChevronDown
+          size={13}
+          className={clsx(
+            'ml-auto flex-shrink-0 text-zinc-500 transition-transform',
+            expanded && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {expanded && (
+        <>
+          <div className="flex items-center gap-2 mt-2.5 mb-1.5">
+            <Clock size={13} className="text-zinc-500" />
+            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+              Working Hours
+            </span>
+          </div>
+          <div className="space-y-0.5">
+            {DISPLAY_ORDER.map((dow) => {
+              const row = byDay.get(dow);
+              if (!row) return null;
+              const label = row.is_closed
+                ? 'Closed'
+                : `${formatMinutes(row.open_minutes)} - ${formatMinutes(row.close_minutes)}`;
+              return (
+                <div
+                  key={dow}
+                  className={clsx(
+                    'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
+                    dow === today ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-500'
+                  )}
+                >
+                  <span>{DAY_LABELS[dow]}</span>
+                  <span className={row.is_closed ? 'text-red-400' : ''}>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 };
