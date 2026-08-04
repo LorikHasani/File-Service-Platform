@@ -22,32 +22,73 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const clientNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
-  { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={18} /> },
-  { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={18} /> },
-  { label: 'Prices', href: '/prices', icon: <DollarSign size={18} /> },
-  { label: 'Balance', href: '/credits', icon: <CreditCard size={18} /> },
-  { label: 'Invoices', href: '/invoices', icon: <Receipt size={18} /> },
-  { label: 'Profile', href: '/profile', icon: <User size={18} /> },
-  { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={18} /> },
+// Nav is grouped rather than one long list: fourteen admin entries in a flat
+// column are hard to scan, and the first group is the daily work, so it carries
+// no heading — you reach the everyday screens without reading anything.
+interface NavGroup {
+  title?: string;
+  items: NavItem[];
+}
+
+const clientNavGroups: NavGroup[] = [
+  {
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
+      { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={18} /> },
+      { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={18} /> },
+    ],
+  },
+  {
+    title: 'Billing',
+    items: [
+      { label: 'Prices', href: '/prices', icon: <DollarSign size={18} /> },
+      { label: 'Balance', href: '/credits', icon: <CreditCard size={18} /> },
+      { label: 'Invoices', href: '/invoices', icon: <Receipt size={18} /> },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      { label: 'Profile', href: '/profile', icon: <User size={18} /> },
+      { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={18} /> },
+    ],
+  },
 ];
 
-const adminNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} /> },
-  { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={18} /> },
-  { label: 'Services', href: '/admin/services', icon: <Tag size={18} /> },
-  { label: 'Packages', href: '/admin/packages', icon: <Package size={18} /> },
-  { label: 'Transactions', href: '/admin/transactions', icon: <Receipt size={18} /> },
-  { label: 'Users', href: '/admin/users', icon: <Users size={18} /> },
-  { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={18} /> },
-  { label: 'Emails', href: '/admin/emails', icon: <Mail size={18} /> },
-  { label: 'News', href: '/admin/news', icon: <Megaphone size={18} /> },
-  { label: 'Banners', href: '/admin/banners', icon: <Image size={18} /> },
-  { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={18} /> },
-  { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={18} /> },
-  { label: 'Partner API', href: '/admin/api-keys', icon: <KeyRound size={18} /> },
-  { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={18} /> },
+const adminNavGroups: NavGroup[] = [
+  {
+    items: [
+      { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} /> },
+      { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={18} /> },
+      { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={18} /> },
+    ],
+  },
+  {
+    title: 'Business',
+    items: [
+      { label: 'Users', href: '/admin/users', icon: <Users size={18} /> },
+      { label: 'Transactions', href: '/admin/transactions', icon: <Receipt size={18} /> },
+      { label: 'Services', href: '/admin/services', icon: <Tag size={18} /> },
+      { label: 'Packages', href: '/admin/packages', icon: <Package size={18} /> },
+      { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={18} /> },
+    ],
+  },
+  {
+    title: 'Content',
+    items: [
+      { label: 'Emails', href: '/admin/emails', icon: <Mail size={18} /> },
+      { label: 'News', href: '/admin/news', icon: <Megaphone size={18} /> },
+      { label: 'Banners', href: '/admin/banners', icon: <Image size={18} /> },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [
+      { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={18} /> },
+      { label: 'Partner API', href: '/admin/api-keys', icon: <KeyRound size={18} /> },
+      { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={18} /> },
+    ],
+  },
 ];
 
 // Working Hours Widget — schedule is admin-editable (see /admin/schedule)
@@ -174,12 +215,22 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const [getAppOpen, setGetAppOpen] = useState(false);
 
   // "API Access" appears only for clients who actually have a key, so the
-  // sidebar stays uncluttered for everyone else.
-  const navItems = isAdmin
-    ? adminNavItems
+  // sidebar stays uncluttered for everyone else. It joins the Account group.
+  const navGroups = isAdmin
+    ? adminNavGroups
     : isApiPartner
-      ? [...clientNavItems, { label: 'API Access', href: '/api-access', icon: <KeyRound size={18} /> }]
-      : clientNavItems;
+      ? clientNavGroups.map((group) =>
+          group.title === 'Account'
+            ? {
+                ...group,
+                items: [
+                  ...group.items,
+                  { label: 'API Access', href: '/api-access', icon: <KeyRound size={18} /> },
+                ],
+              }
+            : group
+        )
+      : clientNavGroups;
 
   const handleLogout = async () => {
     await signOut();
@@ -203,20 +254,31 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto min-h-0">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              onClick={onClose}
-              className={({ isActive }) => clsx(
-                'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
-                isActive ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+        <nav className="flex-1 px-3 py-3 overflow-y-auto min-h-0">
+          {navGroups.map((group, index) => (
+            <div key={group.title ?? 'main'} className={clsx(index > 0 && 'mt-4')}>
+              {group.title && (
+                <p className="px-2.5 mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                  {group.title}
+                </p>
               )}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    to={item.href}
+                    onClick={onClose}
+                    className={({ isActive }) => clsx(
+                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
+                      isActive ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                    )}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
