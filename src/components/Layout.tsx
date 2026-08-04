@@ -105,16 +105,18 @@ export function formatMinutes(minutes: number): string {
   return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
-// The full week takes seven rows, which is a lot of sidebar for something you
-// rarely need in full. It collapses to a single line carrying what actually
-// matters — open or closed, and until/from when — and remembers the choice.
+// The week is shown in full by default — clients should see when we are open
+// without having to ask for it. Anyone who finds it long can collapse it to a
+// single line carrying what actually matters (open or closed, and until/from
+// when), and that choice is remembered.
 const HOURS_EXPANDED_KEY = 'workingHoursExpanded';
 
 const WorkingHoursWidget: React.FC = () => {
   const { hours, loading } = useBusinessHours();
   const today = new Date().getDay(); // 0=Sun, 1=Mon...
+  // Open unless this visitor has explicitly collapsed it before.
   const [expanded, setExpanded] = useState(
-    () => localStorage.getItem(HOURS_EXPANDED_KEY) === '1'
+    () => localStorage.getItem(HOURS_EXPANDED_KEY) !== '0'
   );
 
   const toggle = () => {
