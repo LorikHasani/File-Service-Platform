@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, FileText, DollarSign, Clock, ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { addDays, differenceInCalendarDays, endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from 'date-fns';
+import { addDays, addMonths, endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Badge, Card, Input, Pagination, Spinner, usePagination } from '@/components/ui';
 import {
@@ -68,16 +68,12 @@ export const AdminStatsPage: React.FC = () => {
     txPager.setPage(1);
   };
 
-  // Arrows move the selection by its own length (one day, or the whole range)
-  const shiftRange = (direction: 1 | -1) => {
-    const today = toDay(new Date());
-    const from = fromDay || toDayValue || today;
-    const to = toDayValue || fromDay || today;
-    const length = differenceInCalendarDays(parseDay(to), parseDay(from)) + 1;
-    setRange(
-      toDay(addDays(parseDay(from), direction * length)),
-      toDay(addDays(parseDay(to), direction * length)),
-    );
+  // Arrows jump a whole calendar month; from "All time" they land on the current month
+  const shiftMonth = (direction: 1 | -1) => {
+    const base = fromDay || toDayValue;
+    const month = base ? addMonths(startOfMonth(parseDay(base)), direction) : startOfMonth(new Date());
+    setRange(toDay(month), toDay(endOfMonth(month)));
+    setRangeMode(true);
   };
 
   if (statsLoading || jobsLoading || usersLoading) {
@@ -104,6 +100,10 @@ export const AdminStatsPage: React.FC = () => {
   });
   const periodLabel = activePreset?.label
     ?? (fromDay && fromDay === toDayValue ? format(parseDay(fromDay), 'd MMM yyyy') : null)
+    ?? (fromDay && fromDay === toDay(startOfMonth(parseDay(fromDay)))
+        && toDayValue === toDay(endOfMonth(parseDay(fromDay)))
+      ? format(parseDay(fromDay), 'MMMM yyyy')
+      : null)
     ?? [fromDay && format(parseDay(fromDay), 'd MMM yyyy'), toDayValue && format(parseDay(toDayValue), 'd MMM yyyy')]
       .map(v => v || '…')
       .join(' – ');
@@ -221,8 +221,8 @@ export const AdminStatsPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => shiftRange(-1)}
-              aria-label="Previous period"
+              onClick={() => shiftMonth(-1)}
+              aria-label="Previous month"
               className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
             >
               <ChevronLeft size={16} />
@@ -249,8 +249,8 @@ export const AdminStatsPage: React.FC = () => {
               </>
             )}
             <button
-              onClick={() => shiftRange(1)}
-              aria-label="Next period"
+              onClick={() => shiftMonth(1)}
+              aria-label="Next month"
               className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
             >
               <ChevronRight size={16} />
