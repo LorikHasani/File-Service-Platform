@@ -856,6 +856,7 @@ export function useAdminStats() {
     grossRevenue: 0,
     totalRefunds: 0,
     totalUsers: 0,
+    revenueTxs: [] as { type: string; amount: number; created_at: string }[],
   });
   const [loading, setLoading] = useState(true);
   const hasLoaded = useRef(false);
@@ -898,7 +899,7 @@ export function useAdminStats() {
           // `refund`-type transaction.
           supabase
             .from('transactions')
-            .select('type, amount')
+            .select('type, amount, created_at')
             .in('type', ['credit_purchase', 'refund']),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'client'),
         ]);
@@ -924,6 +925,11 @@ export function useAdminStats() {
             totalRefunds,
             totalRevenue: grossRevenue - totalRefunds,
             totalUsers: totalUsers || 0,
+            revenueTxs: (revenueTxs || []).map((tx) => ({
+              type: tx.type,
+              amount: Number(tx.amount) || 0,
+              created_at: tx.created_at,
+            })),
           });
           hasLoaded.current = true;
         }

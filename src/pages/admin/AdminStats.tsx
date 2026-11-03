@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, FileText, DollarSign, Clock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Card, Spinner } from '@/components/ui';
+import { Card, Select, Spinner } from '@/components/ui';
 import { useAdminStats, useAllJobsWithServices, useAllUsers } from '@/hooks/useSupabase';
 
 export const AdminStatsPage: React.FC = () => {
   const { stats, loading: statsLoading } = useAdminStats();
-  const { jobs, loading: jobsLoading } = useAllJobsWithServices();
+  const { jobs: allJobs, loading: jobsLoading } = useAllJobsWithServices();
   const { users, loading: usersLoading } = useAllUsers();
+  // 'all' or a 'YYYY-MM' month key
+  const [period, setPeriod] = useState('all');
 
   if (statsLoading || jobsLoading || usersLoading) {
     return (
@@ -18,6 +20,39 @@ export const AdminStatsPage: React.FC = () => {
       </Layout>
     );
   }
+
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const inPeriod = (date?: string | null) =>
+    period === 'all' || (!!date && monthKey(new Date(date)) === period);
+
+  // Month options run from the oldest job/transaction up to the current month
+  const now = new Date();
+  const earliest = [...allJobs.map(j => j.created_at), ...stats.revenueTxs.map(t => t.created_at)]
+    .filter(Boolean)
+    .reduce((min, d) => (new Date(d) < min ? new Date(d) : min), now);
+  const monthOptions = [{ value: 'all', label: 'All time' }];
+  for (let d = new Date(now.getFullYear(), now.getMonth(), 1);
+       d >= new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+       d.setMonth(d.getMonth() - 1)) {
+    monthOptions.push({
+      value: monthKey(d),
+      label: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+    });
+  }
+  const periodLabel = monthOptions.find(o => o.value === period)?.label ?? 'All time';
+
+  const jobs = allJobs.filter(j => inPeriod(j.created_at));
+
+  let grossRevenue = 0;
+  let totalRefunds = 0;
+  for (const tx of stats.revenueTxs) {
+    if (!inPeriod(tx.created_at)) continue;
+    if (tx.type === 'credit_purchase' && tx.amount > 0) grossRevenue += tx.amount;
+    else if (tx.type === 'refund') totalRefunds += Math.abs(tx.amount);
+  }
+  const netRevenue = grossRevenue - totalRefunds;
+
+  const newClients = users.filter(u => u.role === 'client' && inPeriod(u.created_at)).length;
 
   // Calculate additional stats
   const completedJobs = jobs.filter(j => j.status === 'completed');
@@ -46,14 +81,8 @@ export const AdminStatsPage: React.FC = () => {
     rejected: jobs.filter(j => j.status === 'rejected').length,
   };
 
-  // Jobs this month
-  const thisMonth = new Date();
-  thisMonth.setDate(1);
-  thisMonth.setHours(0, 0, 0, 0);
-  const jobsThisMonth = jobs.filter(j => new Date(j.created_at) >= thisMonth).length;
-  const revenueThisMonth = jobs
-    .filter(j => new Date(j.created_at) >= thisMonth)
-    .reduce((sum, j) => sum + (j.credits_used || 0), 0);
+  const jobsThisMonth = allJobs.filter(j => monthKey(new Date(j.created_at)) === monthKey(now)).length;
+  const creditsUsed = jobs.reduce((sum, j) => sum + (j.credits_used || 0), 0);
 
   // Top services - now properly using job.services from useAllJobsWithServices
   const serviceCount: Record<string, number> = {};
@@ -91,15 +120,26 @@ export const AdminStatsPage: React.FC = () => {
 
   return (
     <Layout title="Statistics">
+      <div className="flex items-center justify-end mb-4">
+        <div className="w-full sm:w-56">
+          <Select
+            aria-label="Filter by month"
+            options={monthOptions}
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+          />
+        </div>
+      </div>
+
       {/* Main Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-zinc-500">Net Revenue</p>
-              <p className="text-2xl font-bold mt-1">€{stats.totalRevenue.toFixed(0)}</p>
+              <p className="text-2xl font-bold mt-1">€{netRevenue.toFixed(0)}</p>
               <p className="text-xs text-zinc-500">
-                €{stats.grossRevenue.toFixed(0)} − €{stats.totalRefunds.toFixed(0)} refunds
+                €{grossRevenue.toFixed(0)} − €{totalRefunds.toFixed(0)} refunds
               </p>
             </div>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
@@ -111,9 +151,13 @@ export const AdminStatsPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">Total Jobs</p>
-              <p className="text-2xl font-bold mt-1">{stats.totalJobs}</p>
-              <p className="text-xs text-green-600">+{jobsThisMonth} this month</p>
+              <p className="text-sm font-medium text-zinc-500">{period === 'all' ? 'Total Jobs' : 'Jobs'}</p>
+              <p className="text-2xl font-bold mt-1">{period === 'all' ? stats.totalJobs : jobs.length}</p>
+              {period === 'all' ? (
+                <p className="text-xs text-green-600">+{jobsThisMonth} this month</p>
+              ) : (
+                <p className="text-xs text-zinc-500">in {periodLabel}</p>
+              )}
             </div>
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <FileText className="w-5 h-5 text-blue-600" />
@@ -124,9 +168,9 @@ export const AdminStatsPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">Total Users</p>
-              <p className="text-2xl font-bold mt-1">{stats.totalUsers}</p>
-              <p className="text-xs text-zinc-500">registered clients</p>
+              <p className="text-sm font-medium text-zinc-500">{period === 'all' ? 'Total Users' : 'New Clients'}</p>
+              <p className="text-2xl font-bold mt-1">{period === 'all' ? stats.totalUsers : newClients}</p>
+              <p className="text-xs text-zinc-500">{period === 'all' ? 'registered clients' : `signed up in ${periodLabel}`}</p>
             </div>
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Users className="w-5 h-5 text-purple-600" />
@@ -239,8 +283,8 @@ export const AdminStatsPage: React.FC = () => {
 
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-500">Revenue This Month</span>
-                <span className="font-semibold text-green-600">€{revenueThisMonth.toFixed(0)}</span>
+                <span className="text-sm text-zinc-500">Credits Used on Jobs</span>
+                <span className="font-semibold text-green-600">€{creditsUsed.toFixed(0)}</span>
               </div>
             </div>
 
@@ -248,7 +292,7 @@ export const AdminStatsPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-500">Total Refunds</span>
                 <span className="font-semibold text-red-600">
-                  -€{stats.totalRefunds.toFixed(0)}
+                  -€{totalRefunds.toFixed(0)}
                 </span>
               </div>
             </div>
