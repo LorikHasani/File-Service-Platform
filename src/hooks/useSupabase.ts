@@ -846,6 +846,54 @@ export function useAllTransactions() {
   return { transactions, loading };
 }
 
+// Transactions between two ISO timestamps (from inclusive, to exclusive);
+// either bound may be null for an open-ended range.
+export function useTransactionsInRange(from: string | null, to: string | null) {
+  const [transactions, setTransactions] = useState<TransactionWithClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const refreshKey = useAuthStore((s) => s.refreshKey);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const run = async () => {
+      try {
+        let query = supabase
+          .from('transactions')
+          .select('*, client:profiles!user_id(id, contact_name, email, company_name, country)')
+          .order('created_at', { ascending: false })
+          .limit(1000);
+        if (from) query = query.gte('created_at', from);
+        if (to) query = query.lt('created_at', to);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!cancelled) {
+          setTransactions((data || []) as TransactionWithClient[]);
+        }
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, refreshKey, from, to]);
+
+  return { transactions, loading };
+}
+
 export function useAdminStats() {
   const [stats, setStats] = useState({
     totalJobs: 0,

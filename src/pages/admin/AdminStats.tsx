@@ -1,15 +1,53 @@
 import React, { useState } from 'react';
-import { Users, FileText, DollarSign, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, FileText, DollarSign, Clock, ArrowUpRight } from 'lucide-react';
+import { addDays, endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from 'date-fns';
 import { Layout } from '@/components/Layout';
-import { Card, Select, Spinner } from '@/components/ui';
-import { useAdminStats, useAllJobsWithServices, useAllUsers } from '@/hooks/useSupabase';
+import { Badge, Card, Input, Pagination, Spinner, usePagination } from '@/components/ui';
+import {
+  useAdminStats,
+  useAllJobsWithServices,
+  useAllUsers,
+  useTransactionsInRange,
+} from '@/hooks/useSupabase';
+import { transactionTypeBadge, transactionTypeLabels } from './AdminTransactions';
+
+const toDay = (d: Date) => format(d, 'yyyy-MM-dd');
+const parseDay = (day: string) => new Date(`${day}T00:00:00`);
+
+// Each preset resolves to an inclusive [from, to] pair of 'yyyy-MM-dd' days ('' = open)
+const PRESETS: { key: string; label: string; range: () => [string, string] }[] = [
+  { key: 'all', label: 'All time', range: () => ['', ''] },
+  { key: 'today', label: 'Today', range: () => [toDay(new Date()), toDay(new Date())] },
+  { key: '7d', label: 'Last 7 days', range: () => [toDay(subDays(new Date(), 6)), toDay(new Date())] },
+  { key: '30d', label: 'Last 30 days', range: () => [toDay(subDays(new Date(), 29)), toDay(new Date())] },
+  { key: 'month', label: 'This month', range: () => [toDay(startOfMonth(new Date())), toDay(new Date())] },
+  {
+    key: 'lastMonth',
+    label: 'Last month',
+    range: () => {
+      const last = subMonths(new Date(), 1);
+      return [toDay(startOfMonth(last)), toDay(endOfMonth(last))];
+    },
+  },
+  { key: 'year', label: 'This year', range: () => [toDay(startOfYear(new Date())), toDay(new Date())] },
+];
 
 export const AdminStatsPage: React.FC = () => {
   const { stats, loading: statsLoading } = useAdminStats();
   const { jobs: allJobs, loading: jobsLoading } = useAllJobsWithServices();
   const { users, loading: usersLoading } = useAllUsers();
-  // 'all' or a 'YYYY-MM' month key
-  const [period, setPeriod] = useState('all');
+  const [fromDay, setFromDay] = useState('');
+  const [toDayValue, setToDayValue] = useState('');
+
+  // Range bounds as timestamps: from is inclusive, to is the start of the day after
+  const rangeStart = fromDay ? parseDay(fromDay) : null;
+  const rangeEnd = toDayValue ? addDays(parseDay(toDayValue), 1) : null;
+  const { transactions: rangeTxs, loading: txLoading } = useTransactionsInRange(
+    rangeStart?.toISOString() ?? null,
+    rangeEnd?.toISOString() ?? null,
+  );
+  const txPager = usePagination(rangeTxs, 10);
 
   if (statsLoading || jobsLoading || usersLoading) {
     return (
@@ -21,25 +59,22 @@ export const AdminStatsPage: React.FC = () => {
     );
   }
 
-  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  const inPeriod = (date?: string | null) =>
-    period === 'all' || (!!date && monthKey(new Date(date)) === period);
+  const isAllTime = !fromDay && !toDayValue;
+  const inPeriod = (date?: string | null) => {
+    if (isAllTime) return true;
+    if (!date) return false;
+    const d = new Date(date);
+    return (!rangeStart || d >= rangeStart) && (!rangeEnd || d < rangeEnd);
+  };
 
-  // Month options run from the oldest job/transaction up to the current month
-  const now = new Date();
-  const earliest = [...allJobs.map(j => j.created_at), ...stats.revenueTxs.map(t => t.created_at)]
-    .filter(Boolean)
-    .reduce((min, d) => (new Date(d) < min ? new Date(d) : min), now);
-  const monthOptions = [{ value: 'all', label: 'All time' }];
-  for (let d = new Date(now.getFullYear(), now.getMonth(), 1);
-       d >= new Date(earliest.getFullYear(), earliest.getMonth(), 1);
-       d.setMonth(d.getMonth() - 1)) {
-    monthOptions.push({
-      value: monthKey(d),
-      label: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
-    });
-  }
-  const periodLabel = monthOptions.find(o => o.value === period)?.label ?? 'All time';
+  const activePreset = PRESETS.find(p => {
+    const [f, t] = p.range();
+    return f === fromDay && t === toDayValue;
+  });
+  const periodLabel = activePreset?.label
+    ?? [fromDay && format(parseDay(fromDay), 'd MMM yyyy'), toDayValue && format(parseDay(toDayValue), 'd MMM yyyy')]
+      .map(v => v || '…')
+      .join(' – ');
 
   const jobs = allJobs.filter(j => inPeriod(j.created_at));
 
@@ -81,7 +116,8 @@ export const AdminStatsPage: React.FC = () => {
     rejected: jobs.filter(j => j.status === 'rejected').length,
   };
 
-  const jobsThisMonth = allJobs.filter(j => monthKey(new Date(j.created_at)) === monthKey(now)).length;
+  const monthStart = startOfMonth(new Date());
+  const jobsThisMonth = allJobs.filter(j => new Date(j.created_at) >= monthStart).length;
   const creditsUsed = jobs.reduce((sum, j) => sum + (j.credits_used || 0), 0);
 
   // Top services - now properly using job.services from useAllJobsWithServices
@@ -120,16 +156,50 @@ export const AdminStatsPage: React.FC = () => {
 
   return (
     <Layout title="Statistics">
-      <div className="flex items-center justify-end mb-4">
-        <div className="w-full sm:w-56">
-          <Select
-            aria-label="Filter by month"
-            options={monthOptions}
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-          />
+      {/* Date filter */}
+      <Card className="mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div className="flex flex-wrap gap-2 flex-1">
+            {PRESETS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => {
+                  const [f, t] = p.range();
+                  setFromDay(f);
+                  setToDayValue(t);
+                  txPager.setPage(1);
+                }}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                  activePreset?.key === p.key
+                    ? 'bg-red-600 text-white border-red-600'
+                    : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:w-80">
+            <Input
+              label="From"
+              type="date"
+              value={fromDay}
+              max={toDayValue || undefined}
+              onChange={(e) => { setFromDay(e.target.value); txPager.setPage(1); }}
+            />
+            <Input
+              label="To"
+              type="date"
+              value={toDayValue}
+              min={fromDay || undefined}
+              onChange={(e) => { setToDayValue(e.target.value); txPager.setPage(1); }}
+            />
+          </div>
         </div>
-      </div>
+        {!activePreset && (
+          <p className="text-xs text-zinc-500 mt-3">Showing {periodLabel}</p>
+        )}
+      </Card>
 
       {/* Main Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -151,12 +221,12 @@ export const AdminStatsPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">{period === 'all' ? 'Total Jobs' : 'Jobs'}</p>
-              <p className="text-2xl font-bold mt-1">{period === 'all' ? stats.totalJobs : jobs.length}</p>
-              {period === 'all' ? (
+              <p className="text-sm font-medium text-zinc-500">{isAllTime ? 'Total Jobs' : 'Jobs'}</p>
+              <p className="text-2xl font-bold mt-1">{isAllTime ? stats.totalJobs : jobs.length}</p>
+              {isAllTime ? (
                 <p className="text-xs text-green-600">+{jobsThisMonth} this month</p>
               ) : (
-                <p className="text-xs text-zinc-500">in {periodLabel}</p>
+                <p className="text-xs text-zinc-500">{periodLabel}</p>
               )}
             </div>
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -168,9 +238,9 @@ export const AdminStatsPage: React.FC = () => {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">{period === 'all' ? 'Total Users' : 'New Clients'}</p>
-              <p className="text-2xl font-bold mt-1">{period === 'all' ? stats.totalUsers : newClients}</p>
-              <p className="text-xs text-zinc-500">{period === 'all' ? 'registered clients' : `signed up in ${periodLabel}`}</p>
+              <p className="text-sm font-medium text-zinc-500">{isAllTime ? 'Total Users' : 'New Clients'}</p>
+              <p className="text-2xl font-bold mt-1">{isAllTime ? stats.totalUsers : newClients}</p>
+              <p className="text-xs text-zinc-500">{isAllTime ? 'registered clients' : `signed up · ${periodLabel}`}</p>
             </div>
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Users className="w-5 h-5 text-purple-600" />
@@ -348,6 +418,88 @@ export const AdminStatsPage: React.FC = () => {
           )}
         </Card>
       </div>
+
+      {/* Transactions in range */}
+      <Card padding="none" className="mt-6">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Transactions</h2>
+            <p className="text-xs text-zinc-500">{periodLabel}</p>
+          </div>
+          <Badge variant="default">{rangeTxs.length}</Badge>
+        </div>
+        {txLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Spinner />
+          </div>
+        ) : rangeTxs.length === 0 ? (
+          <div className="text-center py-12 text-zinc-500">No transactions in this period</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead className="bg-zinc-50 dark:bg-zinc-800/50">
+                <tr>
+                  <th className="text-left px-4 py-3 text-sm font-semibold">Date</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold">Client</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold">Type</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold">Amount</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {txPager.pagedItems.map((tx) => {
+                  const amount = Number(tx.amount) || 0;
+                  return (
+                    <tr key={tx.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-zinc-500">
+                        {format(new Date(tx.created_at), 'MMM d, yyyy HH:mm')}
+                      </td>
+                      <td className="px-4 py-3">
+                        {tx.client ? (
+                          <Link to={`/admin/users/${tx.client.id}`} className="group block min-w-0">
+                            <p className="font-medium text-sm truncate group-hover:text-red-600 inline-flex items-center gap-1">
+                              {tx.client.contact_name}
+                              <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100" />
+                            </p>
+                            <p className="text-xs text-zinc-500 truncate">{tx.client.email}</p>
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-zinc-400">Unknown user</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={transactionTypeBadge[tx.type]}>
+                          {transactionTypeLabels[tx.type]}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`font-semibold text-sm ${amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {amount > 0 ? '+' : ''}€{amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 max-w-xs">
+                        <span className="block text-sm text-zinc-500 truncate" title={tx.description || ''}>
+                          {tx.description || '-'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!txLoading && txPager.totalPages > 1 && (
+          <Pagination
+            page={txPager.page}
+            totalPages={txPager.totalPages}
+            totalItems={txPager.totalItems}
+            rangeStart={txPager.rangeStart}
+            rangeEnd={txPager.rangeEnd}
+            onPageChange={txPager.setPage}
+          />
+        )}
+      </Card>
     </Layout>
   );
 };

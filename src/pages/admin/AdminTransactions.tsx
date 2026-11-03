@@ -9,14 +9,14 @@ import type { TransactionType } from '@/types/database';
 import { generateInvoicePDF } from '@/lib/invoice';
 import toast from 'react-hot-toast';
 
-const transactionTypeLabels: Record<TransactionType, string> = {
+export const transactionTypeLabels: Record<TransactionType, string> = {
   credit_purchase: 'Purchase',
   job_payment: 'Job Payment',
   refund: 'Refund',
   admin_adjustment: 'Admin Adjustment',
 };
 
-const transactionTypeBadge: Record<
+export const transactionTypeBadge: Record<
   TransactionType,
   'success' | 'error' | 'pending' | 'in_progress'
 > = {
