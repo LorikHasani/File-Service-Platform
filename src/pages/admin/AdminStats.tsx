@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, FileText, DollarSign, Clock, ArrowUpRight } from 'lucide-react';
-import { addDays, endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from 'date-fns';
+import { Users, FileText, DollarSign, Clock, ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { addDays, differenceInCalendarDays, endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Badge, Card, Input, Pagination, Spinner, usePagination } from '@/components/ui';
 import {
@@ -14,6 +14,10 @@ import { transactionTypeBadge, transactionTypeLabels } from './AdminTransactions
 
 const toDay = (d: Date) => format(d, 'yyyy-MM-dd');
 const parseDay = (day: string) => new Date(`${day}T00:00:00`);
+
+const dateInputClass =
+  'h-10 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 ' +
+  'focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 dark:[color-scheme:dark]';
 
 // Each preset resolves to an inclusive [from, to] pair of 'yyyy-MM-dd' days ('' = open)
 const PRESETS: { key: string; label: string; range: () => [string, string] }[] = [
@@ -39,6 +43,9 @@ export const AdminStatsPage: React.FC = () => {
   const { users, loading: usersLoading } = useAllUsers();
   const [fromDay, setFromDay] = useState('');
   const [toDayValue, setToDayValue] = useState('');
+  // Single-day mode keeps from and to on the same day; range mode lets them differ
+  const [rangeMode, setRangeMode] = useState(false);
+  const [signFilter, setSignFilter] = useState<'all' | 'positive' | 'negative'>('all');
 
   // Range bounds as timestamps: from is inclusive, to is the start of the day after
   const rangeStart = fromDay ? parseDay(fromDay) : null;
@@ -47,7 +54,31 @@ export const AdminStatsPage: React.FC = () => {
     rangeStart?.toISOString() ?? null,
     rangeEnd?.toISOString() ?? null,
   );
-  const txPager = usePagination(rangeTxs, 10);
+  const filteredTxs = rangeTxs.filter((tx) => {
+    const amount = Number(tx.amount) || 0;
+    if (signFilter === 'positive') return amount > 0;
+    if (signFilter === 'negative') return amount < 0;
+    return true;
+  });
+  const txPager = usePagination(filteredTxs, 10);
+
+  const setRange = (from: string, to: string) => {
+    setFromDay(from);
+    setToDayValue(to);
+    txPager.setPage(1);
+  };
+
+  // Arrows move the selection by its own length (one day, or the whole range)
+  const shiftRange = (direction: 1 | -1) => {
+    const today = toDay(new Date());
+    const from = fromDay || toDayValue || today;
+    const to = toDayValue || fromDay || today;
+    const length = differenceInCalendarDays(parseDay(to), parseDay(from)) + 1;
+    setRange(
+      toDay(addDays(parseDay(from), direction * length)),
+      toDay(addDays(parseDay(to), direction * length)),
+    );
+  };
 
   if (statsLoading || jobsLoading || usersLoading) {
     return (
@@ -72,6 +103,7 @@ export const AdminStatsPage: React.FC = () => {
     return f === fromDay && t === toDayValue;
   });
   const periodLabel = activePreset?.label
+    ?? (fromDay && fromDay === toDayValue ? format(parseDay(fromDay), 'd MMM yyyy') : null)
     ?? [fromDay && format(parseDay(fromDay), 'd MMM yyyy'), toDayValue && format(parseDay(toDayValue), 'd MMM yyyy')]
       .map(v => v || '…')
       .join(' – ');
@@ -86,6 +118,14 @@ export const AdminStatsPage: React.FC = () => {
     else if (tx.type === 'refund') totalRefunds += Math.abs(tx.amount);
   }
   const netRevenue = grossRevenue - totalRefunds;
+
+  let positiveTotal = 0;
+  let negativeTotal = 0;
+  for (const tx of rangeTxs) {
+    const amount = Number(tx.amount) || 0;
+    if (amount > 0) positiveTotal += amount;
+    else negativeTotal += amount;
+  }
 
   const newClients = users.filter(u => u.role === 'client' && inPeriod(u.created_at)).length;
 
@@ -158,16 +198,15 @@ export const AdminStatsPage: React.FC = () => {
     <Layout title="Statistics">
       {/* Date filter */}
       <Card className="mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+        <div className="flex flex-col xl:flex-row xl:items-center gap-4">
           <div className="flex flex-wrap gap-2 flex-1">
             {PRESETS.map((p) => (
               <button
                 key={p.key}
                 onClick={() => {
                   const [f, t] = p.range();
-                  setFromDay(f);
-                  setToDayValue(t);
-                  txPager.setPage(1);
+                  setRange(f, t);
+                  setRangeMode(f !== t);
                 }}
                 className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                   activePreset?.key === p.key
@@ -179,21 +218,66 @@ export const AdminStatsPage: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-3 lg:w-80">
-            <Input
-              label="From"
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => shiftRange(-1)}
+              aria-label="Previous period"
+              className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <input
               type="date"
+              aria-label={rangeMode ? 'Start date' : 'Date'}
               value={fromDay}
-              max={toDayValue || undefined}
-              onChange={(e) => { setFromDay(e.target.value); txPager.setPage(1); }}
+              max={rangeMode ? toDayValue || undefined : undefined}
+              onChange={(e) => setRange(e.target.value, rangeMode ? toDayValue : e.target.value)}
+              className={dateInputClass}
             />
-            <Input
-              label="To"
-              type="date"
-              value={toDayValue}
-              min={fromDay || undefined}
-              onChange={(e) => { setToDayValue(e.target.value); txPager.setPage(1); }}
-            />
+            {rangeMode && (
+              <>
+                <span className="text-zinc-400">–</span>
+                <input
+                  type="date"
+                  aria-label="End date"
+                  value={toDayValue}
+                  min={fromDay || undefined}
+                  onChange={(e) => setRange(fromDay, e.target.value)}
+                  className={dateInputClass}
+                />
+              </>
+            )}
+            <button
+              onClick={() => shiftRange(1)}
+              aria-label="Next period"
+              className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            >
+              <ChevronRight size={16} />
+            </button>
+            {rangeMode ? (
+              <button
+                onClick={() => {
+                  setRangeMode(false);
+                  const day = fromDay || toDayValue;
+                  setRange(day, day);
+                }}
+                className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-red-600 px-1"
+              >
+                <X size={14} />
+                Single day
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setRangeMode(true);
+                  if (!fromDay) setRange(toDay(new Date()), toDay(new Date()));
+                }}
+                className="text-sm text-red-600 hover:underline px-1"
+              >
+                Start &amp; end date
+              </button>
+            )}
           </div>
         </div>
         {!activePreset && (
@@ -426,13 +510,41 @@ export const AdminStatsPage: React.FC = () => {
             <h2 className="text-lg font-semibold">Transactions</h2>
             <p className="text-xs text-zinc-500">{periodLabel}</p>
           </div>
-          <Badge variant="default">{rangeTxs.length}</Badge>
+          <Badge variant="default">{filteredTxs.length}</Badge>
+        </div>
+        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap gap-2">
+          {([
+            { value: 'all', label: 'All', total: null },
+            { value: 'positive', label: 'Positive', total: positiveTotal },
+            { value: 'negative', label: 'Negative', total: negativeTotal },
+          ] as const).map((f) => (
+            <button
+              key={f.value}
+              onClick={() => { setSignFilter(f.value); txPager.setPage(1); }}
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                signFilter === f.value
+                  ? 'bg-red-600 text-white border-red-600'
+                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {f.label}
+              {f.total !== null && (
+                <span
+                  className={`ml-1.5 font-semibold ${
+                    signFilter === f.value ? '' : f.total > 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {f.total > 0 ? '+' : f.total < 0 ? '−' : ''}€{Math.abs(f.total).toFixed(2)}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
         {txLoading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner />
           </div>
-        ) : rangeTxs.length === 0 ? (
+        ) : filteredTxs.length === 0 ? (
           <div className="text-center py-12 text-zinc-500">No transactions in this period</div>
         ) : (
           <div className="overflow-x-auto">
