@@ -6,6 +6,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Inter', 'system-ui', 'sans-serif'],
+        tech: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
     },
   },

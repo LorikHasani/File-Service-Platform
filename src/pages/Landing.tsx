@@ -1,24 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  Check,
-  ChevronDown,
-  Mail,
-  Phone,
-  Send,
-  Menu,
-  X,
-  Clock,
-  FileUp,
-  Wrench,
-  Download,
-  ShieldCheck,
-  RefreshCcw,
-  Wallet,
-  Users,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, Plus, Menu, X } from "lucide-react";
 import { KikzaCredit } from "@/components/KikzaCredit";
+import type { CarFeature } from "@/components/landing/CarScene";
+
+// three.js is heavy; only load it when the landing page renders the car.
+const CarScene = lazy(() => import("@/components/landing/CarScene"));
 
 // ─── Calculator iframe ───
 
@@ -37,10 +24,10 @@ const calcIframe = `
     window.$ecu = {
       lang: "eng",
       width: "100%",
-      BackgroundColor: "#ffffff",
-      BoxColor: "#f8fafc",
-      FontColor: "#0f172a",
-      ButtonColor: "#b91c1c",
+      BackgroundColor: "#111111",
+      BoxColor: "#1a1a1a",
+      FontColor: "#f2efe9",
+      ButtonColor: "#d7261e",
       ButtonFontColor: "#ffffff",
       APIID: ""
     };
@@ -54,43 +41,82 @@ const calcIframe = `
 
 // ─── Data ───
 
-const serviceGroups = [
+const carFeatures: { key: CarFeature; name: string; short: string; desc: string }[] = [
   {
-    title: "Performance calibration",
-    items: [
-      ["Stage 1", "Calibration for stock hardware. Typically 15–30% more power and torque."],
-      ["Stage 2", "For vehicles with intake, intercooler or exhaust upgrades. Up to 45%."],
-      ["Stage 3", "Custom calibration for heavily modified engines."],
-      ["TCU / Gearbox", "DSG, ZF and other automatics: shift times, torque limits, launch."],
+    key: "dpf",
+    name: "DPF off",
+    short: "DPF",
+    desc: "A blocked particulate filter means forced regenerations, high back-pressure and limp mode. We take the DPF out of the calibration — regen strategy, pressure sensor monitoring and the related fault codes.",
+  },
+  {
+    key: "adblue",
+    name: "AdBlue / SCR off",
+    short: "AdBlue",
+    desc: "No more dosing faults, failed NOx sensors or the “no start in 500 km” countdown. The SCR system, tank heater and dosing logic are disabled cleanly.",
+  },
+  {
+    key: "egr",
+    name: "EGR off",
+    short: "EGR",
+    desc: "Stops sooty exhaust gas being fed back into the intake. The valve is closed in software and its monitoring removed, so no warning lights after a blank or delete.",
+  },
+  {
+    key: "pops",
+    name: "Pops & Bangs",
+    short: "Pops",
+    desc: "Crackles and bangs when you lift off the throttle. Tell us how loud you want it — from a light burble to aggressive — and in which RPM range.",
+  },
+  {
+    key: "popcorn",
+    name: "Popcorn / Hardcut",
+    short: "Popcorn",
+    desc: "A rapid-fire rev limiter. Hold the car on the limiter and it machine-guns through the exhaust. Usually combined with launch control.",
+  },
+];
+
+const carLabels = Object.fromEntries(carFeatures.map((f) => [f.key, f.name])) as Record<
+  CarFeature,
+  string
+>;
+
+const serviceTable: { group: string; rows: [string, string, string][] }[] = [
+  {
+    group: "Performance",
+    rows: [
+      ["ST1", "Stage 1", "Stock hardware. Typically 15–30% more power and torque."],
+      ["ST2", "Stage 2", "Downpipe, intake or intercooler upgrades. Up to 45%."],
+      ["ST3", "Stage 3", "Full custom calibration for built engines."],
+      ["TCU", "Gearbox (TCU)", "DSG, ZF and other automatics — shift speed, torque limits, launch."],
     ],
   },
   {
-    title: "Emission system solutions",
-    items: [
-      ["DPF / GPF / OPF", "Particulate filter removal and regeneration disable."],
-      ["EGR", "Exhaust gas recirculation delete."],
-      ["AdBlue / SCR", "SCR system delete including warning and countdown logic."],
-      ["Lambda / Decat", "O2 sensor and catalyst monitoring removal."],
+    group: "Emissions",
+    rows: [
+      ["DPF", "DPF / GPF / OPF off", "Filter removed from the calibration, no regenerations."],
+      ["EGR", "EGR off", "Valve closed, monitoring removed."],
+      ["SCR", "AdBlue / SCR off", "Dosing, heater and NOx monitoring disabled."],
+      ["O2", "Lambda / Decat", "Rear O2 and catalyst efficiency monitoring off."],
     ],
   },
   {
-    title: "Additional options",
-    items: [
-      ["Speed limiter", "Removal or adjustment of the factory Vmax limit."],
-      ["Start-Stop", "Permanent disable of the start-stop system."],
-      ["Pops & Bangs", "Overrun burble and hardcut maps."],
-      ["Launch control", "Launch control and rev-limit adjustments."],
+    group: "Extras",
+    rows: [
+      ["P&B", "Pops & Bangs", "Overrun crackle, intensity on request."],
+      ["HC", "Popcorn / Hardcut", "Rapid rev-limiter cut."],
+      ["VMX", "Speed limiter off", "Factory Vmax removed or changed."],
+      ["SS", "Start-Stop off", "Disabled permanently."],
     ],
   },
 ];
 
 const extraServices = [
-  "Swirl Flaps Off",
-  "Hot Start Fix",
-  "Intake Flaps Off",
-  "EVAP Off",
-  "Torque Monitoring Off",
-  "TVA Off",
+  "Swirl flaps off",
+  "Hot start fix",
+  "Launch control",
+  "Intake flaps off",
+  "EVAP off",
+  "Torque monitoring off",
+  "TVA off",
 ];
 
 const tools = [
@@ -146,8 +172,8 @@ const faqs = [
 ];
 
 const navLinks = [
+  ["#under-the-car", "Under the car"],
   ["#services", "Services"],
-  ["#process", "Process"],
   ["#calculator", "Calculator"],
   ["#faq", "FAQ"],
   ["#contact", "Contact"],
@@ -155,12 +181,11 @@ const navLinks = [
 
 // ─── Small pieces ───
 
+const condensed = { fontStretch: "72%" } as React.CSSProperties;
+
 /** The logo file is a wide image with a lot of black padding; crop to the mark. */
-const Logo: React.FC<{ className?: string }> = ({ className = "" }) => (
-  <span
-    className={`relative block overflow-hidden ${className}`}
-    style={{ width: 168, height: 36 }}
-  >
+const Logo: React.FC = () => (
+  <span className="relative block overflow-hidden" style={{ width: 168, height: 36 }}>
     <img
       src="/logo.png"
       alt="ChipTuneFiles"
@@ -170,53 +195,41 @@ const Logo: React.FC<{ className?: string }> = ({ className = "" }) => (
   </span>
 );
 
-const SectionHeading: React.FC<{
-  eyebrow: string;
-  title: string;
-  lead?: string;
-  center?: boolean;
-}> = ({ eyebrow, title, lead, center }) => (
-  <div className={`mb-12 ${center ? "text-center mx-auto" : ""} max-w-2xl`}>
-    <p className="text-xs font-semibold tracking-[0.14em] uppercase text-red-700 mb-3">
-      {eyebrow}
-    </p>
-    <h2 className="text-3xl sm:text-[2.1rem] font-semibold tracking-tight text-slate-900 leading-tight">
-      {title}
-    </h2>
-    {lead && <p className="mt-4 text-slate-600 leading-relaxed">{lead}</p>}
-  </div>
+const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children, dark }) => (
+  <p
+    className={`font-tech text-[11px] uppercase tracking-[0.18em] mb-5 ${
+      dark ? "text-[#f2efe9]/50" : "text-black/50"
+    }`}
+  >
+    {children}
+  </p>
 );
 
 // ─── Component ───
 
 export const LandingPage: React.FC = () => {
   const [mobileNav, setMobileNav] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [feature, setFeature] = useState<CarFeature | null>(null);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 8);
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
+    document.body.style.backgroundColor = "#111111";
+    return () => {
+      document.body.style.backgroundColor = "";
+    };
   }, []);
 
+  const activeFeature = carFeatures.find((f) => f.key === feature);
+
   return (
-    <div className="bg-white text-slate-900 min-h-screen antialiased">
+    <div className="bg-[#111111] text-[#f2efe9] min-h-screen antialiased selection:bg-[#d7261e] selection:text-white">
       {/* ═══ HEADER ═══ */}
-      <header
-        role="banner"
-        className={`fixed top-0 inset-x-0 z-50 bg-slate-950 transition-shadow ${
-          scrolled ? "shadow-lg shadow-black/20" : ""
-        }`}
-      >
-        <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-16">
+      <header role="banner" className="sticky top-0 z-50 bg-[#111111]/95 backdrop-blur border-b border-white/10">
+        <div className="max-w-[1200px] mx-auto px-5 flex items-center justify-between h-16">
           <a href="#top" aria-label="ChipTuneFiles home">
             <Logo />
           </a>
 
-          <nav
-            className="hidden md:flex items-center gap-7 text-[13px] font-medium text-slate-300"
-            aria-label="Main navigation"
-          >
+          <nav className="hidden lg:flex items-center gap-7 text-[13px] text-white/60" aria-label="Main navigation">
             {navLinks.map(([href, label]) => (
               <a key={href} href={href} className="hover:text-white transition-colors">
                 {label}
@@ -224,24 +237,21 @@ export const LandingPage: React.FC = () => {
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-2">
-            <Link
-              to="/login"
-              className="text-[13px] font-medium text-slate-300 hover:text-white transition-colors px-4 py-2"
-            >
-              Sign in
+          <div className="hidden lg:flex items-center gap-5">
+            <Link to="/login" className="text-[13px] text-white/80 hover:text-white">
+              File Portal Login
             </Link>
             <Link
               to="/register"
-              className="text-[13px] font-semibold bg-white text-slate-900 hover:bg-slate-100 px-4 py-2 rounded-md transition-colors"
+              className="text-[13px] font-semibold bg-[#d7261e] hover:bg-[#ef3a2f] text-white px-4 py-2 transition-colors"
             >
-              Open an account
+              Register
             </Link>
           </div>
 
           <button
             onClick={() => setMobileNav(!mobileNav)}
-            className="md:hidden p-2 text-slate-300"
+            className="lg:hidden p-2 -mr-2 text-white/80"
             aria-label="Toggle menu"
           >
             {mobileNav ? <X size={22} /> : <Menu size={22} />}
@@ -249,29 +259,23 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {mobileNav && (
-          <div className="md:hidden bg-slate-950 border-t border-white/10 px-5 py-5 space-y-1">
+          <div className="lg:hidden border-t border-white/10 px-5 py-4">
             {navLinks.map(([href, label]) => (
               <a
                 key={href}
                 href={href}
                 onClick={() => setMobileNav(false)}
-                className="block py-2.5 text-slate-200"
+                className="block py-3 border-b border-white/5 text-white/80"
               >
                 {label}
               </a>
             ))}
-            <div className="pt-4 mt-3 border-t border-white/10 grid grid-cols-2 gap-3">
-              <Link
-                to="/login"
-                className="text-center py-2.5 text-sm font-medium border border-white/20 rounded-md text-slate-200"
-              >
-                Sign in
+            <div className="pt-4 grid grid-cols-2 gap-3">
+              <Link to="/login" className="text-center py-3 text-sm border border-white/20">
+                File Portal Login
               </Link>
-              <Link
-                to="/register"
-                className="text-center py-2.5 text-sm font-semibold bg-white rounded-md text-slate-900"
-              >
-                Open an account
+              <Link to="/register" className="text-center py-3 text-sm font-semibold bg-[#d7261e] text-white">
+                Register
               </Link>
             </div>
           </div>
@@ -279,249 +283,334 @@ export const LandingPage: React.FC = () => {
       </header>
 
       {/* ═══ HERO ═══ */}
-      <section
-        id="top"
-        className="relative pt-16 bg-slate-950 text-white overflow-hidden"
-        aria-label="Introduction"
-      >
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage: "linear-gradient(to bottom, black, transparent 85%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black, transparent 85%)",
-          }}
-          aria-hidden="true"
-        />
-        <div className="relative max-w-6xl mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
-          <div>
-            <p className="inline-flex items-center gap-2 text-xs font-medium text-slate-300 border border-white/15 rounded-full px-3 py-1 mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              B2B file service for workshops and tuners
-            </p>
-            <h1 className="text-4xl sm:text-5xl font-semibold leading-[1.1] tracking-tight mb-6">
-              ECU and TCU calibration files, engineered by hand.
+      <section id="top" aria-label="Introduction" className="border-b border-white/10">
+        <div className="max-w-[1200px] mx-auto px-5 pt-14 pb-16 lg:pt-20 lg:pb-24 grid lg:grid-cols-12 gap-12 items-end">
+          <div className="lg:col-span-7">
+            <Tag dark>ECU &amp; TCU file service for workshops</Tag>
+            <h1
+              className="font-display font-extrabold uppercase leading-[0.9] tracking-[-0.01em] text-[3.4rem] sm:text-[5rem] lg:text-[6.2rem]"
+              style={condensed}
+            >
+              Tuning files
+              <br />
+              written by
+              <br />
+              <span className="text-[#d7261e]">people who tune.</span>
             </h1>
-            <p className="text-slate-300 text-lg leading-relaxed mb-9 max-w-xl">
-              Upload the original read from your tool, choose the work you need,
-              and receive a tested modified file through a secure portal —
-              usually in under 15 minutes during working hours.
+            <p className="mt-8 text-lg leading-relaxed text-white/70 max-w-[34rem]">
+              Send us the original read from your tool and tell us what the car
+              needs. One of our calibrators writes the file for that exact ECU and
+              software version — no generic maps, no auto-patching — and it's
+              usually back with you in under 15 minutes.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
               <Link
                 to="/register"
-                className="group inline-flex items-center justify-center gap-2 bg-red-700 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-md transition-colors"
+                className="group inline-flex items-center gap-3 bg-[#f2efe9] text-black font-semibold pl-6 pr-5 py-3.5 hover:bg-white transition-colors"
               >
-                Open an account
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                Create your account
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center border border-white/20 hover:border-white/40 text-white font-medium px-6 py-3 rounded-md transition-colors"
-              >
-                Sign in to the file portal
-              </Link>
+              <a href="#under-the-car" className="text-sm text-white/70 underline underline-offset-4 decoration-white/30 hover:text-white">
+                See what we can switch off ↓
+              </a>
             </div>
           </div>
 
-          {/* Facts panel */}
-          <dl className="grid grid-cols-2 border border-white/10 rounded-lg overflow-hidden bg-white/[0.03]">
+          {/* Example job ticket */}
+          <aside className="lg:col-span-5 lg:pl-6" aria-label="Example job">
+            <div className="bg-[#f2efe9] text-black rotate-[1.2deg] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-dashed border-black/25 font-tech text-[11px] uppercase tracking-wider">
+                <span>Job ticket</span>
+                <span className="text-black/50">Example</span>
+              </div>
+              <dl className="px-5 py-4 font-tech text-[13px] leading-6">
+                {[
+                  ["Vehicle", "VW Golf 7 2.0 TDI 150"],
+                  ["ECU", "Bosch EDC17C64"],
+                  ["Tool", "KESS3 · slave"],
+                  ["Requested", "Stage 1 + DPF + EGR"],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-4">
+                    <dt className="text-black/50">{k}</dt>
+                    <dd className="text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="px-5 py-4 border-t border-dashed border-black/25 font-tech text-[13px] leading-6">
+                <div className="flex justify-between">
+                  <span className="text-black/50">Uploaded</span>
+                  <span>14:02</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-black/50">File ready</span>
+                  <span>14:13</span>
+                </div>
+              </div>
+              <div className="px-5 py-3 bg-black text-[#f2efe9] flex items-center justify-between font-tech text-[11px] uppercase tracking-wider">
+                <span>Dyno-tested · ready to flash</span>
+                <span className="text-[#4ade80]">● Done</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        {/* Numbers */}
+        <div className="border-t border-white/10">
+          <dl className="max-w-[1200px] mx-auto grid grid-cols-2 lg:grid-cols-4">
             {[
-              ["10,000+", "Files delivered"],
-              ["< 15 min", "Average turnaround in working hours"],
-              ["Dyno-tested", "Files tested on the dyno before delivery"],
-              ["Free revisions", "Included with every job"],
-              ["Pay per file", "Prepaid credits that never expire"],
-              ["Mon–Sat", "09:00–22:00 CET support"],
+              ["10,000+", "files delivered"],
+              ["< 15 min", "average turnaround"],
+              ["Dyno", "tested before delivery"],
+              ["Mon–Sat", "09:00–22:00 CET"],
             ].map(([k, v], i) => (
               <div
                 key={k}
-                className={`p-6 ${i % 2 === 0 ? "border-r border-white/10" : ""} ${
-                  i < 4 ? "border-b border-white/10" : ""
-                }`}
+                className={`px-5 py-7 ${i % 2 === 1 ? "border-l" : ""} ${
+                  i > 1 ? "border-t lg:border-t-0" : ""
+                } ${i === 2 ? "lg:border-l" : ""} border-white/10`}
               >
-                <dt className="text-xl font-semibold tracking-tight">{k}</dt>
-                <dd className="mt-1 text-sm text-slate-400 leading-snug">{v}</dd>
+                <dt className="font-display font-bold text-3xl sm:text-4xl uppercase" style={condensed}>
+                  {k}
+                </dt>
+                <dd className="mt-1 font-tech text-[11px] uppercase tracking-[0.14em] text-white/50">{v}</dd>
               </div>
             ))}
           </dl>
         </div>
+      </section>
 
-        {/* Tools strip */}
-        <div className="relative border-t border-white/10">
-          <div className="max-w-6xl mx-auto px-5 py-6 flex flex-col md:flex-row md:items-center gap-4">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500 shrink-0">
-              Compatible tools
+      {/* ═══ 3D CAR ═══ */}
+      <section id="under-the-car" className="scroll-mt-16 border-b border-white/10" aria-label="What we can change on the car">
+        <div className="max-w-[1200px] mx-auto px-5 pt-20 lg:pt-24">
+          <div className="grid lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-7">
+              <Tag dark>01 — Under the car</Tag>
+              <h2
+                className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
+                style={condensed}
+              >
+                Pick a system.
+                <br />
+                We'll show you where it lives.
+              </h2>
+            </div>
+            <p className="lg:col-span-5 text-white/60 leading-relaxed">
+              Tap one of the systems below. Drag the car to look around it — the
+              parts we work on are coloured, the rest of the car is see-through.
             </p>
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-slate-300">
-              {tools.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
+          </div>
+        </div>
+
+        <div className="max-w-[1200px] mx-auto lg:px-5 mt-10 grid lg:grid-cols-12">
+          <div className="lg:col-span-8 relative h-[340px] sm:h-[460px] lg:h-[560px] bg-[radial-gradient(ellipse_at_center,#222_0%,#111_70%)] lg:border lg:border-white/10">
+            <Suspense
+              fallback={
+                <div className="absolute inset-0 flex items-center justify-center font-tech text-xs uppercase tracking-widest text-white/40">
+                  Loading car…
+                </div>
+              }
+            >
+              <CarScene active={feature} labels={carLabels} />
+            </Suspense>
+            <div className="pointer-events-none absolute left-4 bottom-4 font-tech text-[10px] uppercase tracking-widest text-white/35">
+              {feature ? "Showing: " + activeFeature?.name : "Overview — drag to rotate"}
+            </div>
+            {feature && (
+              <button
+                onClick={() => setFeature(null)}
+                className="absolute right-4 top-4 font-tech text-[11px] uppercase tracking-wider border border-white/25 px-3 py-1.5 text-white/80 hover:bg-white hover:text-black transition-colors"
+              >
+                Reset view
+              </button>
+            )}
+          </div>
+
+          <div className="lg:col-span-4 lg:border-y lg:border-r border-white/10">
+            <ul>
+              {carFeatures.map((f, i) => {
+                const on = feature === f.key;
+                return (
+                  <li key={f.key} className="border-b border-white/10 last:border-b-0">
+                    <button
+                      onClick={() => setFeature(on ? null : f.key)}
+                      aria-expanded={on}
+                      className={`w-full text-left px-5 py-4 flex items-baseline gap-4 transition-colors ${
+                        on ? "bg-[#d7261e] text-white" : "hover:bg-white/5"
+                      }`}
+                    >
+                      <span className={`font-tech text-[11px] ${on ? "text-white/70" : "text-white/40"}`}>
+                        0{i + 1}
+                      </span>
+                      <span
+                        className="font-display font-bold uppercase text-2xl tracking-wide flex-1"
+                        style={condensed}
+                      >
+                        {f.name}
+                      </span>
+                      <Plus className={`w-4 h-4 transition-transform ${on ? "rotate-45" : ""}`} />
+                    </button>
+                    {on && (
+                      <p className="px-5 pb-5 pt-1 bg-[#d7261e] text-white/90 text-sm leading-relaxed">
+                        {f.desc}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
+          </div>
+        </div>
+
+        <p className="max-w-[1200px] mx-auto px-5 py-8 font-tech text-[11px] leading-relaxed text-white/40">
+          Emission-related modifications are supplied for off-road, motorsport and
+          export use only. You are responsible for the rules that apply where the
+          vehicle is used.
+        </p>
+      </section>
+
+      {/* ═══ SERVICES (paper) ═══ */}
+      <section id="services" className="scroll-mt-16 bg-[#f2efe9] text-black" aria-label="Services">
+        <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28">
+          <div className="grid lg:grid-cols-12 gap-6 mb-14">
+            <div className="lg:col-span-6">
+              <Tag>02 — The menu</Tag>
+              <h2
+                className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
+                style={condensed}
+              >
+                Everything we do,
+                <br />
+                on one sheet.
+              </h2>
+            </div>
+            <p className="lg:col-span-5 lg:col-start-8 self-end text-black/65 leading-relaxed">
+              Combine as many options as you need on one job. Prices are fixed per
+              service in euros, with separate lists for master and slave tools — you
+              see the total before you upload.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-x-10 gap-y-12">
+            {serviceTable.map((g) => (
+              <div key={g.group}>
+                <h3 className="font-tech text-[11px] uppercase tracking-[0.18em] pb-3 border-b-2 border-black">
+                  {g.group}
+                </h3>
+                <table className="w-full">
+                  <tbody>
+                    {g.rows.map(([code, name, desc]) => (
+                      <tr key={code} className="border-b border-black/15 align-top">
+                        <td className="py-4 pr-3 w-12 font-tech text-[11px] text-black/45">{code}</td>
+                        <td className="py-4">
+                          <div className="font-semibold">{name}</div>
+                          <div className="text-sm text-black/60 leading-snug mt-0.5">{desc}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-10 text-sm text-black/60 leading-relaxed">
+            <span className="font-semibold text-black">Also on request:</span>{" "}
+            {extraServices.join(" · ")}.
+          </p>
+
+          <div className="mt-14 pt-6 border-t border-black/15 flex flex-col md:flex-row md:items-baseline gap-3 md:gap-8">
+            <span className="font-tech text-[11px] uppercase tracking-[0.18em] text-black/50 shrink-0">
+              Works with
+            </span>
+            <p className="text-sm text-black/75">{tools.join(" / ")}</p>
           </div>
         </div>
       </section>
 
-      {/* ═══ SERVICES ═══ */}
-      <section id="services" className="py-24 scroll-mt-16" aria-label="Services">
-        <div className="max-w-6xl mx-auto px-5">
-          <SectionHeading
-            eyebrow="Services"
-            title="A complete calibration service for your workshop"
-            lead="Every file is prepared by an engineer for the specific vehicle, ECU and software version you send — no generic or automatically patched files."
-          />
+      {/* ═══ HOW A JOB GOES ═══ */}
+      <section className="border-b border-white/10" aria-label="How a job works">
+        <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28">
+          <Tag dark>03 — How a job goes</Tag>
+          <h2
+            className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl mb-14"
+            style={condensed}
+          >
+            Fifteen minutes, give or take.
+          </h2>
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            {serviceGroups.map((g) => (
-              <article
-                key={g.title}
-                className="border border-slate-200 rounded-lg p-6 bg-white"
+          <ol className="grid md:grid-cols-4 border-t border-white/15">
+            {[
+              ["00:00", "You upload", "Vehicle, ECU, tool and the original read. Pick the options and confirm the price."],
+              ["00:02", "We check it", "A calibrator checks the read, the hardware and the software version before touching it."],
+              ["00:10", "We write it", "The calibration is written for your car and tested on the dyno before it goes out."],
+              ["~00:15", "You flash it", "Email and push notification when it's ready. Download it from the portal and flash."],
+            ].map(([time, title, desc], i) => (
+              <li
+                key={time}
+                className={`pt-6 pb-2 md:pr-6 ${i > 0 ? "md:pl-6 md:border-l border-white/15" : ""} border-b md:border-b-0 border-white/10 pb-8 md:pb-2`}
               >
-                <h3 className="font-semibold text-slate-900 pb-4 mb-4 border-b border-slate-200">
-                  {g.title}
+                <div className="font-tech text-sm text-[#d7261e]">{time}</div>
+                <h3 className="mt-3 font-display font-bold uppercase text-2xl" style={condensed}>
+                  {title}
                 </h3>
-                <ul className="space-y-4">
-                  {g.items.map(([name, desc]) => (
-                    <li key={name}>
-                      <p className="text-sm font-medium text-slate-900">{name}</p>
-                      <p className="text-sm text-slate-600 leading-relaxed mt-0.5">
-                        {desc}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </article>
+                <p className="mt-2 text-sm text-white/60 leading-relaxed">{desc}</p>
+              </li>
             ))}
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-slate-500 mr-1">Also available:</span>
-            {extraServices.map((s) => (
-              <span
-                key={s}
-                className="text-xs font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded"
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-
-          <p className="mt-8 text-xs text-slate-500 max-w-3xl leading-relaxed">
-            Emission-related modifications are supplied strictly for off-road,
-            motorsport and export use. The customer is responsible for complying
-            with the regulations that apply in their country.
+          </ol>
+          <p className="mt-8 text-sm text-white/45">
+            Not happy with how it drives? Open the job again and describe the
+            problem — revisions are free.
           </p>
         </div>
       </section>
 
-      {/* ═══ PROCESS ═══ */}
-      <section
-        id="process"
-        className="py-24 bg-slate-50 border-y border-slate-200 scroll-mt-16"
-        aria-label="How it works"
-      >
-        <div className="max-w-6xl mx-auto px-5">
-          <SectionHeading
-            eyebrow="Process"
-            title="From original read to finished file"
-            lead="All communication, files and invoices stay in one portal, with a full history for every vehicle."
-          />
-
-          <ol className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <FileUp className="w-5 h-5" />,
-                title: "Submit the job",
-                desc: "Enter the vehicle and ECU details, select the required options and upload the original file from your tool.",
-              },
-              {
-                icon: <Wrench className="w-5 h-5" />,
-                title: "Engineering",
-                desc: "An engineer prepares the calibration and it is tested on the dyno before release. You can follow the status of the job live.",
-              },
-              {
-                icon: <Download className="w-5 h-5" />,
-                title: "Download and flash",
-                desc: "You receive an email and push notification when the file is ready. Revisions can be requested from the same job.",
-              },
-            ].map((step, i) => (
-              <li key={step.title} className="bg-white border border-slate-200 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <span className="w-10 h-10 rounded-md bg-slate-900 text-white flex items-center justify-center">
-                    {step.icon}
-                  </span>
-                  <span className="text-sm font-medium text-slate-400 tabular-nums">
-                    Step {i + 1}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-slate-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{step.desc}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* ═══ WHY US ═══ */}
-      <section className="py-24" aria-label="Why ChipTuneFiles">
-        <div className="max-w-6xl mx-auto px-5 grid lg:grid-cols-[0.9fr_1.1fr] gap-14">
-          <SectionHeading
-            eyebrow="Why ChipTuneFiles"
-            title="Built for professionals who need reliable files"
-            lead="We work with independent garages, tuning shops and resellers. Our focus is on consistent quality, clear pricing and fast answers."
-          />
-          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-10">
-            {[
-              {
-                icon: <Users className="w-5 h-5" />,
-                title: "Engineers, not scripts",
-                desc: "Each file is handled by an experienced calibrator for the exact software on your vehicle.",
-              },
-              {
-                icon: <Wallet className="w-5 h-5" />,
-                title: "Transparent pricing",
-                desc: "Fixed prices per service in euros, with separate price lists for master and slave tools.",
-              },
-              {
-                icon: <RefreshCcw className="w-5 h-5" />,
-                title: "Revisions included",
-                desc: "If a file needs adjustment we revise it at no cost, or refund the job to your balance.",
-              },
-              {
-                icon: <ShieldCheck className="w-5 h-5" />,
-                title: "Secure file handling",
-                desc: "Files are transferred and stored encrypted, and are only accessible to your account.",
-              },
-            ].map((f) => (
-              <div key={f.title}>
-                <span className="text-red-700">{f.icon}</span>
-                <h3 className="mt-3 font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
+      {/* ═══ A NOTE FROM US ═══ */}
+      <section className="border-b border-white/10" aria-label="About us">
+        <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-4">
+            <Tag dark>04 — Who you're dealing with</Tag>
+          </div>
+          <div className="lg:col-span-8">
+            <p className="font-display text-2xl sm:text-[2rem] leading-[1.3] text-white/90 font-medium">
+              We're calibrators first. Every file that leaves here was written by
+              one of us for your exact car, and it's been on the dyno before it
+              reaches your laptop.
+            </p>
+            <p className="mt-6 text-white/60 leading-relaxed max-w-2xl">
+              More than 10,000 files later, that hasn't changed. You pay per file
+              with credits that never expire, revisions are always free, and if we
+              can't make something work, the job goes back to your balance.
+            </p>
+            <p className="mt-8 font-tech text-xs uppercase tracking-[0.18em] text-white/50">
+              — The ChipTuneFiles team
+            </p>
           </div>
         </div>
       </section>
 
       {/* ═══ CALCULATOR ═══ */}
-      <section
-        id="calculator"
-        className="py-24 bg-slate-50 border-y border-slate-200 scroll-mt-16"
-        aria-label="Performance calculator"
-      >
-        <div className="max-w-5xl mx-auto px-5">
-          <SectionHeading
-            eyebrow="Performance estimate"
-            title="Expected gains for your vehicle"
-            lead="Select a vehicle to see typical power and torque figures before and after calibration. Final results depend on the condition and specification of the car."
-            center
-          />
-          <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <section id="calculator" className="scroll-mt-16 border-b border-white/10" aria-label="Performance calculator">
+        <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28">
+          <div className="grid lg:grid-cols-12 gap-6 mb-10">
+            <div className="lg:col-span-7">
+              <Tag dark>05 — Before you buy</Tag>
+              <h2
+                className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
+                style={condensed}
+              >
+                What will your car make?
+              </h2>
+            </div>
+            <p className="lg:col-span-5 self-end text-white/60 leading-relaxed">
+              Pick the vehicle for typical figures before and after. Every car is a
+              little different — condition and hardware matter.
+            </p>
+          </div>
+          <div className="border border-white/10">
             <iframe
               srcDoc={calcIframe}
-              className="w-full border-0"
+              className="w-full border-0 block"
               style={{ height: "600px" }}
               title="ECU Performance Calculator — Calculate power gains for your vehicle"
               sandbox="allow-scripts allow-same-origin"
@@ -531,24 +620,30 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══ FAQ ═══ */}
-      <section id="faq" className="py-24 scroll-mt-16" aria-label="Frequently asked questions">
-        <div className="max-w-6xl mx-auto px-5 grid lg:grid-cols-[0.8fr_1.2fr] gap-14">
-          <SectionHeading
-            eyebrow="FAQ"
-            title="Frequently asked questions"
-            lead="Can't find what you are looking for? Contact us and we will reply during working hours."
-          />
-          <div className="divide-y divide-slate-200 border-y border-slate-200">
-            {faqs.map((faq) => (
-              <details key={faq.q} className="group">
-                <summary className="flex items-center justify-between gap-4 py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                  <h3 className="text-[15px] font-medium text-slate-900">{faq.q}</h3>
-                  <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform group-open:rotate-180" />
+      {/* ═══ FAQ (paper) ═══ */}
+      <section id="faq" className="scroll-mt-16 bg-[#f2efe9] text-black" aria-label="Frequently asked questions">
+        <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-4">
+            <Tag>06 — Questions</Tag>
+            <h2
+              className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-5xl"
+              style={condensed}
+            >
+              Things people ask us.
+            </h2>
+            <p className="mt-5 text-black/60 text-sm leading-relaxed max-w-xs">
+              Anything else — message us on WhatsApp during working hours.
+            </p>
+          </div>
+          <div className="lg:col-span-8 border-t-2 border-black">
+            {faqs.map((faq, i) => (
+              <details key={faq.q} className="group border-b border-black/15">
+                <summary className="flex items-start gap-5 py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span className="font-tech text-[11px] text-black/40 pt-1 w-6">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="flex-1 font-semibold text-[17px]">{faq.q}</h3>
+                  <Plus className="w-5 h-5 mt-0.5 shrink-0 transition-transform group-open:rotate-45" />
                 </summary>
-                <p className="pb-5 -mt-1 text-sm text-slate-600 leading-relaxed pr-8">
-                  {faq.a}
-                </p>
+                <p className="pl-11 pr-8 pb-6 -mt-1 text-black/65 leading-relaxed">{faq.a}</p>
               </details>
             ))}
           </div>
@@ -556,62 +651,40 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ═══ CONTACT ═══ */}
-      <section
-        id="contact"
-        className="py-24 bg-slate-50 border-t border-slate-200 scroll-mt-16"
-        aria-label="Contact"
-      >
-        <div className="max-w-6xl mx-auto px-5 grid lg:grid-cols-2 gap-14">
-          <div>
-            <SectionHeading
-              eyebrow="Contact"
-              title="Talk to our team"
-              lead="Questions about a specific vehicle, reseller pricing or a custom project? Get in touch."
-            />
-            <dl className="space-y-6">
-              <div className="flex gap-4">
-                <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
-                <div>
-                  <dt className="text-sm text-slate-500">Email</dt>
-                  <dd>
-                    <a
-                      href="mailto:kikzaperformance@gmail.com"
-                      className="font-medium text-slate-900 hover:text-red-700"
-                    >
-                      kikzaperformance@gmail.com
-                    </a>
-                  </dd>
-                </div>
+      <section id="contact" className="scroll-mt-16" aria-label="Contact">
+        <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-12 gap-14">
+          <div className="lg:col-span-7">
+            <Tag dark>07 — Talk to us</Tag>
+            <h2
+              className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl mb-10"
+              style={condensed}
+            >
+              Got a car on the bench?
+            </h2>
+
+            <div className="space-y-8">
+              <a href="https://wa.me/38344955389" className="group block">
+                <span className="font-tech text-[11px] uppercase tracking-[0.18em] text-white/45">WhatsApp</span>
+                <span className="mt-1 flex items-center gap-3 font-display font-bold text-3xl sm:text-4xl group-hover:text-[#d7261e] transition-colors" style={condensed}>
+                  +383 44 955 389
+                  <ArrowUpRight className="w-6 h-6" />
+                </span>
+              </a>
+              <a href="mailto:kikzaperformance@gmail.com" className="group block">
+                <span className="font-tech text-[11px] uppercase tracking-[0.18em] text-white/45">Email</span>
+                <span className="mt-1 flex items-center gap-3 font-display font-bold text-2xl sm:text-4xl break-all group-hover:text-[#d7261e] transition-colors" style={condensed}>
+                  kikzaperformance@gmail.com
+                </span>
+              </a>
+              <div>
+                <span className="font-tech text-[11px] uppercase tracking-[0.18em] text-white/45">Hours (CET)</span>
+                <p className="mt-1 text-white/80">Monday – Saturday, 09:00 – 22:00 · Sunday closed</p>
               </div>
-              <div className="flex gap-4">
-                <Phone className="w-5 h-5 text-slate-400 mt-0.5" />
-                <div>
-                  <dt className="text-sm text-slate-500">WhatsApp</dt>
-                  <dd>
-                    <a
-                      href="https://wa.me/38344955389"
-                      className="font-medium text-slate-900 hover:text-red-700"
-                    >
-                      +383 44 955 389
-                    </a>
-                  </dd>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <Clock className="w-5 h-5 text-slate-400 mt-0.5" />
-                <div>
-                  <dt className="text-sm text-slate-500">Working hours (CET)</dt>
-                  <dd className="font-medium text-slate-900">
-                    Monday – Saturday, 09:00 – 22:00
-                  </dd>
-                  <dd className="text-sm text-slate-500">Sunday closed</dd>
-                </div>
-              </div>
-            </dl>
+            </div>
           </div>
 
           <form
-            className="bg-white border border-slate-200 rounded-lg p-6 sm:p-8 space-y-5 self-start"
+            className="lg:col-span-5 space-y-6 self-end"
             onSubmit={(e) => {
               e.preventDefault();
               const data = new FormData(e.target as HTMLFormElement);
@@ -623,12 +696,13 @@ export const LandingPage: React.FC = () => {
               window.location.href = `mailto:kikzaperformance@gmail.com?subject=${subject}&body=${body}`;
             }}
           >
+            <p className="text-white/60 text-sm">Or leave a message and we'll get back to you.</p>
             {[
-              { id: "name", label: "Name", type: "text", placeholder: "Full name" },
-              { id: "email", label: "Email", type: "email", placeholder: "name@company.com" },
+              { id: "name", label: "Your name", type: "text" },
+              { id: "email", label: "Email", type: "email" },
             ].map((f) => (
               <div key={f.id}>
-                <label htmlFor={f.id} className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label htmlFor={f.id} className="block font-tech text-[11px] uppercase tracking-[0.18em] text-white/45">
                   {f.label}
                 </label>
                 <input
@@ -636,103 +710,83 @@ export const LandingPage: React.FC = () => {
                   name={f.id}
                   type={f.type}
                   required
-                  placeholder={f.placeholder}
-                  className="w-full border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                  className="w-full bg-transparent border-0 border-b border-white/25 px-0 py-2.5 text-white focus:outline-none focus:border-[#d7261e] focus:ring-0"
                 />
               </div>
             ))}
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Message
+              <label htmlFor="message" className="block font-tech text-[11px] uppercase tracking-[0.18em] text-white/45">
+                Car, ECU and what you need
               </label>
               <textarea
                 id="message"
                 name="message"
                 required
-                rows={5}
-                placeholder="Vehicle, ECU and what you need"
-                className="w-full border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 resize-none"
+                rows={4}
+                className="w-full bg-transparent border-0 border-b border-white/25 px-0 py-2.5 text-white focus:outline-none focus:border-[#d7261e] focus:ring-0 resize-none"
               />
             </div>
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-md transition-colors"
+              className="group inline-flex items-center gap-3 bg-[#d7261e] hover:bg-[#ef3a2f] text-white font-semibold px-6 py-3.5 transition-colors"
             >
-              <Send className="w-4 h-4" />
               Send message
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
         </div>
       </section>
 
-      {/* ═══ CTA ═══ */}
-      <section className="bg-slate-950 text-white" aria-label="Get started">
-        <div className="max-w-6xl mx-auto px-5 py-16 flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-              Open a workshop account
-            </h2>
-            <p className="mt-2 text-slate-400 max-w-lg">
-              Registration is free. No subscription — buy credits when you need
-              them and pay per file.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-            <Link
-              to="/register"
-              className="group inline-flex items-center justify-center gap-2 bg-red-700 hover:bg-red-600 font-semibold px-6 py-3 rounded-md transition-colors"
-            >
-              Open an account
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center border border-white/20 hover:border-white/40 font-medium px-6 py-3 rounded-md transition-colors"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
+      {/* ═══ BIG CTA ═══ */}
+      <section className="bg-[#d7261e] text-white" aria-label="Get started">
+        <Link to="/register" className="group block max-w-[1200px] mx-auto px-5 py-14 lg:py-20">
+          <span className="font-tech text-[11px] uppercase tracking-[0.18em] text-white/70">
+            Free to register · no subscription
+          </span>
+          <span
+            className="mt-3 flex items-center justify-between gap-6 font-display font-extrabold uppercase leading-[0.9] text-5xl sm:text-7xl lg:text-8xl"
+            style={condensed}
+          >
+            Open an account
+            <ArrowRight className="w-12 h-12 sm:w-20 sm:h-20 shrink-0 group-hover:translate-x-2 transition-transform" />
+          </span>
+        </Link>
       </section>
 
       {/* ═══ FOOTER ═══ */}
-      <footer className="bg-slate-950 text-slate-400 border-t border-white/10" role="contentinfo">
-        <div className="max-w-6xl mx-auto px-5 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
+      <footer className="text-white/50" role="contentinfo">
+        <div className="max-w-[1200px] mx-auto px-5 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-2">
             <Logo />
             <p className="mt-4 text-sm leading-relaxed max-w-sm">
-              Professional ECU and TCU calibration file service for workshops,
-              tuners and resellers worldwide.
+              ECU and TCU calibration files for workshops, tuners and resellers.
             </p>
+            <Link to="/login" className="mt-5 inline-flex items-center gap-2 text-sm text-white hover:text-[#d7261e]">
+              File Portal Login <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
-            <nav className="space-y-2.5 text-sm" aria-label="Footer navigation">
-              {navLinks.map(([href, label]) => (
-                <a key={href} href={href} className="block hover:text-white transition-colors">
-                  {label}
-                </a>
-              ))}
-            </nav>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
-            <nav className="space-y-2.5 text-sm" aria-label="Legal">
-              <Link to="/terms" className="block hover:text-white transition-colors">
-                Terms of Service
-              </Link>
-              <Link to="/privacy" className="block hover:text-white transition-colors">
-                Privacy Policy
-              </Link>
-              <Link to="/refund-policy" className="block hover:text-white transition-colors">
-                Refund Policy
-              </Link>
-            </nav>
-          </div>
+          <nav className="space-y-2.5 text-sm" aria-label="Footer navigation">
+            {navLinks.map(([href, label]) => (
+              <a key={href} href={href} className="block hover:text-white transition-colors">
+                {label}
+              </a>
+            ))}
+          </nav>
+          <nav className="space-y-2.5 text-sm" aria-label="Legal">
+            <Link to="/terms" className="block hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <Link to="/privacy" className="block hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/refund-policy" className="block hover:text-white transition-colors">
+              Refund Policy
+            </Link>
+          </nav>
         </div>
         <div className="border-t border-white/10">
-          <div className="max-w-6xl mx-auto px-5 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} chiptunefiles.com. All rights reserved.</p>
+          <div className="max-w-[1200px] mx-auto px-5 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/35">
+            <p>© {new Date().getFullYear()} chiptunefiles.com</p>
             <p>Automated emails from this platform are not monitored. Please do not reply to them.</p>
             <KikzaCredit variant="onDark" />
           </div>
