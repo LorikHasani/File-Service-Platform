@@ -238,7 +238,6 @@ export const AdminJobDetailPage: React.FC = () => {
             </div>
             <p className="text-zinc-500 mt-1">
               Created {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-              {job.end_customer_ref && ` · end customer ${job.end_customer_ref}`}
             </p>
           </div>
         </div>
