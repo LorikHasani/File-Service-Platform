@@ -338,87 +338,76 @@ export const LandingPage: React.FC = () => {
         )}
       </header>
 
-      {/* ═══ HERO: video ═══ */}
-      <section
-        id="top"
-        aria-label="Introduction"
-        className="relative overflow-hidden flex flex-col min-h-[640px] h-[calc(100svh-4rem)] max-h-[960px]"
-      >
-        {HERO_CLIPS.map((src, i) => (
-          <video
-            key={src}
-            ref={(el) => {
-              videoRefs.current[i] = el;
-            }}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-              clip === i ? "opacity-100" : "opacity-0"
-            }`}
-            src={src}
-            autoPlay={i === 0}
-            muted
-            playsInline
-            preload="auto"
-            aria-hidden="true"
-            onEnded={() => nextClip(i)}
-          />
-        ))}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#111111]/90 via-[#111111]/45 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-[#111111]/40" />
-
-        <button
-          onClick={toggleVideo}
-          aria-label={videoPaused ? "Play background video" : "Pause background video"}
-          className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10 w-9 h-9 flex items-center justify-center border border-white/25 bg-black/30 text-white/70 hover:text-white hover:border-white transition-colors"
-        >
-          {videoPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-        </button>
-
-        <div className="relative flex-1 flex items-center">
-          <div className="w-full max-w-[1200px] mx-auto px-5 py-12">
-            <div className="max-w-[54rem] border-l border-white/25 pl-5 sm:pl-8">
-              <p className="font-tech text-[11px] uppercase tracking-[0.2em] text-white/60 mb-5">
-                ECU &amp; TCU file service for workshops and tuners
-              </p>
-              <h1 className="leading-[0.95]">
-                <span
-                  className="block font-display font-semibold tracking-[-0.02em] text-[2.3rem] sm:text-[3.6rem] lg:text-[4.3rem]"
-                  style={{ fontStretch: "125%" }}
-                >
-                  Precision ECU
-                  <br />
-                  &amp; TCU Tuning
-                </span>
-                <span className="block mt-1 font-serif italic font-normal text-[#d7261e] text-[2.6rem] sm:text-[4.2rem] lg:text-[5rem] leading-[1]">
-                  Written by Calibrators
-                </span>
-              </h1>
-              <p className="mt-6 text-white/75 text-[17px] leading-relaxed max-w-[36rem]">
-                Stage 1–3 remaps, DPF, EGR, AdBlue, pops &amp; bangs and gearbox
-                files — written for your exact ECU, tested on the dyno, and
-                delivered in under 15 minutes.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  to="/register"
-                  className="group inline-flex items-center gap-4 bg-[#d7261e] hover:bg-[#ef3a2f] text-white text-[12px] font-semibold uppercase tracking-[0.2em] px-7 py-4 transition-colors"
-                >
-                  Register
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  to="/login"
-                  className="group inline-flex items-center gap-4 border border-white/30 hover:border-white bg-black/20 text-white text-[12px] font-semibold uppercase tracking-[0.2em] px-7 py-4 transition-colors"
-                >
-                  File Portal Login
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
+      {/* ═══ HERO: light, video on the right ═══ */}
+      <section id="top" aria-label="Introduction" className="bg-[#f2efe9] text-black">
+        <div className="max-w-[1200px] mx-auto px-5 pt-12 pb-14 lg:pt-16 lg:pb-20 grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          <div className="lg:col-span-6">
+            <Tag>ECU &amp; TCU file service for workshops and tuners</Tag>
+            <h1
+              className="font-display font-extrabold uppercase leading-[0.9] tracking-[-0.005em] text-[3rem] sm:text-[4.4rem] lg:text-[5.1rem]"
+              style={condensed}
+            >
+              Precision ECU
+              <br />
+              &amp; TCU tuning,
+              <br />
+              <span className="text-[#d7261e]">written by calibrators.</span>
+            </h1>
+            <p className="mt-7 text-black/70 text-[17px] leading-relaxed max-w-[34rem]">
+              Stage 1–3 remaps, DPF, EGR, AdBlue, pops &amp; bangs and gearbox
+              files — written for your exact ECU, tested on the dyno, and
+              delivered in under 15 minutes.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/register"
+                className="group inline-flex items-center gap-4 bg-[#d7261e] hover:bg-[#b81f18] text-white text-[12px] font-semibold uppercase tracking-[0.2em] px-7 py-4 transition-colors"
+              >
+                Register
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                to="/login"
+                className="group inline-flex items-center gap-4 border-2 border-black hover:bg-black hover:text-white text-black text-[12px] font-semibold uppercase tracking-[0.2em] px-7 py-[14px] transition-colors"
+              >
+                File Portal Login
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
+          </div>
+
+          <div className="lg:col-span-6 relative h-[300px] sm:h-[420px] lg:h-[560px] bg-black overflow-hidden">
+            {HERO_CLIPS.map((src, i) => (
+              <video
+                key={src}
+                ref={(el) => {
+                  videoRefs.current[i] = el;
+                }}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+                  clip === i ? "opacity-100" : "opacity-0"
+                }`}
+                src={src}
+                autoPlay={i === 0}
+                muted
+                playsInline
+                preload="auto"
+                aria-hidden="true"
+                onEnded={() => nextClip(i)}
+              />
+            ))}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <button
+              onClick={toggleVideo}
+              aria-label={videoPaused ? "Play background video" : "Pause background video"}
+              className="absolute right-4 top-4 z-10 w-9 h-9 flex items-center justify-center border border-white/30 bg-black/30 text-white/80 hover:text-white hover:border-white transition-colors"
+            >
+              {videoPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
 
         {/* Numbers */}
-        <div className="relative border-t border-white/10 bg-black/40 backdrop-blur-sm">
+        <div className="border-t border-black/15">
           <dl className="max-w-[1200px] mx-auto grid grid-cols-2 lg:grid-cols-4">
             {[
               ["10,000+", "files delivered"],
@@ -430,12 +419,12 @@ export const LandingPage: React.FC = () => {
                 key={k}
                 className={`px-5 py-7 ${i % 2 === 1 ? "border-l" : ""} ${
                   i > 1 ? "border-t lg:border-t-0" : ""
-                } ${i === 2 ? "lg:border-l" : ""} border-white/10`}
+                } ${i === 2 ? "lg:border-l" : ""} border-black/15`}
               >
                 <dt className="font-display font-bold text-3xl sm:text-4xl uppercase" style={condensed}>
                   {k}
                 </dt>
-                <dd className="mt-1 font-tech text-[11px] uppercase tracking-[0.14em] text-white/50">{v}</dd>
+                <dd className="mt-1 font-tech text-[11px] uppercase tracking-[0.14em] text-black/50">{v}</dd>
               </div>
             ))}
           </dl>
