@@ -83,16 +83,6 @@ Everything a chiptuning business needs to receive files, sell services, get paid
 - Full transaction overview across all clients
 - **Admin audit log** — every admin action is recorded for accountability
 
-### Partner API — resell to other portals
-- **Other tuning portals plug straight into yours** over a documented REST API
-- Partners push their customers' files programmatically; jobs land in your normal queue, badged **API**
-- Every partner job is **paid from that partner's credit balance** at their own master/slave prices — they buy credits from you, you never chase invoices
-- Per-partner API keys, issued and revoked in the admin panel, stored only as hashes
-- Built-in rate limiting, per-key usage stats and a full request log
-- Safe retries: a repeated order reference never charges or duplicates a job
-- Partners poll for status, download finished files, chat on the job and request revisions — all via API
-- **Signed webhooks** push status changes and finished files to the partner's portal within a second — with automatic retries, health monitoring and one-click pause/resume in the admin panel
-
 ### Communication Tools
 - **Bulk email tool** — send branded, styled emails (with images) to selected clients straight from the admin panel
 - Manage and answer support tickets in one place

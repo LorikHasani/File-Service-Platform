@@ -5,10 +5,10 @@ import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
   MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt, Shield, Image,
-  Smartphone, KeyRound,
+  Smartphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useBusinessHours, useIsApiPartner } from '@/hooks/useSupabase';
+import { useBusinessHours } from '@/hooks/useSupabase';
 import { getOpenStatus } from '@/lib/businessHours';
 import { Avatar, Button } from '@/components/ui';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
@@ -85,7 +85,6 @@ const adminNavGroups: NavGroup[] = [
     title: 'Settings',
     items: [
       { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={18} /> },
-      { label: 'Partner API', href: '/admin/api-keys', icon: <KeyRound size={18} /> },
       { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={18} /> },
     ],
   },
@@ -213,26 +212,9 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
-  const isApiPartner = useIsApiPartner();
   const [getAppOpen, setGetAppOpen] = useState(false);
 
-  // "API Access" appears only for clients who actually have a key, so the
-  // sidebar stays uncluttered for everyone else. It joins the Account group.
-  const navGroups = isAdmin
-    ? adminNavGroups
-    : isApiPartner
-      ? clientNavGroups.map((group) =>
-          group.title === 'Account'
-            ? {
-                ...group,
-                items: [
-                  ...group.items,
-                  { label: 'API Access', href: '/api-access', icon: <KeyRound size={18} /> },
-                ],
-              }
-            : group
-        )
-      : clientNavGroups;
+  const navGroups = isAdmin ? adminNavGroups : clientNavGroups;
 
   const handleLogout = async () => {
     await signOut();

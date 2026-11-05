@@ -4,7 +4,6 @@ import { Search, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Spinner, Pagination, usePagination } from '@/components/ui';
 import { useAllJobs, updateJobStatus, useUnreadMessageCounts } from '@/hooks/useSupabase';
-import { dispatchWebhooks } from '@/lib/webhooks';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import type { JobStatus } from '@/types/database';
@@ -63,9 +62,6 @@ export const AdminJobsPage: React.FC = () => {
       toast.error('Failed to update status');
     } else {
       toast.success('Status updated');
-      // Same as the job detail page: push the job.status_changed callback to
-      // the partner's portal now rather than leaving it queued.
-      dispatchWebhooks();
     }
     setUpdatingJob(null);
   };
@@ -153,18 +149,6 @@ export const AdminJobsPage: React.FC = () => {
                       <Link to={`/admin/jobs/${job.id}`} className="font-mono text-sm font-semibold text-red-600 hover:underline">
                         {job.reference_number}
                       </Link>
-                      {job.source === 'api' && (
-                        <span
-                          title={
-                            job.external_ref
-                              ? `Sent through the partner API (partner ref ${job.external_ref})`
-                              : 'Sent through the partner API'
-                          }
-                          className="px-1.5 py-0.5 rounded bg-blue-600 text-white text-[10px] font-bold flex-shrink-0"
-                        >
-                          API
-                        </span>
-                      )}
                       {(unreadCounts[job.id] ?? 0) > 0 && (
                         <span
                           title={`${unreadCounts[job.id]} unread message${unreadCounts[job.id] === 1 ? '' : 's'} from client`}
