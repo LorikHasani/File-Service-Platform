@@ -234,8 +234,8 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 
 // ─── Component ───
 
-// Pexels clip (free license): a white Lamborghini Aventador in city traffic.
-const HERO_VIDEO = "/videos/hero-aventador.mp4";
+// Pexels clip (free license): a black muscle car doing a burnout at night.
+const HERO_VIDEO = "/videos/hero-night-burnout.mp4";
 
 export const LandingPage: React.FC = () => {
   const [mobileNav, setMobileNav] = useState(false);
