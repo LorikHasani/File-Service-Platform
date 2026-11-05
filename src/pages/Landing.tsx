@@ -234,34 +234,17 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 
 // ─── Component ───
 
-// Pexels clips (free license): saloon cars racing on a public road, a Ferrari GT
-// on the kerbs, then a GT battle. Clips whose cars run under the headline are mirrored.
-const HERO_CLIPS = [
-  { src: "/videos/hero-roadrace.mp4", mirror: true },
-  { src: "/videos/hero-ferrari-gt.mp4", mirror: true },
-  { src: "/videos/hero-gt-battle.mp4", mirror: false },
-];
+// Pexels clip (free license): a white Lamborghini Aventador in city traffic.
+const HERO_VIDEO = "/videos/hero-aventador.mp4";
 
 export const LandingPage: React.FC = () => {
   const [mobileNav, setMobileNav] = useState(false);
   const [feature, setFeature] = useState<CarFeature | null>(null);
-  // Hero clips play back to back and crossfade into each other.
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-  const [clip, setClip] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [videoPaused, setVideoPaused] = useState(false);
 
-  const nextClip = (i: number) => {
-    const n = (i + 1) % HERO_CLIPS.length;
-    const v = videoRefs.current[n];
-    if (v) {
-      v.currentTime = 0;
-      void v.play().catch(() => {});
-    }
-    setClip(n);
-  };
-
   const toggleVideo = () => {
-    const v = videoRefs.current[clip];
+    const v = videoRef.current;
     if (!v) return;
     if (v.paused) {
       void v.play().catch(() => {});
@@ -346,24 +329,17 @@ export const LandingPage: React.FC = () => {
       {/* ═══ HERO: full-size daytime video ═══ */}
       <section id="top" aria-label="Introduction" className="bg-[#f2efe9] text-black">
         <div className="relative overflow-hidden min-h-[600px] h-[calc(100svh-4rem-7.5rem)] max-h-[860px] flex items-center">
-          {HERO_CLIPS.map(({ src, mirror }, i) => (
-            <video
-              key={src}
-              ref={(el) => {
-                videoRefs.current[i] = el;
-              }}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-                clip === i ? "opacity-100" : "opacity-0"
-              } ${mirror ? "-scale-x-100" : ""}`}
-              src={src}
-              autoPlay={i === 0}
-              muted
-              playsInline
-              preload="auto"
-              aria-hidden="true"
-              onEnded={() => nextClip(i)}
-            />
-          ))}
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            src={HERO_VIDEO}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+          />
           {/* Light wash on the left keeps the black headline readable over daylight footage. */}
           <div className="absolute inset-0 bg-[#f2efe9]/70 lg:bg-transparent lg:bg-gradient-to-r lg:from-[#f2efe9] lg:via-[#f2efe9]/85 lg:to-[#f2efe9]/0" />
 
@@ -435,18 +411,9 @@ export const LandingPage: React.FC = () => {
               </div>
             ))}
           </dl>
-          {/* Red dyno-style curve under the stats */}
-          <div className="max-w-[1200px] mx-auto px-5 pb-6" aria-hidden="true">
-            <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="block w-full h-8 sm:h-10">
-              <path
-                d="M0 6 C 250 6, 450 14, 650 24 S 900 36, 1000 30 S 1140 6, 1200 5"
-                fill="none"
-                stroke="#d7261e"
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-                strokeLinecap="round"
-              />
-            </svg>
+          {/* Straight white line under the stats */}
+          <div className="max-w-[1200px] mx-auto px-5 pb-8" aria-hidden="true">
+            <div className="h-px bg-white/80" />
           </div>
         </div>
       </section>
