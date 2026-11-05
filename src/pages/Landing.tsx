@@ -234,11 +234,12 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 
 // ─── Component ───
 
-// Pexels clips (free license): a McLaren-led supercar convoy, then an Aston
-// Martin convoy. Set mirror: true on a clip whose cars sit under the headline.
+// Pexels clips (free license): saloon cars racing on a public road, a Ferrari GT
+// on the kerbs, then a GT battle. Clips whose cars run under the headline are mirrored.
 const HERO_CLIPS = [
-  { src: "/videos/hero-mclaren.mp4", mirror: false },
-  { src: "/videos/hero-convoy.mp4", mirror: false },
+  { src: "/videos/hero-roadrace.mp4", mirror: true },
+  { src: "/videos/hero-ferrari-gt.mp4", mirror: true },
+  { src: "/videos/hero-gt-battle.mp4", mirror: false },
 ];
 
 export const LandingPage: React.FC = () => {
@@ -434,6 +435,19 @@ export const LandingPage: React.FC = () => {
               </div>
             ))}
           </dl>
+          {/* Red dyno-style curve under the stats */}
+          <div className="max-w-[1200px] mx-auto px-5 pb-6" aria-hidden="true">
+            <svg viewBox="0 0 1200 40" preserveAspectRatio="none" className="block w-full h-8 sm:h-10">
+              <path
+                d="M0 6 C 250 6, 450 14, 650 24 S 900 36, 1000 30 S 1140 6, 1200 5"
+                fill="none"
+                stroke="#d7261e"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
         </div>
       </section>
 
