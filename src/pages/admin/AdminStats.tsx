@@ -430,7 +430,12 @@ export const AdminStatsPage: React.FC = () => {
 
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-500">Balance in System</span>
+                <span
+                  className="text-sm text-zinc-500"
+                  title="Unspent credits across all accounts right now. Not affected by the date filter."
+                >
+                  Client credit balance (now)
+                </span>
                 <span className="font-semibold">€{totalCreditsInSystem.toFixed(0)}</span>
               </div>
             </div>
