@@ -2,7 +2,15 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-export type CarFeature = "dpf" | "adblue" | "egr" | "pops" | "popcorn";
+export type CarFeature =
+  | "stage1"
+  | "stage2"
+  | "stage3"
+  | "dpf"
+  | "adblue"
+  | "egr"
+  | "pops"
+  | "popcorn";
 
 interface Props {
   active: CarFeature | null;
@@ -10,7 +18,11 @@ interface Props {
 }
 
 // Car runs along X (front = +X), Y is up, Z is width (+Z = right side).
+const STAGE_COLOR = 0x22c55e;
 const COLORS: Record<CarFeature, number> = {
+  stage1: STAGE_COLOR,
+  stage2: STAGE_COLOR,
+  stage3: STAGE_COLOR,
   dpf: 0xf97316,
   adblue: 0x3b82f6,
   egr: 0xeab308,
@@ -19,6 +31,9 @@ const COLORS: Record<CarFeature, number> = {
 };
 
 const ANCHORS: Record<CarFeature, THREE.Vector3> = {
+  stage1: new THREE.Vector3(1.0, 1.02, -0.55),
+  stage2: new THREE.Vector3(2.12, 0.7, 0.2),
+  stage3: new THREE.Vector3(1.15, 0.84, 0.42),
   dpf: new THREE.Vector3(0.35, 0.37, 0.35),
   adblue: new THREE.Vector3(-1.75, 0.66, -0.4),
   egr: new THREE.Vector3(1.55, 1.12, 0),
@@ -28,6 +43,9 @@ const ANCHORS: Record<CarFeature, THREE.Vector3> = {
 
 const VIEWS: Record<CarFeature | "overview", { pos: THREE.Vector3; target: THREE.Vector3 }> = {
   overview: { pos: new THREE.Vector3(5.6, 2.8, 6.0), target: new THREE.Vector3(0, 0.6, 0) },
+  stage1: { pos: new THREE.Vector3(3.4, 3.4, -3.6), target: new THREE.Vector3(1.2, 0.85, -0.3) },
+  stage2: { pos: new THREE.Vector3(5.6, 2.4, 3.2), target: new THREE.Vector3(1.4, 0.7, 0.1) },
+  stage3: { pos: new THREE.Vector3(4.2, 2.6, 4.0), target: new THREE.Vector3(1.3, 0.75, 0.2) },
   dpf: { pos: new THREE.Vector3(0.9, 1.2, 4.6), target: new THREE.Vector3(0.1, 0.45, 0.3) },
   adblue: { pos: new THREE.Vector3(-3.4, 1.9, -4.0), target: new THREE.Vector3(-1.1, 0.5, -0.1) },
   egr: { pos: new THREE.Vector3(4.2, 3.0, 2.8), target: new THREE.Vector3(1.4, 0.9, 0.1) },
@@ -108,7 +126,13 @@ export const CarScene: React.FC<Props> = ({ active, labels }) => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     wrap.appendChild(renderer.domElement);
-    renderer.domElement.style.display = "block";
+    Object.assign(renderer.domElement.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      display: "block",
+    });
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
@@ -222,37 +246,72 @@ export const CarScene: React.FC<Props> = ({ active, labels }) => {
       }
     }
 
-    // ── Drivetrain (neutral) ──
+    // ── Drivetrain ──
     const metal = new THREE.MeshStandardMaterial({ color: 0x6b7280, metalness: 0.6, roughness: 0.45 });
     const engine = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 0.85), metal);
     engine.position.set(1.55, 0.72, 0);
     scene.add(engine);
-    const turbo = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.05, 12, 24), metal);
+
+    // Every highlightable part registers here: its colour when lit, its idle
+    // colour, and which features light it up.
+    type Entry = { mat: THREE.MeshStandardMaterial; color: number; idle: number; features: CarFeature[] };
+    const entries: Entry[] = [];
+    const partMat = (color: number, idle: number, features: CarFeature[]) => {
+      const mat = new THREE.MeshStandardMaterial({
+        color: idle,
+        emissive: color,
+        emissiveIntensity: 0,
+        metalness: 0.45,
+        roughness: 0.45,
+        transparent: true,
+      });
+      entries.push({ mat, color, idle, features });
+      return mat;
+    };
+    const GREY = 0x6b7280;
+
+    // Stage parts: ECU for every stage, intercooler/intake/downpipe from Stage 2,
+    // bigger turbo for Stage 3.
+    const ecuMat = partMat(STAGE_COLOR, 0x9ca3af, ["stage1", "stage2", "stage3"]);
+    const ecu = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.07, 0.2), ecuMat);
+    ecu.position.set(1.0, 0.98, -0.55);
+    const ecuLoom = tube([[1.0, 0.98, -0.45], [1.15, 0.95, -0.3], [1.3, 0.9, -0.2]], 0.014, ecuMat);
+    scene.add(ecu, ecuLoom);
+
+    const turbo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.1, 0.05, 12, 24),
+      partMat(STAGE_COLOR, GREY, ["stage3"])
+    );
     turbo.position.set(1.15, 0.72, 0.42);
     scene.add(turbo);
+
+    const airMat = partMat(STAGE_COLOR, GREY, ["stage2", "stage3"]);
+    const intercooler = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 1.25), airMat);
+    intercooler.position.set(2.12, 0.52, 0);
+    const chargePipe = tube([[1.18, 0.78, 0.5], [1.6, 0.55, 0.62], [2.08, 0.5, 0.55]], 0.04, airMat);
+    const intakePipe = tube([[2.08, 0.55, -0.55], [1.9, 0.9, -0.5], [1.8, 0.96, -0.25]], 0.04, airMat);
+    const downpipe = tube(
+      [[1.15, 0.65, 0.42], [1.0, 0.45, 0.4], [0.75, 0.37, 0.35]],
+      0.05,
+      airMat
+    );
+    scene.add(intercooler, chargePipe, intakePipe, downpipe);
+
     scene.add(
       tube(
-        [
-          [1.15, 0.65, 0.42], [1.0, 0.45, 0.4], [0.75, 0.37, 0.35], [0.0, 0.37, 0.35],
-          [-1.0, 0.37, 0.35], [-1.9, 0.37, 0.4], [-2.3, 0.38, 0.45],
-        ],
+        [[0.75, 0.37, 0.35], [0.0, 0.37, 0.35], [-1.0, 0.37, 0.35], [-1.9, 0.37, 0.4], [-2.3, 0.38, 0.45]],
         0.045,
         metal
       )
     );
 
-    // ── Feature parts ──
-    const featureMats = {} as Record<CarFeature, THREE.MeshStandardMaterial>;
-    (Object.keys(COLORS) as CarFeature[]).forEach((f) => {
-      featureMats[f] = new THREE.MeshStandardMaterial({
-        color: COLORS[f],
-        emissive: COLORS[f],
-        emissiveIntensity: 0.15,
-        metalness: 0.3,
-        roughness: 0.5,
-        transparent: true,
-      });
-    });
+    // ── Emission / exhaust parts ──
+    const featureMats = {
+      dpf: partMat(COLORS.dpf, COLORS.dpf, ["dpf"]),
+      adblue: partMat(COLORS.adblue, COLORS.adblue, ["adblue"]),
+      egr: partMat(COLORS.egr, COLORS.egr, ["egr"]),
+      pops: partMat(COLORS.pops, COLORS.pops, ["pops", "popcorn"]),
+    };
 
     const dpf = canister(0.15, 0.75, featureMats.dpf);
     dpf.position.copy(ANCHORS.dpf);
@@ -330,9 +389,8 @@ export const CarScene: React.FC<Props> = ({ active, labels }) => {
     const resize = () => {
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
+      if (!w || !h) return;
       renderer.setSize(w, h, false);
-      renderer.domElement.style.width = `${w}px`;
-      renderer.domElement.style.height = `${h}px`;
       camera.aspect = w / h;
       // Pull back on narrow screens so the whole car stays in frame.
       camera.zoom = w < 520 ? 0.72 : 1;
@@ -378,13 +436,18 @@ export const CarScene: React.FC<Props> = ({ active, labels }) => {
       controls.autoRotate = !cur && !tweening && !reduceMotion;
 
       // Highlight the active feature, fade the rest.
-      (Object.keys(featureMats) as CarFeature[]).forEach((f) => {
-        const m = featureMats[f];
-        const on = cur === f || (cur === "popcorn" && f === "pops");
-        const pulse = 0.55 + 0.35 * Math.sin(t * 4);
-        m.emissiveIntensity = on ? pulse : cur ? 0.02 : 0.15;
-        m.opacity = !cur || on ? 1 : 0.18;
-      });
+      const pulse = 0.55 + 0.35 * Math.sin(t * 4);
+      for (const e of entries) {
+        const on = !!cur && e.features.includes(cur);
+        e.mat.color.setHex(on ? e.color : e.idle);
+        e.mat.emissiveIntensity = on ? pulse : !cur && e.idle === e.color ? 0.15 : 0;
+        e.mat.opacity = !cur || on ? 1 : 0.18;
+      }
+
+      // Stage 3 swaps in a bigger turbo; Stage 2/3 spool it up.
+      const turboScale = cur === "stage3" ? 1.5 : 1;
+      turbo.scale.setScalar(THREE.MathUtils.lerp(turbo.scale.x, turboScale, 1 - Math.pow(0.01, dt)));
+      if (cur === "stage2" || cur === "stage3") turbo.rotation.z += dt * 10;
 
       // Exhaust: pops = irregular crackles on overrun, popcorn = rapid hardcut bursts.
       if (cur === "pops" && t >= nextPop) {
@@ -456,7 +519,7 @@ export const CarScene: React.FC<Props> = ({ active, labels }) => {
   }, []);
 
   return (
-    <div ref={wrapRef} className="relative w-full h-full cursor-grab active:cursor-grabbing">
+    <div ref={wrapRef} className="absolute inset-0 overflow-hidden cursor-grab active:cursor-grabbing">
       <div
         ref={labelRef}
         className="pointer-events-none absolute left-0 top-0 transition-opacity duration-300"
