@@ -234,11 +234,11 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 
 // ─── Component ───
 
-// Pexels clips (free license): a modified car on a closed street, then a
-// mountain-road race. Both are mirrored so the cars run on the right, clear of the headline.
+// Pexels clips (free license): a McLaren-led supercar convoy, then an Aston
+// Martin convoy. Set mirror: true on a clip whose cars sit under the headline.
 const HERO_CLIPS = [
-  { src: "/videos/hero-street.mp4", mirror: true },
-  { src: "/videos/hero-mountain.mp4", mirror: true },
+  { src: "/videos/hero-mclaren.mp4", mirror: false },
+  { src: "/videos/hero-convoy.mp4", mirror: false },
 ];
 
 export const LandingPage: React.FC = () => {
