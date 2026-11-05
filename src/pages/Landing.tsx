@@ -234,17 +234,37 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 
 // ─── Component ───
 
+// Pexels clips (free license): night burnout, then night drift.
+const HERO_CLIPS = ["/videos/hero-burnout.mp4", "/videos/hero-drift.mp4"];
+
 export const LandingPage: React.FC = () => {
   const [mobileNav, setMobileNav] = useState(false);
   const [feature, setFeature] = useState<CarFeature | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Hero clips play back to back and crossfade into each other.
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const [clip, setClip] = useState(0);
   const [videoPaused, setVideoPaused] = useState(false);
 
+  const nextClip = (i: number) => {
+    const n = (i + 1) % HERO_CLIPS.length;
+    const v = videoRefs.current[n];
+    if (v) {
+      v.currentTime = 0;
+      void v.play().catch(() => {});
+    }
+    setClip(n);
+  };
+
   const toggleVideo = () => {
-    const v = videoRef.current;
+    const v = videoRefs.current[clip];
     if (!v) return;
-    if (v.paused) void v.play();
-    else v.pause();
+    if (v.paused) {
+      void v.play().catch(() => {});
+      setVideoPaused(false);
+    } else {
+      v.pause();
+      setVideoPaused(true);
+    }
   };
 
   useEffect(() => {
@@ -324,20 +344,25 @@ export const LandingPage: React.FC = () => {
         aria-label="Introduction"
         className="relative overflow-hidden flex flex-col min-h-[640px] h-[calc(100svh-4rem)] max-h-[960px]"
       >
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          src="/videos/hero-revs.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          onPlay={() => setVideoPaused(false)}
-          onPause={() => setVideoPaused(true)}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#111111] via-[#111111]/75 to-[#111111]/10" />
+        {HERO_CLIPS.map((src, i) => (
+          <video
+            key={src}
+            ref={(el) => {
+              videoRefs.current[i] = el;
+            }}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+              clip === i ? "opacity-100" : "opacity-0"
+            }`}
+            src={src}
+            autoPlay={i === 0}
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            onEnded={() => nextClip(i)}
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#111111]/90 via-[#111111]/45 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-[#111111]/40" />
 
         <button
