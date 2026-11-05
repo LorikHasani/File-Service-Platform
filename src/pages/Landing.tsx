@@ -1,6 +1,6 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Plus, Menu, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Plus, Menu, X, Play, Pause } from "lucide-react";
 import { KikzaCredit } from "@/components/KikzaCredit";
 import type { CarFeature } from "@/components/landing/CarScene";
 
@@ -237,6 +237,15 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 export const LandingPage: React.FC = () => {
   const [mobileNav, setMobileNav] = useState(false);
   const [feature, setFeature] = useState<CarFeature | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoPaused, setVideoPaused] = useState(false);
+
+  const toggleVideo = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) void v.play();
+    else v.pause();
+  };
 
   useEffect(() => {
     document.body.style.backgroundColor = "#111111";
@@ -309,43 +318,129 @@ export const LandingPage: React.FC = () => {
         )}
       </header>
 
-      {/* ═══ HERO: the car ═══ */}
-      <section id="top" aria-label="Introduction" className="border-b border-white/10">
-        <div className="max-w-[1200px] mx-auto px-5 pt-12 lg:pt-16 grid lg:grid-cols-12 gap-x-10 gap-y-6 items-end">
-          <div className="lg:col-span-7">
-            <Tag dark>ECU &amp; TCU file service for workshops</Tag>
-            <h1
-              className="font-display font-extrabold uppercase leading-[0.9] tracking-[-0.01em] text-[2.9rem] sm:text-[4.2rem] lg:text-[5rem]"
-              style={condensed}
-            >
-              Stage 1–3. DPF. EGR.
-              <br />
-              AdBlue. <span className="text-[#d7261e]">Pops.</span>
-            </h1>
-          </div>
-          <div className="lg:col-span-5">
-            <p className="text-white/70 leading-relaxed">
-              Every file written by a calibrator for your exact ECU and software,
-              dyno-tested, and usually back with you in under 15 minutes. Pick
-              anything below to see where it sits on the car.
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Link
-                to="/register"
-                className="group inline-flex items-center gap-3 bg-[#d7261e] hover:bg-[#ef3a2f] text-white font-semibold pl-6 pr-5 py-3 transition-colors"
-              >
-                Register
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link to="/login" className="text-sm text-white/70 underline underline-offset-4 decoration-white/30 hover:text-white">
-                File Portal Login
-              </Link>
+      {/* ═══ HERO: video ═══ */}
+      <section
+        id="top"
+        aria-label="Introduction"
+        className="relative overflow-hidden flex flex-col min-h-[640px] h-[calc(100svh-4rem)] max-h-[960px]"
+      >
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover"
+          src="/videos/hero-revs.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+          onPlay={() => setVideoPaused(false)}
+          onPause={() => setVideoPaused(true)}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#111111] via-[#111111]/75 to-[#111111]/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-[#111111]/40" />
+
+        <button
+          onClick={toggleVideo}
+          aria-label={videoPaused ? "Play background video" : "Pause background video"}
+          className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10 w-9 h-9 flex items-center justify-center border border-white/25 bg-black/30 text-white/70 hover:text-white hover:border-white transition-colors"
+        >
+          {videoPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+        </button>
+
+        <div className="relative flex-1 flex items-center">
+          <div className="w-full max-w-[1200px] mx-auto px-5 py-12">
+            <div className="max-w-[54rem] border-l border-white/25 pl-5 sm:pl-8">
+              <p className="font-tech text-[11px] uppercase tracking-[0.2em] text-white/60 mb-5">
+                ECU &amp; TCU file service for workshops and tuners
+              </p>
+              <h1 className="leading-[0.95]">
+                <span
+                  className="block font-display font-semibold tracking-[-0.02em] text-[2.3rem] sm:text-[3.6rem] lg:text-[4.3rem]"
+                  style={{ fontStretch: "125%" }}
+                >
+                  Precision ECU
+                  <br />
+                  &amp; TCU Tuning
+                </span>
+                <span className="block mt-1 font-serif italic font-normal text-[#d7261e] text-[2.6rem] sm:text-[4.2rem] lg:text-[5rem] leading-[1]">
+                  Written by Calibrators
+                </span>
+              </h1>
+              <p className="mt-6 text-white/75 text-[17px] leading-relaxed max-w-[36rem]">
+                Stage 1–3 remaps, DPF, EGR, AdBlue, pops &amp; bangs and gearbox
+                files — written for your exact ECU, tested on the dyno, and
+                delivered in under 15 minutes.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  to="/register"
+                  className="group inline-flex items-center gap-4 bg-[#d7261e] hover:bg-[#ef3a2f] text-white text-[12px] font-semibold uppercase tracking-[0.2em] px-7 py-4 transition-colors"
+                >
+                  Register
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  to="/login"
+                  className="group inline-flex items-center gap-4 border border-white/30 hover:border-white bg-black/20 text-white text-[12px] font-semibold uppercase tracking-[0.2em] px-7 py-4 transition-colors"
+                >
+                  File Portal Login
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Numbers */}
+        <div className="relative border-t border-white/10 bg-black/40 backdrop-blur-sm">
+          <dl className="max-w-[1200px] mx-auto grid grid-cols-2 lg:grid-cols-4">
+            {[
+              ["10,000+", "files delivered"],
+              ["< 15 min", "average turnaround"],
+              ["Dyno", "tested before delivery"],
+              ["Mon–Sat", "09:00–22:00 CET"],
+            ].map(([k, v], i) => (
+              <div
+                key={k}
+                className={`px-5 py-7 ${i % 2 === 1 ? "border-l" : ""} ${
+                  i > 1 ? "border-t lg:border-t-0" : ""
+                } ${i === 2 ? "lg:border-l" : ""} border-white/10`}
+              >
+                <dt className="font-display font-bold text-3xl sm:text-4xl uppercase" style={condensed}>
+                  {k}
+                </dt>
+                <dd className="mt-1 font-tech text-[11px] uppercase tracking-[0.14em] text-white/50">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ═══ 3D CAR ═══ */}
+      <section aria-label="What we can change on the car" className="border-b border-white/10">
+        <div className="max-w-[1200px] mx-auto px-5 pt-20 lg:pt-24">
+          <div className="grid lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-7">
+              <Tag dark>01 — Under the car</Tag>
+              <h2
+                className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
+                style={condensed}
+              >
+                Pick a system.
+                <br />
+                We'll show you where it lives.
+              </h2>
+            </div>
+            <p className="lg:col-span-5 text-white/60 leading-relaxed">
+              Tap any option. The camera moves to the parts it affects — drag
+              the car to look around it.
+            </p>
+          </div>
+        </div>
+
         {/* 3D car + picker */}
-        <div id="under-the-car" className="scroll-mt-20 max-w-[1200px] mx-auto lg:px-5 mt-10 lg:mt-12 grid lg:grid-cols-12">
+        <div id="under-the-car" className="scroll-mt-20 max-w-[1200px] mx-auto lg:px-5 mt-10 grid lg:grid-cols-12">
           <div className="lg:col-span-8 relative h-[340px] sm:h-[460px] lg:h-[580px] bg-[radial-gradient(ellipse_at_center,#222_0%,#111_70%)] lg:border lg:border-white/10">
             <Suspense
               fallback={
@@ -430,29 +525,6 @@ export const LandingPage: React.FC = () => {
           export use only. You are responsible for the rules that apply where the
           vehicle is used.
         </p>
-        {/* Numbers */}
-        <div className="border-t border-white/10">
-          <dl className="max-w-[1200px] mx-auto grid grid-cols-2 lg:grid-cols-4">
-            {[
-              ["10,000+", "files delivered"],
-              ["< 15 min", "average turnaround"],
-              ["Dyno", "tested before delivery"],
-              ["Mon–Sat", "09:00–22:00 CET"],
-            ].map(([k, v], i) => (
-              <div
-                key={k}
-                className={`px-5 py-7 ${i % 2 === 1 ? "border-l" : ""} ${
-                  i > 1 ? "border-t lg:border-t-0" : ""
-                } ${i === 2 ? "lg:border-l" : ""} border-white/10`}
-              >
-                <dt className="font-display font-bold text-3xl sm:text-4xl uppercase" style={condensed}>
-                  {k}
-                </dt>
-                <dd className="mt-1 font-tech text-[11px] uppercase tracking-[0.14em] text-white/50">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
       </section>
 
       {/* ═══ SERVICES (paper) ═══ */}
@@ -460,7 +532,7 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28">
           <div className="grid lg:grid-cols-12 gap-6 mb-14">
             <div className="lg:col-span-6">
-              <Tag>01 — The menu</Tag>
+              <Tag>02 — The menu</Tag>
               <h2
                 className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
                 style={condensed}
@@ -519,7 +591,7 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28">
           <div className="grid lg:grid-cols-12 gap-10 items-start mb-14">
             <div className="lg:col-span-7">
-              <Tag dark>02 — How a job goes</Tag>
+              <Tag dark>03 — How a job goes</Tag>
               <h2
                 className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
                 style={condensed}
@@ -595,7 +667,7 @@ export const LandingPage: React.FC = () => {
       <section className="border-b border-white/10" aria-label="About us">
         <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-4">
-            <Tag dark>03 — Who you're dealing with</Tag>
+            <Tag dark>04 — Who you're dealing with</Tag>
           </div>
           <div className="lg:col-span-8">
             <p className="font-display text-2xl sm:text-[2rem] leading-[1.3] text-white/90 font-medium">
@@ -620,7 +692,7 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28">
           <div className="grid lg:grid-cols-12 gap-6 mb-10">
             <div className="lg:col-span-7">
-              <Tag dark>04 — Before you buy</Tag>
+              <Tag dark>05 — Before you buy</Tag>
               <h2
                 className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl"
                 style={condensed}
@@ -650,7 +722,7 @@ export const LandingPage: React.FC = () => {
       <section id="faq" className="scroll-mt-16 bg-[#f2efe9] text-black" aria-label="Frequently asked questions">
         <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-4">
-            <Tag>05 — Questions</Tag>
+            <Tag>06 — Questions</Tag>
             <h2
               className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-5xl"
               style={condensed}
@@ -680,7 +752,7 @@ export const LandingPage: React.FC = () => {
       <section id="contact" className="scroll-mt-16" aria-label="Contact">
         <div className="max-w-[1200px] mx-auto px-5 py-20 lg:py-28 grid lg:grid-cols-12 gap-14">
           <div className="lg:col-span-7">
-            <Tag dark>06 — Talk to us</Tag>
+            <Tag dark>07 — Talk to us</Tag>
             <h2
               className="font-display font-extrabold uppercase leading-[0.92] text-[2.6rem] sm:text-6xl mb-10"
               style={condensed}
