@@ -14,6 +14,8 @@ export const DashboardPage: React.FC = () => {
   const activeJobs = jobs.filter((j) => ['pending', 'in_progress', 'waiting_for_info'].includes(j.status));
   const completedJobs = jobs.filter((j) => j.status === 'completed');
   const recentJobs = jobs.slice(0, 5);
+  const isNewClient = jobs.length === 0;
+  const balance = profile?.credit_balance ?? 0;
 
   if (loading) {
     return (
@@ -33,8 +35,52 @@ export const DashboardPage: React.FC = () => {
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
           Welcome back, {profile?.contact_name?.split(' ')[0]}!
         </h2>
-        <p className="text-zinc-500 mt-1">Here's what's happening with your tuning jobs today.</p>
+        <p className="text-zinc-500 mt-1">
+          {isNewClient ? "Let's get your first file tuned." : "Here's what's happening with your tuning jobs today."}
+        </p>
       </div>
+
+      {/* First-run welcome — shown until the client submits a job */}
+      {isNewClient && (
+        <div className="mb-8 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
+                {balance > 0
+                  ? `You have €${balance.toFixed(2)} credit ready to use`
+                  : 'Send us your first file'}
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                {balance > 0
+                  ? 'Try us on your next car — no payment needed to send your first file.'
+                  : 'Most files come back in under 15 minutes during working hours.'}
+              </p>
+              <ol className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+                {[
+                  ['1', 'Upload the original file', 'Read with your master or slave tool.'],
+                  ['2', 'Choose what you need', 'Stage, DPF, EGR, AdBlue and more.'],
+                  ['3', 'Download the tuned file', 'Usually within 15 minutes. Revisions are free.'],
+                ].map(([n, title, desc]) => (
+                  <li key={n} className="flex gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-white text-xs font-bold">{n}</span>
+                    <span>
+                      <span className="block font-semibold text-zinc-900 dark:text-white">{title}</span>
+                      <span className="block text-zinc-500">{desc}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <Link to="/jobs/new" className="shrink-0">
+              <Button variant="primary" size="lg" className="w-full lg:w-auto">
+                <FileUp className="w-5 h-5" />
+                <span>Upload your first file</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -140,7 +186,10 @@ export const DashboardPage: React.FC = () => {
           </div>
           {recentJobs.length === 0 ? (
             <div className="p-8 text-center text-zinc-500">
-              <p>No jobs yet. Create your first tuning job!</p>
+              <p>No jobs yet.</p>
+              <Link to="/jobs/new" className="text-sm text-red-600 font-medium hover:underline mt-2 inline-block">
+                Upload your first file →
+              </Link>
             </div>
           ) : (
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">

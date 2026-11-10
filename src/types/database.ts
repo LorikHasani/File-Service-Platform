@@ -840,6 +840,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      welcome_credit: {
+        Row: {
+          id: boolean;
+          enabled: boolean;
+          amount: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          enabled?: boolean;
+          amount?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          enabled?: boolean;
+          amount?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: {
           id: string;

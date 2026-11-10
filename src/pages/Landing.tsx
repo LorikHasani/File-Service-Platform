@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+import { useWelcomeCredit, formatWelcomeCredit } from '@/hooks/useSupabase';
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Plus, Menu, X, Play, Pause } from "lucide-react";
 import { KikzaCredit } from "@/components/KikzaCredit";
@@ -238,6 +239,7 @@ const Tag: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children
 const HERO_VIDEO = "/videos/hero-night-run.mp4";
 
 export const LandingPage: React.FC = () => {
+  const welcomeCredit = useWelcomeCredit();
   const [mobileNav, setMobileNav] = useState(false);
   const [feature, setFeature] = useState<CarFeature | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -385,6 +387,11 @@ export const LandingPage: React.FC = () => {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
+              {welcomeCredit !== null && (
+                <p className="mt-4 text-[13px] font-semibold text-black/80">
+                  New accounts get <span className="text-[#d7261e]">€{formatWelcomeCredit(welcomeCredit)} free credit</span> to try your first file on us.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -840,7 +847,7 @@ export const LandingPage: React.FC = () => {
       <section className="bg-[#d7261e] text-white" aria-label="Get started">
         <Link to="/register" className="group block max-w-[1200px] mx-auto px-5 py-14 lg:py-20">
           <span className="font-tech text-[11px] uppercase tracking-[0.18em] text-white/70">
-            Free to register · no subscription
+            Free to register{welcomeCredit !== null ? ` · €${formatWelcomeCredit(welcomeCredit)} free credit` : ''} · no subscription
           </span>
           <span
             className="mt-3 flex items-center justify-between gap-6 font-display font-extrabold uppercase leading-[0.9] text-5xl sm:text-7xl lg:text-8xl"

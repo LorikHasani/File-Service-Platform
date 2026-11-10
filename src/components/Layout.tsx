@@ -405,12 +405,12 @@ export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }
           </p>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
-              <div className="text-2xl font-bold text-red-500">2,500+</div>
-              <div className="text-sm text-zinc-400">Happy Clients</div>
+              <div className="text-2xl font-bold text-red-500">Free</div>
+              <div className="text-sm text-zinc-400">Revisions</div>
             </div>
             <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
-              <div className="text-2xl font-bold text-red-500">10k+</div>
-              <div className="text-sm text-zinc-400">Files Delivered</div>
+              <div className="text-xl leading-8 font-bold text-red-500 whitespace-nowrap">Mon–Sat</div>
+              <div className="text-sm text-zinc-400">09:00–22:00 CET</div>
             </div>
             <div className="text-center p-4 bg-zinc-900/50 rounded-lg border border-white/5">
               <div className="text-2xl font-bold text-red-500">&lt;15min</div>

@@ -5,7 +5,7 @@ import {
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Spinner } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { logAdminAction } from '@/hooks/useSupabase';
+import { logAdminAction, resetWelcomeCreditCache } from '@/hooks/useSupabase';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -19,6 +19,112 @@ interface CreditPackage {
   sort_order: number;
   created_at: string;
 }
+
+// ─── Welcome credit switch (migration 026) ──────────────────────────────────
+// One row in `welcome_credit` controls both the automatic credit a new client
+// receives on confirming their email and the "free credit" text on the site.
+const WelcomeCreditCard: React.FC = () => {
+  const [loaded, setLoaded] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [amount, setAmount] = useState('20');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.from('welcome_credit').select('enabled, amount').maybeSingle();
+      if (error || !data) {
+        setMissing(true);
+      } else {
+        setEnabled(data.enabled);
+        setAmount(String(Number(data.amount)));
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const save = async (nextEnabled: boolean, nextAmount: string) => {
+    const value = Number(nextAmount);
+    if (!Number.isFinite(value) || value <= 0 || value > 500) {
+      toast.error('Enter an amount between 1 and 500');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('welcome_credit')
+        .update({ enabled: nextEnabled, amount: value, updated_at: new Date().toISOString() })
+        .eq('id', true)
+        .select('enabled, amount')
+        .maybeSingle();
+      if (error || !data) throw error || new Error('Not saved');
+      setEnabled(data.enabled);
+      setAmount(String(Number(data.amount)));
+      resetWelcomeCreditCache();
+      logAdminAction('welcome_credit_updated', 'welcome_credit', null, { enabled: data.enabled, amount: Number(data.amount) });
+      toast.success(data.enabled ? `Welcome credit is ON (€${Number(data.amount)})` : 'Welcome credit is OFF');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save welcome credit');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded) return null;
+
+  if (missing) {
+    return (
+      <Card>
+        <h2 className="font-semibold">Welcome credit for new clients</h2>
+        <p className="text-sm text-zinc-500 mt-1">
+          Not set up yet. Run migration <span className="font-mono">026_welcome_credit.sql</span> in the Supabase SQL editor to enable this switch.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="flex-1">
+          <h2 className="font-semibold">Welcome credit for new clients</h2>
+          <p className="text-sm text-zinc-500 mt-1">
+            {enabled
+              ? 'ON — new clients get this credit automatically when they confirm their email, and the offer is shown on the landing and signup pages.'
+              : 'OFF — new clients get no free credit, and the offer is hidden from the website.'}
+          </p>
+        </div>
+        <div className="flex items-end gap-3">
+          <div className="w-28">
+            <Input
+              label="Amount (€)"
+              type="number"
+              min={1}
+              max={500}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <Button variant="secondary" isLoading={saving} onClick={() => save(enabled, amount)}>
+            Save amount
+          </Button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => save(!enabled, amount)}
+            aria-pressed={enabled}
+            aria-label={enabled ? 'Turn welcome credit off' : 'Turn welcome credit on'}
+            className={clsx('flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold', enabled ? 'text-green-600' : 'text-zinc-400')}
+          >
+            {enabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+            {enabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 export const AdminPackagesPage: React.FC = () => {
   const [packages, setPackages] = useState<CreditPackage[]>([]);
@@ -92,6 +198,8 @@ export const AdminPackagesPage: React.FC = () => {
             Add Package
           </Button>
         </div>
+
+        <WelcomeCreditCard />
 
         {/* Packages List */}
         {packages.length === 0 ? (

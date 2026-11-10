@@ -1390,6 +1390,63 @@ export function useBusinessHours() {
   return { hours, loading, refetch: fetchHours };
 }
 
+// ============================================================================
+// WELCOME CREDIT (admin on/off switch — migration 026)
+// ============================================================================
+// `amount` is null while loading, when the switch is off, or when the table
+// doesn't exist yet, so callers simply hide the offer unless it is a number.
+// The value is cached for the page lifetime: it is read on the landing page,
+// the signup page and the dashboard.
+
+let welcomeCreditCache: number | null | undefined;
+let welcomeCreditRequest: Promise<number | null> | null = null;
+
+function loadWelcomeCredit(): Promise<number | null> {
+  if (!welcomeCreditRequest) {
+    welcomeCreditRequest = (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('welcome_credit')
+          .select('enabled, amount')
+          .maybeSingle();
+        if (error || !data || !data.enabled) return null;
+        const amount = Number(data.amount);
+        return Number.isFinite(amount) && amount > 0 ? amount : null;
+      } catch {
+        return null;
+      }
+    })().then((value) => {
+      welcomeCreditCache = value;
+      return value;
+    });
+  }
+  return welcomeCreditRequest;
+}
+
+export function resetWelcomeCreditCache() {
+  welcomeCreditCache = undefined;
+  welcomeCreditRequest = null;
+}
+
+export function useWelcomeCredit(): number | null {
+  const [amount, setAmount] = useState<number | null>(welcomeCreditCache ?? null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadWelcomeCredit().then((value) => {
+      if (!cancelled) setAmount(value);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  return amount;
+}
+
+/** Formats a credit amount without trailing ".00" — 20 → "20", 12.5 → "12.50". */
+export function formatWelcomeCredit(amount: number): string {
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+}
+
 export async function updateBusinessHours(
   dayOfWeek: number,
   updates: { is_closed?: boolean; open_minutes?: number; close_minutes?: number }

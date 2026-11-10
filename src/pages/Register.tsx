@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, Eye, EyeOff, User, Building, Phone } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Building, Phone, MailCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthLayout } from '@/components/Layout';
 import { Button, Input } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/lib/supabase';
+import { useWelcomeCredit, formatWelcomeCredit } from '@/hooks/useSupabase';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -28,6 +30,22 @@ export const RegisterPage: React.FC = () => {
   const signUp = useAuthStore((s) => s.signUp);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const welcomeCredit = useWelcomeCredit();
+  // Set once signup succeeds — switches the page to the "check your email" screen.
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+
+  const resendConfirmation = async () => {
+    if (!sentTo) return;
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: sentTo });
+      if (error) toast.error(error.message);
+      else toast.success('Confirmation email sent again.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -47,15 +65,40 @@ export const RegisterPage: React.FC = () => {
         return;
       }
 
-      toast.success(
-        'Account created! We sent a confirmation link to your email — open it to activate your account (check your spam folder too).',
-        { duration: 12000 }
-      );
-      navigate('/login');
+      setSentTo(data.email);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (sentTo) {
+    return (
+      <AuthLayout>
+        <div className="text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <MailCheck className="h-7 w-7 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Check your email</h1>
+          <p className="text-zinc-500 mt-2">
+            We sent a confirmation link to{' '}
+            <span className="font-semibold text-zinc-900 dark:text-white break-all">{sentTo}</span>.
+            Open it to activate your account{welcomeCredit !== null ? ` and your €${formatWelcomeCredit(welcomeCredit)} free credit` : ''}.
+          </p>
+          <p className="text-sm text-zinc-500 mt-4">
+            Nothing after a few minutes? Check your spam folder, or send it again.
+          </p>
+          <div className="mt-6 space-y-3">
+            <Button type="button" variant="secondary" className="w-full" size="lg" isLoading={isResending} onClick={resendConfirmation}>
+              Resend confirmation email
+            </Button>
+            <Button type="button" className="w-full" size="lg" onClick={() => navigate('/login')}>
+              I've confirmed — sign in
+            </Button>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout>
@@ -64,7 +107,13 @@ export const RegisterPage: React.FC = () => {
           <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
         </Link>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Create your account</h1>
-        <p className="text-zinc-500 mt-1">Start tuning with professional ECU file services</p>
+        <p className="text-zinc-500 mt-1">
+          {welcomeCredit !== null ? (
+            <>Get <span className="font-semibold text-red-600">€{formatWelcomeCredit(welcomeCredit)} free credit</span> to try your first file — no card needed.</>
+          ) : (
+            'Start tuning with professional ECU file services'
+          )}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
