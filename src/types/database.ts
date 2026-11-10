@@ -30,6 +30,8 @@ export interface Database {
           credit_balance: number;
           stripe_customer_id: string | null;
           email_notifications: boolean;
+          /** Set while the account is suspended (migration 027). */
+          suspended_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -943,6 +945,13 @@ export interface Database {
         Args: {
           p_user_id: string;
           p_tool_type: string;
+        };
+        Returns: undefined;
+      };
+      admin_set_user_suspended: {
+        Args: {
+          p_user_id: string;
+          p_suspended: boolean;
         };
         Returns: undefined;
       };

@@ -167,6 +167,11 @@ export const AdminUsersPage: React.FC = () => {
                           {user.tool_type}
                         </span>
                       )}
+                      {user.role === 'client' && user.suspended_at && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                          Suspended
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">

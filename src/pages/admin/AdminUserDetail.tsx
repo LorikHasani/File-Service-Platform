@@ -90,6 +90,35 @@ export const AdminUserDetailPage: React.FC = () => {
     setSavingToolType(false);
   };
 
+  // Suspend / unsuspend (migration 027)
+  const [savingSuspended, setSavingSuspended] = useState(false);
+
+  const handleSetSuspended = async (suspend: boolean) => {
+    if (!user) return;
+    const question = suspend
+      ? `Suspend ${user.contact_name}? They will be signed out and will not be able to log in.`
+      : `Unsuspend ${user.contact_name}? They will be able to log in again.`;
+    if (!window.confirm(question)) return;
+    setSavingSuspended(true);
+    const { error } = await supabase.rpc('admin_set_user_suspended', {
+      p_user_id: user.id,
+      p_suspended: suspend,
+    });
+    if (error) {
+      console.error(error);
+      toast.error(
+        /admin_set_user_suspended|schema cache/i.test(error.message)
+          ? 'Not set up yet. Run migration 027_suspend_users.sql in the Supabase SQL editor.'
+          : error.message || 'Failed to update the account'
+      );
+    } else {
+      await logAdminAction(suspend ? 'suspend_user' : 'unsuspend_user', 'profile', user.id, {});
+      toast.success(suspend ? 'Account suspended' : 'Account unsuspended');
+      refetch();
+    }
+    setSavingSuspended(false);
+  };
+
   const openRefundModal = (originalTx?: Transaction) => {
     if (originalTx) {
       setRefundOriginalTx(originalTx);
@@ -322,6 +351,21 @@ export const AdminUserDetailPage: React.FC = () => {
               </div>
             )}
             <Badge variant={user.role === 'client' ? 'pending' : 'completed'}>{user.role}</Badge>
+            {user.role === 'client' && user.suspended_at && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                Suspended
+              </span>
+            )}
+            {user.role === 'client' && (
+              <Button
+                variant={user.suspended_at ? 'secondary' : 'danger'}
+                size="sm"
+                isLoading={savingSuspended}
+                onClick={() => handleSetSuspended(!user.suspended_at)}
+              >
+                {user.suspended_at ? 'Unsuspend' : 'Suspend'}
+              </Button>
+            )}
           </div>
         </div>
       </div>

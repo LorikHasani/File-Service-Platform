@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthLayout } from '@/components/Layout';
 import { Button, Input } from '@/components/ui';
@@ -23,8 +23,16 @@ export const LoginPage: React.FC = () => {
   const signIn = useAuthStore((s) => s.signIn);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Shows the "account is suspended" alert above the form.
+  const [suspended, setSuspended] = useState(false);
 
   useEffect(() => {
+    if (searchParams.get('reason') === 'suspended') {
+      setSuspended(true);
+      searchParams.delete('reason');
+      setSearchParams(searchParams, { replace: true });
+      return;
+    }
     if (searchParams.get('reason') === 'idle') {
       toast('You were signed out due to inactivity. Please sign in again.', {
         id: 'idle-signout',
@@ -43,10 +51,16 @@ export const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
+    setSuspended(false);
     try {
       const { error } = await signIn(data.email, data.password);
 
       if (error) {
+        // Supabase Auth answers "User is banned" for a suspended account.
+        if ((error as { code?: string }).code === 'user_banned' || /banned/i.test(error.message)) {
+          setSuspended(true);
+          return;
+        }
         if (/email not confirmed/i.test(error.message)) {
           const { error: resendError } = await supabase.auth.resend({ type: 'signup', email: data.email });
           toast.error(
@@ -60,6 +74,10 @@ export const LoginPage: React.FC = () => {
         toast.error(error.message);
         return;
       }
+
+      // A suspended account is signed straight out again by the store,
+      // which reloads this page with the alert.
+      if (!useAuthStore.getState().user) return;
 
       toast.success('Welcome back!');
       
@@ -81,6 +99,16 @@ export const LoginPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Welcome back</h1>
         <p className="text-zinc-500 mt-1">Sign in to your account to continue</p>
       </div>
+
+      {suspended && (
+        <div role="alert" className="mb-6 rounded-md bg-[#f8506a] px-4 py-3 text-sm text-white">
+          <p className="flex items-center gap-2">
+            <AlertTriangle size={16} className="flex-shrink-0" />
+            <span>Your account is suspended.</span>
+          </p>
+          <p className="font-bold">Please call us to re-instate your account.</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <Input

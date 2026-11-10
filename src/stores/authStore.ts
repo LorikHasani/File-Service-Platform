@@ -23,7 +23,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, metadata: { contact_name: string; company_name?: string; phone?: string }) => Promise<{ error: Error | null }>;
-  signOut: (options?: { reason?: 'idle' }) => Promise<void>;
+  signOut: (options?: { reason?: 'idle' | 'suspended' }) => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
 }
@@ -309,7 +309,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     // Hard redirect bypasses ProtectedRoute's grace period.
-    window.location.replace(options?.reason === 'idle' ? '/login?reason=idle' : '/login');
+    window.location.replace(options?.reason ? `/login?reason=${options.reason}` : '/login');
   },
 
   fetchProfile: async () => {
@@ -324,6 +324,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (error) throw error;
+
+      // Suspended by an admin (migration 027). Supabase Auth already refuses
+      // new sign-ins; this ends a session that was open when it happened.
+      if (data?.suspended_at && data.role === 'client') {
+        await get().signOut({ reason: 'suspended' });
+        return;
+      }
 
       // ---------------------------------------------------------------
       // SYNC AUTH METADATA → PROFILE
