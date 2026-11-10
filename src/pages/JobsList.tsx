@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowRight, FileText, Clock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, Button, Input, Badge, EmptyState, Spinner, statusLabels, Pagination, usePagination } from '@/components/ui';
 import { useJobs } from '@/hooks/useSupabase';
+import { supabase } from '@/lib/supabase';
 import { clsx } from 'clsx';
 import type { JobStatus } from '@/types/database';
 
@@ -38,6 +39,29 @@ export const JobsListPage: React.FC = () => {
     rangeEnd,
     pagedItems: pageJobs,
   } = usePagination(filteredJobs, 10);
+
+  // Requested services for the jobs on the current page (job id → names).
+  const [servicesByJob, setServicesByJob] = useState<Record<string, string[]>>({});
+  const pageJobIds = pageJobs.map((job) => job.id).join(',');
+  useEffect(() => {
+    if (!pageJobIds) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('job_services')
+        .select('job_id, service_name')
+        .in('job_id', pageJobIds.split(','))
+        .order('created_at', { ascending: true });
+      if (cancelled || error || !data) return;
+      setServicesByJob((prev) => {
+        const next = { ...prev };
+        for (const id of pageJobIds.split(',')) next[id] = [];
+        for (const row of data) next[row.job_id]!.push(row.service_name);
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [pageJobIds]);
 
   if (loading) {
     return (
@@ -116,6 +140,18 @@ export const JobsListPage: React.FC = () => {
                         <p className="text-sm text-zinc-500">
                           {job.vehicle_year} • {job.engine_type} {job.engine_power_hp && `• ${job.engine_power_hp} HP`}
                         </p>
+                        {(servicesByJob[job.id]?.length ?? 0) > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {servicesByJob[job.id]!.map((name, i) => (
+                              <span
+                                key={`${name}-${i}`}
+                                className="px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-6 lg:flex-col lg:items-end lg:gap-1">
