@@ -5,7 +5,7 @@ import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
   Menu, X, Moon, Sun, ChevronDown, Users, BarChart3, Gauge, Cpu, Tag, DollarSign,
   MessageSquare, User, Mail, Megaphone, Clock, Package, Receipt, Shield, Image,
-  Smartphone,
+  Smartphone, MessageCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessHours } from '@/hooks/useSupabase';
@@ -231,7 +231,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
       )}>
         <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-800 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="ChipTuneFiles" className="h-7" />
+            <img src="/logo-wide.png" alt="ChipTuneFiles" className="h-9 w-auto" />
           </Link>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-zinc-800 rounded">
             <X size={20} />
@@ -276,6 +276,21 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
             <span>Get the App</span>
           </button>
         </div>
+
+        {/* Support */}
+        {!isAdmin && (
+          <div className="px-3 pb-1 flex-shrink-0">
+            <a
+              href="https://wa.me/38344955389"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+            >
+              <MessageCircle size={18} />
+              <span>Need help? WhatsApp us</span>
+            </a>
+          </div>
+        )}
 
         {/* Working Hours */}
         {!isAdmin && <WorkingHoursWidget />}
@@ -388,7 +403,12 @@ export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }
           </Link>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-md">{children}</div>
+          <div className="w-full max-w-md">
+            {children}
+            <p className="mt-6 text-center text-xs text-zinc-500 lg:hidden">
+              Files in under 15 minutes · Free revisions · Mon–Sat 09:00–22:00 CET
+            </p>
+          </div>
         </div>
         <div className="mt-4 flex justify-center">
           <KikzaCredit variant="auto" />
@@ -396,9 +416,7 @@ export const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }
       </div>
       <div className="hidden lg:flex lg:w-1/2 bg-zinc-950 text-white items-center justify-center p-12 relative overflow-hidden">
         <div className="relative z-10 max-w-lg">
-          <div className="flex items-center gap-3 mb-8">
-            <img src="/logo.png" alt="ChipTuneFiles" className="h-14" />
-          </div>
+          <img src="/logo-wide.png" alt="ChipTuneFiles" className="w-full max-w-[460px] h-auto mb-10" />
           <h2 className="text-4xl font-bold mb-4">Professional ECU File Service</h2>
           <p className="text-lg text-zinc-400 mb-8">
             Fast, reliable tuning files for workshops and tuners worldwide.

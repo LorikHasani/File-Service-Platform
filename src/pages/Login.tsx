@@ -75,8 +75,8 @@ export const LoginPage: React.FC = () => {
   return (
     <AuthLayout>
       <div className="mb-8">
-        <Link to="/" className="flex items-center gap-2 mb-8 lg:hidden">
-          <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
+        <Link to="/" className="mb-8 flex justify-center rounded-xl bg-black px-5 py-5 lg:hidden">
+          <img src="/logo-wide.png" alt="ChipTuneFiles" className="w-full max-w-[320px] h-auto" />
         </Link>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Welcome back</h1>
         <p className="text-zinc-500 mt-1">Sign in to your account to continue</p>

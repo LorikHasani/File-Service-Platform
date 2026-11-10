@@ -83,7 +83,7 @@ async function sendCreditPurchaseEmails(
 
   if (!client) return;
 
-  const accent = '#2563eb';
+  const accent = '#dc2626';
 
   function emailFooter() {
     return `
@@ -129,13 +129,13 @@ async function sendCreditPurchaseEmails(
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;">CREDIT PURCHASE CONFIRMED</h1>
-          <p style="margin:0 0 20px;color:#333;font-size:15px;">Hello <strong>${client.contact_name}</strong>, your credit purchase has been successfully processed.</p>
+          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;">TOP-UP CONFIRMED</h1>
+          <p style="margin:0 0 20px;color:#333;font-size:15px;">Hello <strong>${client.contact_name}</strong>, your payment was received and your balance has been topped up.</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #eee;border-radius:8px;">
             <tr style="background-color:#f9f9f9;"><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;">PACKAGE</td><td style="padding:12px 16px;color:#333;font-size:14px;">${packageName}</td></tr>
-            <tr><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">CREDITS ADDED</td><td style="padding:12px 16px;color:#22c55e;font-size:14px;font-weight:700;border-top:1px solid #eee;">+${credits} credits</td></tr>
+            <tr><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">ADDED TO BALANCE</td><td style="padding:12px 16px;color:#22c55e;font-size:14px;font-weight:700;border-top:1px solid #eee;">+&euro;${credits.toFixed(2)}</td></tr>
             <tr style="background-color:#f9f9f9;"><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">AMOUNT PAID</td><td style="padding:12px 16px;color:#333;font-size:14px;border-top:1px solid #eee;">&euro;${amountPaid.toFixed(2)}</td></tr>
-            <tr><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">NEW BALANCE</td><td style="padding:12px 16px;color:${accent};font-size:14px;font-weight:700;border-top:1px solid #eee;">${balanceAfter.toFixed(2)} credits</td></tr>
+            <tr><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">NEW BALANCE</td><td style="padding:12px 16px;color:${accent};font-size:14px;font-weight:700;border-top:1px solid #eee;">&euro;${balanceAfter.toFixed(2)}</td></tr>
           </table>
           <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="left" style="padding:8px 0 0;">
             <a href="${SITE_URL}/credits" style="display:inline-block;background-color:${accent};color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">&rarr; Log in to portal</a>
@@ -146,7 +146,7 @@ async function sendCreditPurchaseEmails(
   </table>
 </body></html>`;
 
-  await sendEmail(client.email, `Credit Purchase Confirmed — ${credits} Credits — ${BRAND_NAME}`, clientHtml);
+  await sendEmail(client.email, `Top-up confirmed — €${credits.toFixed(2)} added to your balance — ${BRAND_NAME}`, clientHtml);
   console.log(`Credit purchase email sent to ${client.email}`);
 
   // ─── Email to Admin ───
@@ -159,12 +159,12 @@ async function sendCreditPurchaseEmails(
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;">NEW CREDIT PURCHASE</h1>
-          <p style="margin:0 0 24px;color:#333;font-size:15px;">A client has purchased credits on <strong>${BRAND_NAME}</strong>.</p>
+          <h1 style="margin:0 0 24px;color:${accent};font-size:24px;font-weight:900;text-transform:uppercase;">NEW BALANCE TOP-UP</h1>
+          <p style="margin:0 0 24px;color:#333;font-size:15px;">A client has topped up their balance on <strong>${BRAND_NAME}</strong>.</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #eee;border-radius:8px;">
             <tr style="background-color:#f9f9f9;"><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;">CLIENT</td><td style="padding:12px 16px;color:#333;font-size:14px;">${client.contact_name} (${client.email})</td></tr>
             <tr><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">PACKAGE</td><td style="padding:12px 16px;color:#333;font-size:14px;border-top:1px solid #eee;">${packageName}</td></tr>
-            <tr style="background-color:#f9f9f9;"><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">CREDITS</td><td style="padding:12px 16px;color:#22c55e;font-size:14px;font-weight:700;border-top:1px solid #eee;">+${credits} credits</td></tr>
+            <tr style="background-color:#f9f9f9;"><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">ADDED TO BALANCE</td><td style="padding:12px 16px;color:#22c55e;font-size:14px;font-weight:700;border-top:1px solid #eee;">+&euro;${credits.toFixed(2)}</td></tr>
             <tr><td style="padding:12px 16px;font-weight:600;color:#666;font-size:13px;border-top:1px solid #eee;">AMOUNT PAID</td><td style="padding:12px 16px;color:#333;font-size:14px;font-weight:700;border-top:1px solid #eee;">&euro;${amountPaid.toFixed(2)}</td></tr>
           </table>
           <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="left" style="padding:8px 0 0;">
@@ -176,7 +176,7 @@ async function sendCreditPurchaseEmails(
   </table>
 </body></html>`;
 
-    await sendEmail(ADMIN_EMAIL, `Credit Purchase — ${client.contact_name} bought ${credits} credits — ${BRAND_NAME}`, adminHtml);
+    await sendEmail(ADMIN_EMAIL, `Balance top-up — ${client.contact_name} added €${credits.toFixed(2)} — ${BRAND_NAME}`, adminHtml);
     console.log(`Credit purchase admin email sent to ${ADMIN_EMAIL}`);
   }
 }

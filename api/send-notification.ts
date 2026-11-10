@@ -25,7 +25,7 @@ function emailFooter() {
             <tr>
               <td style="vertical-align:middle;">
                 <p style="margin:0 0 4px;font-size:13px;color:#333;">
-                  <strong style="color:#2563eb;">${BRAND_NAME}</strong>
+                  <strong style="color:#dc2626;">${BRAND_NAME}</strong>
                 </p>
                 <p style="margin:0;font-size:12px;color:#666;">
                   Tel: <a href="https://wa.me/38344955389" style="color:#333;text-decoration:none;">+38344955389</a> |
@@ -58,8 +58,8 @@ function fileDeliveredEmail(data: {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <!-- Title in bold red -->
-          <h1 style="margin:0 0 24px;color:#2563eb;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">YOUR FILE HAS BEEN DELIVERED</h1>
+          <!-- Title -->
+          <h1 style="margin:0 0 24px;color:#dc2626;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">YOUR FILE HAS BEEN DELIVERED</h1>
 
           <p style="margin:0 0 20px;color:#333;font-size:15px;">
             Hello <strong>${data.clientName}</strong>, thank you for using <strong>${BRAND_NAME}</strong>. Your request has been delivered.
@@ -85,7 +85,7 @@ function fileDeliveredEmail(data: {
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="left" style="padding:8px 0 0;">
               <a href="${SITE_URL}/jobs/${data.jobId}"
-                 style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
+                 style="display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
                 &rarr; Log in to portal
               </a>
             </td></tr>
@@ -116,8 +116,8 @@ function newRequestEmail(data: {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <!-- Card -->
         <tr><td style="background-color:#ffffff;border-radius:12px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <!-- Title in bold red -->
-          <h1 style="margin:0 0 24px;color:#2563eb;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">NEW REQUEST FROM ${data.clientName}</h1>
+          <!-- Title -->
+          <h1 style="margin:0 0 24px;color:#dc2626;font-size:24px;font-weight:900;text-transform:uppercase;line-height:1.3;">NEW REQUEST FROM ${data.clientName}</h1>
 
           <p style="margin:0 0 24px;color:#333;font-size:15px;">
             A new tuning request has been submitted and is waiting for your review.
@@ -147,7 +147,7 @@ function newRequestEmail(data: {
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="left" style="padding:8px 0 0;">
               <a href="${SITE_URL}/admin/jobs/${data.jobId}"
-                 style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
+                 style="display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
                 &rarr; Log in to portal
               </a>
             </td></tr>

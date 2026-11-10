@@ -14,13 +14,9 @@ import { useWelcomeCredit, formatWelcomeCredit } from '@/hooks/useSupabase';
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
   contactName: z.string().min(2, 'Name is required'),
   companyName: z.string().min(2, 'Company name is required'),
   phone: z.string().min(5, 'Phone number is required'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -103,8 +99,8 @@ export const RegisterPage: React.FC = () => {
   return (
     <AuthLayout>
       <div className="mb-8">
-        <Link to="/" className="flex items-center gap-2 mb-8 lg:hidden">
-          <img src="/logo.png" alt="ChipTuneFiles" className="h-8" />
+        <Link to="/" className="mb-8 flex justify-center rounded-xl bg-black px-5 py-5 lg:hidden">
+          <img src="/logo-wide.png" alt="ChipTuneFiles" className="w-full max-w-[320px] h-auto" />
         </Link>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Create your account</h1>
         <p className="text-zinc-500 mt-1">
@@ -135,7 +131,7 @@ export const RegisterPage: React.FC = () => {
 
         <Input
           label="Phone Number"
-          placeholder="+1 234 567 890"
+          placeholder="+49 151 2345 6789"
           leftIcon={<Phone size={18} />}
           error={errors.phone?.message}
           {...register('phone')}
@@ -167,15 +163,6 @@ export const RegisterPage: React.FC = () => {
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
-
-        <Input
-          label="Confirm Password"
-          type="password"
-          placeholder="Re-enter password"
-          leftIcon={<Lock size={18} />}
-          error={errors.confirmPassword?.message}
-          {...register('confirmPassword')}
-        />
 
         <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
           Create Account
