@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
@@ -23,15 +23,27 @@ interface NavItem {
 }
 
 // Nav is grouped rather than one long list: fourteen admin entries in a flat
-// column are hard to scan, and the first group is the daily work, so it carries
-// no heading — you reach the everyday screens without reading anything.
+// column are hard to scan. Each group collapses; only "Main" (the daily work)
+// starts open.
 interface NavGroup {
-  title?: string;
+  title: string;
   items: NavItem[];
+}
+
+const DEFAULT_OPEN_GROUP = 'Main';
+const NAV_GROUPS_STORAGE_KEY = 'sidebar-open-groups';
+
+function loadOpenGroups(): Record<string, boolean> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(NAV_GROUPS_STORAGE_KEY) || 'null');
+    if (saved && typeof saved === 'object') return saved;
+  } catch { /* storage unavailable — fall back to the default */ }
+  return { [DEFAULT_OPEN_GROUP]: true };
 }
 
 const clientNavGroups: NavGroup[] = [
   {
+    title: DEFAULT_OPEN_GROUP,
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
       { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={18} /> },
@@ -57,6 +69,7 @@ const clientNavGroups: NavGroup[] = [
 
 const adminNavGroups: NavGroup[] = [
   {
+    title: DEFAULT_OPEN_GROUP,
     items: [
       { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} /> },
       { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={18} /> },
@@ -224,6 +237,24 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
     .filter((href) => pathname === href || pathname.startsWith(href + '/'))
     .sort((a, b) => b.length - a.length)[0];
 
+  // Collapsible groups. The choice is remembered in this browser.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(loadOpenGroups);
+  const setGroupOpen = (title: string, open: boolean) => {
+    setOpenGroups((prev) => {
+      if (!!prev[title] === open) return prev;
+      const next = { ...prev, [title]: open };
+      try { localStorage.setItem(NAV_GROUPS_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  // Arriving on a page whose link sits in a closed group opens that group,
+  // so the highlighted link is never hidden.
+  const activeGroupTitle = navGroups.find((group) => group.items.some((item) => item.href === activeHref))?.title;
+  useEffect(() => {
+    if (activeGroupTitle) setGroupOpen(activeGroupTitle, true);
+  }, [activeGroupTitle]);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -233,7 +264,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
     <>
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />}
       <aside className={clsx(
-        'fixed top-0 left-0 z-50 h-screen w-64 bg-zinc-950 text-white flex flex-col',
+        'fixed top-0 left-0 z-50 h-screen w-64 bg-zinc-950 text-white flex flex-col border-r border-zinc-800',
         'transform transition-transform duration-300 ease-in-out lg:translate-x-0',
         isOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
@@ -247,14 +278,21 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
         </div>
 
         <nav className="flex-1 px-3 py-3 overflow-y-auto min-h-0">
-          {navGroups.map((group, index) => (
-            <div key={group.title ?? 'main'} className={clsx(index > 0 && 'mt-4')}>
-              {group.title && (
-                <p className="px-2.5 mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-                  {group.title}
-                </p>
-              )}
-              <div className="space-y-0.5">
+          {navGroups.map((group, index) => {
+            const open = !!openGroups[group.title];
+            return (
+            <div key={group.title} className={clsx(index > 0 && 'mt-2 pt-2 border-t border-zinc-800/70')}>
+              <button
+                type="button"
+                onClick={() => setGroupOpen(group.title, !open)}
+                aria-expanded={open}
+                className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300 transition-colors"
+              >
+                <span>{group.title}</span>
+                <ChevronDown size={14} className={clsx('transition-transform', open && 'rotate-180')} />
+              </button>
+              {open && (
+              <div className="mt-1 space-y-0.5">
                 {group.items.map((item) => (
                   <NavLink
                     key={item.href}
@@ -270,8 +308,10 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
                   </NavLink>
                 ))}
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Get the App */}
