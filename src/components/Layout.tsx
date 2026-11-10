@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard, FileUp, FolderOpen, CreditCard, LogOut,
@@ -216,6 +216,14 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
 
   const navGroups = isAdmin ? adminNavGroups : clientNavGroups;
 
+  // Highlight only the most specific link for the current page. Plain prefix
+  // matching lit up "My Jobs" on /jobs/new and "Dashboard" on every /admin page.
+  const { pathname } = useLocation();
+  const activeHref = navGroups
+    .flatMap((group) => group.items.map((item) => item.href))
+    .filter((href) => pathname === href || pathname.startsWith(href + '/'))
+    .sort((a, b) => b.length - a.length)[0];
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -252,9 +260,9 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
                     key={item.href}
                     to={item.href}
                     onClick={onClose}
-                    className={({ isActive }) => clsx(
+                    className={clsx(
                       'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
-                      isActive ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                      item.href === activeHref ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                     )}
                   >
                     {item.icon}
