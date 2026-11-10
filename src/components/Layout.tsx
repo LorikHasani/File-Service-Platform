@@ -45,24 +45,24 @@ const clientNavGroups: NavGroup[] = [
   {
     title: DEFAULT_OPEN_GROUP,
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
-      { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={18} /> },
-      { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={18} /> },
+      { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={16} /> },
+      { label: 'Upload File', href: '/jobs/new', icon: <FileUp size={16} /> },
+      { label: 'My Jobs', href: '/jobs', icon: <FolderOpen size={16} /> },
     ],
   },
   {
     title: 'Billing',
     items: [
-      { label: 'Prices', href: '/prices', icon: <DollarSign size={18} /> },
-      { label: 'Balance', href: '/credits', icon: <CreditCard size={18} /> },
-      { label: 'Invoices', href: '/invoices', icon: <Receipt size={18} /> },
+      { label: 'Prices', href: '/prices', icon: <DollarSign size={16} /> },
+      { label: 'Balance', href: '/credits', icon: <CreditCard size={16} /> },
+      { label: 'Invoices', href: '/invoices', icon: <Receipt size={16} /> },
     ],
   },
   {
     title: 'Account',
     items: [
-      { label: 'Profile', href: '/profile', icon: <User size={18} /> },
-      { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={18} /> },
+      { label: 'Profile', href: '/profile', icon: <User size={16} /> },
+      { label: 'Tickets', href: '/tickets', icon: <MessageSquare size={16} /> },
     ],
   },
 ];
@@ -71,37 +71,64 @@ const adminNavGroups: NavGroup[] = [
   {
     title: DEFAULT_OPEN_GROUP,
     items: [
-      { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} /> },
-      { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={18} /> },
-      { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={18} /> },
+      { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={16} /> },
+      { label: 'All Jobs', href: '/admin/jobs', icon: <FolderOpen size={16} /> },
+      { label: 'Tickets', href: '/admin/tickets', icon: <MessageSquare size={16} /> },
     ],
   },
   {
     title: 'Business',
     items: [
-      { label: 'Users', href: '/admin/users', icon: <Users size={18} /> },
-      { label: 'Transactions', href: '/admin/transactions', icon: <Receipt size={18} /> },
-      { label: 'Services', href: '/admin/services', icon: <Tag size={18} /> },
-      { label: 'Packages', href: '/admin/packages', icon: <Package size={18} /> },
-      { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={18} /> },
+      { label: 'Users', href: '/admin/users', icon: <Users size={16} /> },
+      { label: 'Transactions', href: '/admin/transactions', icon: <Receipt size={16} /> },
+      { label: 'Services', href: '/admin/services', icon: <Tag size={16} /> },
+      { label: 'Packages', href: '/admin/packages', icon: <Package size={16} /> },
+      { label: 'Statistics', href: '/admin/stats', icon: <BarChart3 size={16} /> },
     ],
   },
   {
     title: 'Content',
     items: [
-      { label: 'Emails', href: '/admin/emails', icon: <Mail size={18} /> },
-      { label: 'News', href: '/admin/news', icon: <Megaphone size={18} /> },
-      { label: 'Banners', href: '/admin/banners', icon: <Image size={18} /> },
+      { label: 'Emails', href: '/admin/emails', icon: <Mail size={16} /> },
+      { label: 'News', href: '/admin/news', icon: <Megaphone size={16} /> },
+      { label: 'Banners', href: '/admin/banners', icon: <Image size={16} /> },
     ],
   },
   {
     title: 'Settings',
     items: [
-      { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={18} /> },
-      { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={18} /> },
+      { label: 'Schedule', href: '/admin/schedule', icon: <Clock size={16} /> },
+      { label: 'Audit Log', href: '/admin/audit-log', icon: <Shield size={16} /> },
     ],
   },
 ];
+
+// Tile colour behind each sidebar icon, keyed by link. Full class names so
+// Tailwind keeps them. The active link uses a white-on-red tile instead.
+const NAV_ICON_COLORS: Record<string, string> = {
+  '/dashboard': 'bg-sky-500/15 text-sky-400',
+  '/jobs/new': 'bg-emerald-500/15 text-emerald-400',
+  '/jobs': 'bg-violet-500/15 text-violet-400',
+  '/prices': 'bg-amber-500/15 text-amber-400',
+  '/credits': 'bg-teal-500/15 text-teal-400',
+  '/invoices': 'bg-orange-500/15 text-orange-400',
+  '/profile': 'bg-blue-500/15 text-blue-400',
+  '/tickets': 'bg-pink-500/15 text-pink-400',
+  '/admin': 'bg-sky-500/15 text-sky-400',
+  '/admin/jobs': 'bg-violet-500/15 text-violet-400',
+  '/admin/tickets': 'bg-pink-500/15 text-pink-400',
+  '/admin/users': 'bg-blue-500/15 text-blue-400',
+  '/admin/transactions': 'bg-orange-500/15 text-orange-400',
+  '/admin/services': 'bg-amber-500/15 text-amber-400',
+  '/admin/packages': 'bg-teal-500/15 text-teal-400',
+  '/admin/stats': 'bg-emerald-500/15 text-emerald-400',
+  '/admin/emails': 'bg-cyan-500/15 text-cyan-400',
+  '/admin/news': 'bg-yellow-500/15 text-yellow-400',
+  '/admin/banners': 'bg-fuchsia-500/15 text-fuchsia-400',
+  '/admin/schedule': 'bg-indigo-500/15 text-indigo-400',
+  '/admin/audit-log': 'bg-rose-500/15 text-rose-400',
+};
+const NAV_ICON_FALLBACK = 'bg-zinc-800 text-zinc-300';
 
 // Working Hours Widget — schedule is admin-editable (see /admin/schedule)
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -130,12 +157,22 @@ function loadHoursExpanded(): boolean {
 
 const WorkingHoursWidget: React.FC<{ expanded: boolean; onToggle: () => void }> = ({ expanded, onToggle: toggle }) => {
   const { hours, loading } = useBusinessHours();
-  const today = new Date().getDay(); // 0=Sun, 1=Mon...
+  // Ticks every second while the full card is showing (for the clock), and
+  // once a minute otherwise so the open/closed line stays right.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), expanded ? 1000 : 60000);
+    return () => clearInterval(id);
+  }, [expanded]);
+  const today = now.getDay(); // 0=Sun, 1=Mon...
+  // Hours are evaluated in the visitor's own time zone, so that is the clock we show.
+  let timeZone = '';
+  try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { /* ignore */ }
 
   // Map day_of_week -> row for quick lookup.
   const byDay = new Map(hours.map((h) => [h.day_of_week, h]));
 
-  const { open, nextOpening } = getOpenStatus(hours);
+  const { open, nextOpening } = getOpenStatus(hours, now);
 
   if (loading || hours.length === 0) return null;
 
@@ -157,58 +194,70 @@ const WorkingHoursWidget: React.FC<{ expanded: boolean; onToggle: () => void }> 
   }
 
   return (
-    <div className="px-4 py-2.5 border-t border-zinc-800 flex-shrink-0">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={expanded}
-        title={expanded ? 'Hide the full week' : 'Show the full week'}
-        className="w-full flex items-center gap-2 rounded px-1 py-1 -mx-1 hover:bg-zinc-800/60 transition-colors"
-      >
-        <span className={clsx('w-2 h-2 rounded-full flex-shrink-0', open ? 'bg-green-500' : 'bg-red-500')} />
-        <span className={clsx('text-[11px] font-medium truncate', open ? 'text-green-400' : 'text-red-400')}>
-          {summary}
-        </span>
-        <ChevronDown
-          size={13}
-          className={clsx(
-            'ml-auto flex-shrink-0 text-zinc-500 transition-transform',
-            expanded && 'rotate-180'
-          )}
-        />
-      </button>
-
-      {expanded && (
-        <>
-          <div className="flex items-center gap-2 mt-2.5 mb-1.5">
-            <Clock size={13} className="text-zinc-500" />
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-              Working Hours
+    <div className="px-3 pb-3 flex-shrink-0">
+      <div className="rounded-xl bg-zinc-800/80 border border-zinc-700/60 px-3 py-2.5">
+        {!expanded ? (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={false}
+            title="Show the full week"
+            className="w-full flex items-center gap-2"
+          >
+            <span className={clsx('w-2 h-2 rounded-full flex-shrink-0', open ? 'bg-green-500' : 'bg-red-500')} />
+            <span className={clsx('text-xs font-medium truncate', open ? 'text-green-400' : 'text-red-400')}>
+              {summary}
             </span>
-          </div>
-          <div className="space-y-0.5">
-            {DISPLAY_ORDER.map((dow) => {
-              const row = byDay.get(dow);
-              if (!row) return null;
-              const label = row.is_closed
-                ? 'Closed'
-                : `${formatMinutes(row.open_minutes)} - ${formatMinutes(row.close_minutes)}`;
-              return (
-                <div
-                  key={dow}
-                  className={clsx(
-                    'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
-                    dow === today ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-500'
-                  )}
-                >
-                  <span>{DAY_LABELS[dow]}</span>
-                  <span className={row.is_closed ? 'text-red-400' : ''}>{label}</span>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+            <ChevronDown size={14} className="ml-auto flex-shrink-0 text-zinc-400" />
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded
+              title="Hide the full week"
+              className="relative w-full text-center"
+            >
+              <ChevronDown size={14} className="absolute right-0 top-0 rotate-180 text-zinc-400" />
+              <span className="block text-[11px] text-zinc-400">
+                Current Time{timeZone ? ` (${timeZone})` : ''}
+              </span>
+              <span className="block text-lg font-bold text-white tabular-nums">
+                {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span className={clsx('mt-2 flex items-center justify-center gap-2 text-sm font-semibold', open ? 'text-green-400' : 'text-red-400')}>
+                <span className={clsx('w-2.5 h-2.5 rounded-full', open ? 'bg-green-500' : 'bg-red-500')} />
+                {open ? 'Portal Open' : 'Portal Closed'}
+              </span>
+              <span className="block text-[11px] text-zinc-400 mt-0.5">{summary}</span>
+            </button>
+
+            <p className="mt-3 mb-1.5 text-center text-xs font-semibold text-zinc-200">Working Hours</p>
+            <div className="space-y-0.5">
+              {DISPLAY_ORDER.map((dow) => {
+                const row = byDay.get(dow);
+                if (!row) return null;
+                const label = row.is_closed
+                  ? 'Closed'
+                  : `${formatMinutes(row.open_minutes)} - ${formatMinutes(row.close_minutes)}`;
+                return (
+                  <div
+                    key={dow}
+                    className={clsx(
+                      'flex items-center justify-between text-[11px] px-2 py-0.5 rounded',
+                      dow === today ? 'bg-zinc-700 text-white font-medium' : 'text-zinc-400'
+                    )}
+                  >
+                    <span className="font-semibold">{DAY_LABELS[dow]}</span>
+                    <span className={row.is_closed ? 'text-red-400' : ''}>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -341,11 +390,16 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
                     to={item.href}
                     onClick={onClose}
                     className={clsx(
-                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
+                      'flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
                       item.href === activeHref ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                     )}
                   >
-                    {item.icon}
+                    <span className={clsx(
+                      'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md',
+                      item.href === activeHref ? 'bg-white/20 text-white' : (NAV_ICON_COLORS[item.href] ?? NAV_ICON_FALLBACK)
+                    )}>
+                      {item.icon}
+                    </span>
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
