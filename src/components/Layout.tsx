@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
 import {
@@ -123,20 +123,14 @@ export function formatMinutes(minutes: number): string {
 // when), and that choice is remembered.
 const HOURS_EXPANDED_KEY = 'workingHoursExpanded';
 
-const WorkingHoursWidget: React.FC = () => {
+function loadHoursExpanded(): boolean {
+  // Open unless this visitor has explicitly collapsed it before.
+  try { return localStorage.getItem(HOURS_EXPANDED_KEY) !== '0'; } catch { return true; }
+}
+
+const WorkingHoursWidget: React.FC<{ expanded: boolean; onToggle: () => void }> = ({ expanded, onToggle: toggle }) => {
   const { hours, loading } = useBusinessHours();
   const today = new Date().getDay(); // 0=Sun, 1=Mon...
-  // Open unless this visitor has explicitly collapsed it before.
-  const [expanded, setExpanded] = useState(
-    () => localStorage.getItem(HOURS_EXPANDED_KEY) !== '0'
-  );
-
-  const toggle = () => {
-    setExpanded((was) => {
-      localStorage.setItem(HOURS_EXPANDED_KEY, was ? '0' : '1');
-      return !was;
-    });
-  };
 
   // Map day_of_week -> row for quick lookup.
   const byDay = new Map(hours.map((h) => [h.day_of_week, h]));
@@ -255,6 +249,52 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
     if (activeGroupTitle) setGroupOpen(activeGroupTitle, true);
   }, [activeGroupTitle]);
 
+  // Working hours share the sidebar with the nav. When the open groups leave
+  // no room, the week folds itself to its one-line summary. Opening it by hand
+  // after that keeps it open and the sidebar scrolls instead.
+  const [hoursExpanded, setHoursExpanded] = useState(loadHoursExpanded);
+  const hoursExpandedRef = useRef(hoursExpanded);
+  hoursExpandedRef.current = hoursExpanded;
+  const hoursOpenedByHand = useRef(false);
+  const hoursAutoCollapsed = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
+
+  const toggleHours = () => {
+    const next = !hoursExpanded;
+    hoursOpenedByHand.current = next;
+    hoursAutoCollapsed.current = false;
+    try { localStorage.setItem(HOURS_EXPANDED_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+    setHoursExpanded(next);
+  };
+
+  // A change in the open groups starts over: give the week its room back if we
+  // took it, and let the size check below fold it again if it still doesn't fit.
+  useEffect(() => {
+    hoursOpenedByHand.current = false;
+    if (hoursAutoCollapsed.current) {
+      hoursAutoCollapsed.current = false;
+      setHoursExpanded(true);
+    }
+  }, [openGroups]);
+
+  useEffect(() => {
+    const outer = scrollRef.current;
+    const inner = scrollContentRef.current;
+    if (!outer || !inner || typeof ResizeObserver === 'undefined') return;
+    const check = () => {
+      const overflowing = outer.scrollHeight > outer.clientHeight + 1;
+      if (overflowing && hoursExpandedRef.current && !hoursOpenedByHand.current) {
+        hoursAutoCollapsed.current = true;
+        setHoursExpanded(false);
+      }
+    };
+    const observer = new ResizeObserver(check);
+    observer.observe(outer);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -277,7 +317,10 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-3 overflow-y-auto min-h-0">
+        {/* Everything between the logo and the account footer scrolls as one */}
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
+        <div ref={scrollContentRef} className="min-h-full flex flex-col">
+        <nav className="flex-1 px-3 py-3">
           {navGroups.map((group, index) => {
             const open = !!openGroups[group.title];
             return (
@@ -341,7 +384,9 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
         )}
 
         {/* Working Hours */}
-        {!isAdmin && <WorkingHoursWidget />}
+        {!isAdmin && <WorkingHoursWidget expanded={hoursExpanded} onToggle={toggleHours} />}
+        </div>
+        </div>
 
         <div className="p-3 border-t border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-2.5 px-2.5 py-1.5">
