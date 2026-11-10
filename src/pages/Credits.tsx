@@ -114,7 +114,7 @@ export const CreditsPage: React.FC = () => {
   const handleBuyCustom = async () => {
     const amount = Number(customAmount);
     if (!amount || amount < MIN_CUSTOM || amount > MAX_CUSTOM) {
-      toast.error(`Enter an amount between ${MIN_CUSTOM} and $€{MAX_CUSTOM.toLocaleString()}`);
+      toast.error(`Enter an amount between ${MIN_CUSTOM} and ${MAX_CUSTOM.toLocaleString()} credits`);
       return;
     }
 

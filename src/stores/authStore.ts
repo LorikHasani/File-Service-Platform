@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
 
@@ -194,8 +194,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               await get().fetchProfile();
             }
             set({ refreshKey: get().refreshKey + 1 });
-          } else if (error) {
-            // Refresh failed — genuinely logged out
+          } else if (error && !isAuthRetryableFetchError(error)) {
+            // Refresh rejected by the server — genuinely logged out. A
+            // network failure (offline, flaky mobile data) is retryable
+            // and must not throw the user out of their session.
             const currentUser = get().user;
             if (currentUser) {
               set({ user: null, session: null, profile: null, isAdmin: false });
@@ -254,6 +256,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         options: { data: metadata },
       });
       if (error) throw error;
+
+      // For an address that is already registered Supabase returns a
+      // placeholder user with no identities and sends no email — without
+      // this check the user is told to "check your email" forever.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        throw new Error('An account with this email already exists. Please sign in or reset your password.');
+      }
 
       if (data.user) {
         await new Promise((r) => setTimeout(r, 500));

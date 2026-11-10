@@ -347,7 +347,16 @@ export async function uploadFile(
       version = nextVersion;
     }
 
-    const filePath = `${jobId}/${fileType}/v${version}_${Date.now()}_${file.name}`;
+    // Supabase Storage rejects keys with non-ASCII or special characters
+    // (#, [, ], umlauts, ...), which are common in tuning file names. Only the
+    // storage key is sanitised; the real name is kept in files.original_name.
+    const safeName = file.name
+      .normalize('NFKD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Za-z0-9._-]+/g, '_')
+      .replace(/^[_.]+/, '')
+      .slice(-120) || 'file';
+    const filePath = `${jobId}/${fileType}/v${version}_${Date.now()}_${safeName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('ecu-files')

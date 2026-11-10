@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { AuthLayout } from '@/components/Layout';
 import { Button, Input } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/lib/supabase';
 
 function generateCaptcha() {
   const a = Math.floor(Math.random() * 10) + 1;
@@ -73,6 +74,16 @@ export const LoginPage: React.FC = () => {
       const { error } = await signIn(data.email, data.password);
 
       if (error) {
+        if (/email not confirmed/i.test(error.message)) {
+          const { error: resendError } = await supabase.auth.resend({ type: 'signup', email: data.email });
+          toast.error(
+            resendError
+              ? 'Your email is not confirmed yet. Open the confirmation link we emailed you (check your spam folder).'
+              : 'Your email is not confirmed yet. We just sent you a new confirmation link — check your inbox and spam folder.',
+            { duration: 12000 }
+          );
+          return;
+        }
         toast.error(error.message);
         return;
       }

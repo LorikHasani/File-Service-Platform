@@ -47,7 +47,10 @@ export const RegisterPage: React.FC = () => {
         return;
       }
 
-      toast.success('Account created! Please check your email to verify.');
+      toast.success(
+        'Account created! We sent a confirmation link to your email — open it to activate your account (check your spam folder too).',
+        { duration: 12000 }
+      );
       navigate('/login');
     } finally {
       setIsLoading(false);

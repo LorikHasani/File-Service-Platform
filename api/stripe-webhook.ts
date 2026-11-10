@@ -28,13 +28,13 @@ async function getRawBody(req: VercelRequest): Promise<Buffer> {
 // Atomic + idempotent: add_stripe_credits() locks the profile row and the
 // unique stripe_session_id index guarantees a session is credited exactly
 // once, no matter how this webhook races with /api/verify-session.
-// Returns the new balance, or null if the session was already processed.
+// Returns the balance after the purchase, whichever of the two granted it.
 async function addCreditsToUser(
   userId: string,
   credits: number,
   packageName: string,
   sessionId: string
-): Promise<number | null> {
+): Promise<number> {
   const { data: result, error } = await supabase.rpc('add_stripe_credits', {
     p_user_id: userId,
     p_credits: credits,
@@ -52,8 +52,8 @@ async function addCreditsToUser(
   }
 
   if (row.status === 'already_processed') {
-    console.log(`Session ${sessionId} already processed — skipping`);
-    return null;
+    console.log(`Session ${sessionId} already credited by /api/verify-session`);
+    return Number(row.new_balance);
   }
 
   console.log(`Added ${credits} credits to user ${userId}. Balance: ${row.new_balance}`);
@@ -218,13 +218,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const balanceAfter = await addCreditsToUser(userId, credits, packageName, session.id);
 
-      // Send email notifications only when this call actually granted the
-      // credits (fire-and-forget — don't block webhook response)
-      if (balanceAfter !== null) {
+      // The webhook is the only place the purchase emails are sent, so send
+      // them even when /api/verify-session won the race and granted the
+      // credits. Awaited: a serverless function can be frozen as soon as the
+      // response is sent, which silently dropped fire-and-forget emails. A
+      // failed email must not fail the webhook (Stripe would retry it).
+      try {
         const amountPaid = (session.amount_total || 0) / 100;
-        sendCreditPurchaseEmails(userId, credits, packageName, amountPaid, balanceAfter).catch((err) => {
-          console.error('Failed to send credit purchase emails:', err.message || err);
-        });
+        await sendCreditPurchaseEmails(userId, credits, packageName, amountPaid, balanceAfter);
+      } catch (err: any) {
+        console.error('Failed to send credit purchase emails:', err?.message || err);
       }
     }
 

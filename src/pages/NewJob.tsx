@@ -231,6 +231,7 @@ export const NewJobPage: React.FC = () => {
     if (!professionalDeclaration) return toast.error('Please confirm the professional declaration');
 
     setIsSubmitting(true);
+    let uploadFailed = false;
     try {
       const serviceCodes = [...(selectedStage ? [selectedStage] : []), ...selectedOptions];
       const makeName = vehicle.makes.find((m) => m.value === vehicle.selectedMake)?.label || '';
@@ -264,7 +265,13 @@ export const NewJobPage: React.FC = () => {
           car_notes: methodValue || null,
         }).eq('id', jobId);
 
-        const { error: uploadError } = await uploadFile(jobId, file, 'original');
+        let { error: uploadError } = await uploadFile(jobId, file, 'original');
+        if (uploadError) {
+          // One retry — most failures here are a dropped connection.
+          console.error('File upload error, retrying:', uploadError);
+          ({ error: uploadError } = await uploadFile(jobId, file, 'original'));
+        }
+        uploadFailed = !!uploadError;
         if (uploadError) console.error('File upload error:', uploadError);
         sendNotification('new_request', jobId);
         notifyAdmins(
@@ -296,8 +303,16 @@ export const NewJobPage: React.FC = () => {
       }
 
       await fetchProfile();
-      toast.success('Job submitted successfully!');
-      navigate('/jobs');
+      if (uploadFailed) {
+        toast.error(
+          'Your request was created, but the file did not upload. Please contact us on WhatsApp or open a support ticket so we can add it.',
+          { duration: 15000 }
+        );
+        navigate(jobId ? `/jobs/${jobId}` : '/jobs');
+      } else {
+        toast.success('Job submitted successfully!');
+        navigate('/jobs');
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create job');
     } finally {
