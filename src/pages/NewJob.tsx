@@ -643,7 +643,7 @@ export const NewJobPage: React.FC = () => {
                     <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3 flex items-center gap-2">
                       <Settings size={16} /> {cat.name} <span className="text-red-500">*</span>
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
                       {cat.services.map((svc) => {
                         const sel = selectedStage === svc.code;
                         return (
@@ -651,13 +651,13 @@ export const NewJobPage: React.FC = () => {
                             key={svc.code} type="button"
                             onClick={() => setSelectedStage(sel ? '' : svc.code)}
                             className={clsx(
-                              'flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all text-center',
+                              'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center',
                               sel ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:border-zinc-300 dark:hover:border-zinc-600'
                             )}
                           >
-                            <Cpu size={24} className={sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-400 dark:text-zinc-500'} />
-                            <span className="font-semibold text-sm text-zinc-900 dark:text-white">{svc.name}</span>
-                            <span className={clsx('text-sm font-bold', sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-500')}>
+                            <Cpu size={18} className={sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-400 dark:text-zinc-500'} />
+                            <span className="font-semibold text-xs leading-tight text-zinc-900 dark:text-white">{svc.name}</span>
+                            <span className={clsx('text-xs font-bold', sel ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-500')}>
                               €{priceFor(svc, clientToolType)}
                             </span>
                           </button>
@@ -675,7 +675,7 @@ export const NewJobPage: React.FC = () => {
                       {cat.name}
                       <span className="text-zinc-400 dark:text-zinc-600">({cat.services.length} available)</span>
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
                       {cat.services.map((svc) => {
                         const sel = selectedOptions.includes(svc.code);
                         return (
@@ -683,11 +683,11 @@ export const NewJobPage: React.FC = () => {
                             key={svc.code} type="button"
                             onClick={() => toggleOption(svc.code)}
                             className={clsx(
-                              'relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center',
+                              'relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center',
                               sel ? 'border-green-500 bg-green-50 dark:bg-green-500/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:border-zinc-300 dark:hover:border-zinc-600'
                             )}
                           >
-                            <Settings size={20} className={sel ? 'text-green-500 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500'} />
+                            <Settings size={18} className={sel ? 'text-green-500 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500'} />
                             <span className="text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300">{svc.name}</span>
                             <span className={clsx('text-xs font-bold', sel ? 'text-green-600 dark:text-green-400' : 'text-blue-500 dark:text-blue-400')}>
                               +€{priceFor(svc, clientToolType)}

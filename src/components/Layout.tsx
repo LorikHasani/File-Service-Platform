@@ -286,10 +286,10 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
                 type="button"
                 onClick={() => setGroupOpen(group.title, !open)}
                 aria-expanded={open}
-                className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300 transition-colors"
+                className="flex w-full items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 transition-colors"
               >
                 <span>{group.title}</span>
-                <ChevronDown size={14} className={clsx('transition-transform', open && 'rotate-180')} />
+                <ChevronDown size={16} className={clsx('transition-transform', open && 'rotate-180')} />
               </button>
               {open && (
               <div className="mt-1 space-y-0.5">
