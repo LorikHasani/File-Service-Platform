@@ -53,13 +53,13 @@ export const DashboardPage: React.FC = () => {
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
                 {balance > 0
                   ? 'Try us on your next car — no payment needed to send your first file.'
-                  : 'Most files come back in under 15 minutes during working hours.'}
+                  : 'Most files come back in 2 to 10 minutes during working hours.'}
               </p>
               <ol className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
                 {[
                   ['1', 'Upload the original file', 'Read with your master or slave tool.'],
                   ['2', 'Choose what you need', 'Stage, DPF, EGR, AdBlue and more.'],
-                  ['3', 'Download the tuned file', 'Usually within 15 minutes. Revisions are free.'],
+                  ['3', 'Download the tuned file', 'Usually within 2 to 10 minutes. Revisions are free.'],
                 ].map(([n, title, desc]) => (
                   <li key={n} className="flex gap-3">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-white text-xs font-bold">{n}</span>
