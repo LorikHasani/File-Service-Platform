@@ -62,7 +62,11 @@ import { AdminAuditLogPage } from '@/pages/admin/AdminAuditLog';
 // (which it almost always does), the user never notices.
 // Genuine sign-outs use window.location (hard nav) so they bypass
 // this entirely.
-const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }) => {
+const ProtectedRoute: React.FC<{ adminOnly?: boolean; clientOnly?: boolean }> = ({
+  adminOnly = false,
+  clientOnly = false,
+}) => {
+  const { pathname } = useLocation();
   const isAuthenticated = useAuthStore((s) => !!s.user);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const isLoading = useAuthStore((s) => s.isLoading);
@@ -104,9 +108,19 @@ const ProtectedRoute: React.FC<{ adminOnly?: boolean }> = ({ adminOnly = false }
   }
 
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
+  if (clientOnly && isAdmin) return <Navigate to={adminPathFor(pathname)} replace />;
 
   return <Outlet />;
 };
+
+// Where an admin lands when they open a client-only URL: the matching admin
+// page for jobs and tickets, the admin dashboard for everything else.
+function adminPathFor(pathname: string): string {
+  const detail = pathname.match(/^\/(jobs|tickets)\/([^/]+)$/);
+  if (detail && detail[2] !== 'new') return `/admin/${detail[1]}/${detail[2]}`;
+  if (pathname === '/jobs' || pathname === '/tickets') return `/admin${pathname}`;
+  return '/admin';
+}
 
 // Public Route
 const PublicRoute: React.FC = () => {
@@ -241,7 +255,7 @@ const App: React.FC = () => {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Client Routes */}
-        <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute clientOnly />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/jobs" element={<JobsListPage />} />
           <Route path="/jobs/new" element={<NewJobPage />} />
